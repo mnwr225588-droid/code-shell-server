@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
+use App\Http\Controllers\Api\AdminContentController;
+use App\Models\Level;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +19,31 @@ use App\Http\Controllers\Api\ReservationController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+/*
+|--------------------------------------------------------------------------
+| Admin Routes (إضافة المستويات والدروس والاختبارات)
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/admin/levels', [AdminContentController::class, 'storeLevel']);
+Route::post('/admin/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
+
+/*
+|--------------------------------------------------------------------------
+| Course Content & Levels Route (جلب البيانات مرتبة للتطبيق)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/levels/{course_id}', function ($course_id) {
+    return response()->json([
+        'status' => true,
+        'data'   => Level::where('course_id', $course_id)
+            ->orderBy('order_num', 'asc')
+            ->with(['lessons.questions.options'])
+            ->get()
+    ]);
+});
 
 /*
 |--------------------------------------------------------------------------
