@@ -6,11 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Level extends Model
 {
-    protected $fillable = ['course_id', 'title', 'order_num'];
+    protected $guarded = [];
 
-    // العلاقة: المستوى يحتوي على عدة دروس
     public function lessons()
     {
-        return $this->hasMany(Lesson::class);
+        return $this->hasMany(Lesson::class)->orderBy('order_num', 'asc');
     }
 }
