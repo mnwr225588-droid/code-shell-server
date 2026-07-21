@@ -9,41 +9,49 @@ return new class extends Migration
     public function up(): void
     {
         // 1. جدول المستويات (مرتبط بجداول الكورسات/اللغات)
-        Schema::create('levels', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('course_id')->nullable()->constrained('courses')->onDelete('cascade');
-            $table->string('title'); // عنوان المستوى (مثل: المستوى الأول)
-            $table->integer('order_num')->default(1); // رقم الترتيب (1, 2, 3...)
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('levels')) {
+            Schema::create('levels', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('course_id')->nullable()->constrained('courses')->onDelete('cascade');
+                $table->string('title'); // عنوان المستوى (مثل: المستوى الأول)
+                $table->integer('order_num')->default(1); // رقم الترتيب (1, 2, 3...)
+                $table->timestamps();
+            });
+        }
 
         // 2. جدول الدروس (مرتبط بالمستوى)
-        Schema::create('lessons', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('level_id')->constrained('levels')->onDelete('cascade');
-            $table->string('title'); // عنوان الدرس
-            $table->text('description')->nullable(); // وصف الدرس
-            $table->string('thumbnail')->nullable(); // صورة مصغرة
-            $table->string('video_url'); // رابط أو مسار الفيديو
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('lessons')) {
+            Schema::create('lessons', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('level_id')->constrained('levels')->onDelete('cascade');
+                $table->string('title'); // عنوان الدرس
+                $table->text('description')->nullable(); // وصف الدرس
+                $table->string('thumbnail')->nullable(); // صورة مصغرة
+                $table->string('video_url'); // رابط أو مسار الفيديو
+                $table->timestamps();
+            });
+        }
 
         // 3. جدول الأسئلة (مرتبط بالدرس)
-        Schema::create('questions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('lesson_id')->constrained('lessons')->onDelete('cascade');
-            $table->text('question_text'); // نص السؤال
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('questions')) {
+            Schema::create('questions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('lesson_id')->constrained('lessons')->onDelete('cascade');
+                $table->text('question_text'); // نص السؤال
+                $table->timestamps();
+            });
+        }
 
         // 4. جدول الخيارات (مرتبط بالسؤال)
-        Schema::create('options', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('question_id')->constrained('questions')->onDelete('cascade');
-            $table->string('option_text'); // نص الخيار
-            $table->boolean('is_correct')->default(false); // هل هو الإجابة الصحيحة؟
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('options')) {
+            Schema::create('options', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('question_id')->constrained('questions')->onDelete('cascade');
+                $table->string('option_text'); // نص الخيار
+                $table->boolean('is_correct')->default(false); // هل هو الإجابة الصحيحة؟
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
