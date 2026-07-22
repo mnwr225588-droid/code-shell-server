@@ -47,8 +47,8 @@ class TelegramWebhookController extends Controller
                     ['text' => '🔄 إعادة عرض بياناتي', 'callback_data' => 'show_my_card']
                 ],
                 [
-                    ['text' => '📞 التواصل مع الدعم', 'callback_data' => 'show_support'],
-                    ['text' => '🌐 مواقع التواصل', 'callback_data' => 'show_social']
+                    ['text' => '💬 التواصل مع الدعم', 'callback_data' => 'show_support'],
+                    ['text' => '🌐 مواقع التواصل الاجتماعي', 'callback_data' => 'show_social']
                 ],
                 [
                     ['text' => '📣 مشاركة البوت', 'switch_inline_query' => 'جرب بوت CodeShell للأمان!']
@@ -62,8 +62,8 @@ class TelegramWebhookController extends Controller
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '💬 واتساب', 'url' => 'https://wa.me/201097167348'],
-                    ['text' => '✉️ بريد إلكتروني', 'url' => 'mailto:codeshell.dev@gmail.com']
+                    ['text' => '🟢 واتساب الدعم الفني', 'url' => 'https://wa.me/201097167348'],
+                    ['text' => '✉️ مراسلة البريد', 'url' => 'https://mailto.to/codeshell.dev@gmail.com']
                 ],
                 [
                     ['text' => '🏠 العودة للقائمة الرئيسية', 'callback_data' => 'back_to_menu']
@@ -77,12 +77,12 @@ class TelegramWebhookController extends Controller
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '▶️ يوتيوب', 'url' => 'https://youtube.com/@CodeShell'], 
-                    ['text' => '🎵 تيك توك', 'url' => 'https://tiktok.com/@CodeShell']
+                    ['text' => '▶️ YouTube', 'url' => 'https://youtube.com/@CodeShell'], 
+                    ['text' => '🎵 TikTok', 'url' => 'https://tiktok.com/@CodeShell']
                 ],
                 [
-                    ['text' => '📘 فيسبوك', 'url' => 'https://facebook.com/CodeShell'],
-                    ['text' => '📸 إنستغرام', 'url' => 'https://instagram.com/CodeShell']
+                    ['text' => '📘 Facebook', 'url' => 'https://facebook.com/CodeShell'],
+                    ['text' => '📸 Instagram', 'url' => 'https://instagram.com/CodeShell']
                 ],
                 [
                     ['text' => '🏠 العودة للقائمة الرئيسية', 'callback_data' => 'back_to_menu']
@@ -115,23 +115,7 @@ class TelegramWebhookController extends Controller
 
         $data = $request->all();
 
-        if (isset($data['message'])) {
-            $chatId = $data['message']['chat']['id'];
-            $text = trim($data['message']['text'] ?? '');
-
-            if (str_starts_with($text, '/start')) {
-                $parts = explode(' ', $text);
-                $token = $parts[1] ?? null;
-                if ($token) {
-                    $this->processStartWithToken($chatId, $token);
-                } else {
-                    $this->sendWelcomeMenu($chatId);
-                }
-            } else {
-                $this->sendWelcomeMenu($chatId);
-            }
-        }
-
+        // استجابة فورية للأزرار لمنع التأخير (Instant UI Feedback)
         if (isset($data['callback_query'])) {
             $callbackQuery = $data['callback_query'];
             $callbackId = $callbackQuery['id'];
@@ -139,6 +123,7 @@ class TelegramWebhookController extends Controller
             $callbackData = $callbackQuery['data'];
             $messageId = $callbackQuery['message']['message_id'];
 
+            // إرسال رد الإقرار فوراً لتليجرام حتى لا يتأخر الزر
             $this->sendTelegramApi('answerCallbackQuery', ['callback_query_id' => $callbackId]);
 
             if ($callbackData === 'back_to_menu') {
@@ -157,13 +142,32 @@ class TelegramWebhookController extends Controller
             } elseif ($callbackData === 'get_otp') {
                 $this->generateOtpCode($chatId, $messageId);
             }
+
+            return response()->json(['status' => 'success']);
+        }
+
+        if (isset($data['message'])) {
+            $chatId = $data['message']['chat']['id'];
+            $text = trim($data['message']['text'] ?? '');
+
+            if (str_starts_with($text, '/start')) {
+                $parts = explode(' ', $text);
+                $token = $parts[1] ?? null;
+                if ($token) {
+                    $this->processStartWithToken($chatId, $token);
+                } else {
+                    $this->sendWelcomeMenu($chatId);
+                }
+            } else {
+                $this->sendWelcomeMenu($chatId);
+            }
         }
 
         return response()->json(['status' => 'success']);
     }
 
     // ============================================================
-    // 3. دوال المعالجة
+    // 3. دوال المعالجة والقوائم
     // ============================================================
 
     protected function processStartWithToken($chatId, $token)
@@ -291,16 +295,10 @@ class TelegramWebhookController extends Controller
         }
     }
 
-    // ============================================================
-    // 4. دوال القوائم الفرعية
-    // ============================================================
-
     protected function sendSupportMenu($chatId, $messageId)
     {
-        $text = "📞 *التواصل مع الدعم*\n━━━━━━━━━━━━━━━━━━━\n\n";
-        $text .= "اختر وسيلة التواصل المناسبة لك:\n";
-        $text .= "• *واتساب:* للدعم الفوري عبر المحادثة.\n";
-        $text .= "• *البريد الإلكتروني:* للمراسلات الرسمية.";
+        $text = "💬 *مركز الدعم الفني*\n━━━━━━━━━━━━━━━━━━━\n\n";
+        $text .= "اختر وسيلة التواصل المناسبة لك من الأزرار أدناه:";
 
         $this->sendTelegramApi('editMessageText', [
             'chat_id' => $chatId,
@@ -313,8 +311,8 @@ class TelegramWebhookController extends Controller
 
     protected function sendSocialMenu($chatId, $messageId)
     {
-        $text = "🌐 *تابعنا على مواقع التواصل*\n━━━━━━━━━━━━━━━━━━━\n\n";
-        $text .= "انضم إلينا على منصاتنا الرسمية لتحصل على آخر التحديثات.";
+        $text = "🌐 *منصاتنا على مواقع التواصل*\n━━━━━━━━━━━━━━━━━━━\n\n";
+        $text .= "تابع حساباتنا الرسمية للحصول على أحدث التحديثات والأخبار:";
 
         $this->sendTelegramApi('editMessageText', [
             'chat_id' => $chatId,
@@ -333,7 +331,7 @@ class TelegramWebhookController extends Controller
         $text = "🏠 *القائمة الرئيسية*\n━━━━━━━━━━━━━━━━━━━\n\n";
         $text .= "مرحباً {$name}!\nاختر ما تريد فعله من الأزرار أدناه:\n\n";
         $text .= "• *تغيير كلمة المرور:* للحصول على كود تغيير كلمة السر.\n";
-        $text .= "• *الدعم:* للتواصل مع فريق الدعم عبر واتساب أو البريد.\n";
+        $text .= "• *الدعم:* للتواصل مع فريق الدعم.\n";
         $text .= "• *مواقع التواصل:* لمتابعتنا على السوشيال ميديا.";
 
         $this->sendTelegramApi('editMessageText', [
@@ -407,7 +405,7 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 5. دوال المساعدة العامة
+    // 4. دوال التواصل مع API تليجرام
     // ============================================================
 
     protected function sendMessage($chatId, $text)
@@ -428,14 +426,6 @@ class TelegramWebhookController extends Controller
 
         try {
             $response = Http::post("https://api.telegram.org/bot{$this->botToken}/{$method}", $params);
-            
-            if (!$response->successful()) {
-                // تجنب تسجيل الأخطاء العادية الخاصة بضغط نفس الزر مرتين
-                if (!str_contains($response->body(), 'message is not modified')) {
-                    Log::error("Telegram API Error [{$method}]: " . $response->body());
-                }
-            }
-
             return $response->json();
         } catch (\Exception $e) {
             Log::error("Telegram Exception [{$method}]: " . $e->getMessage());
