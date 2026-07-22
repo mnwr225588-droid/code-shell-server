@@ -46,7 +46,7 @@ class TelegramWebhookController extends Controller
             'inline_keyboard' => [
                 [
                     ['text' => '🔑 طلب كود OTP', 'callback_data' => 'get_otp'],
-                    ['text' => '⚙️ تغيير كلمة السر', 'web_app' => ['url' => 'https://codeshell.app/settings/change-password']]
+                    ['text' => '⚙️ تغيير كلمة السر', 'web_app' => ['url' => 'https://code-shell-server-production.up.railway.app/settings/change-password']]
                 ],
                 [
                     ['text' => '🆘 دعم فني', 'url' => 'https://t.me/CodeShell_Support'],
