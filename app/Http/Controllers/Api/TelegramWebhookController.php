@@ -62,8 +62,8 @@ class TelegramWebhookController extends Controller
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '🟢 واتساب الدعم الفني', 'url' => 'https://wa.me/201097167348'],
-                    ['text' => '✉️ مراسلة البريد', 'url' => 'https://mailto.to/codeshell.dev@gmail.com']
+                    ['text' => 'واتساب الدعم الفني', 'url' => 'https://wa.me/201097167348'],
+                    ['text' => 'Gmail', 'url' => 'https://mail.google.com/mail/?view=cm&fs=1&to=codeshell.dev@gmail.com']
                 ],
                 [
                     ['text' => '🏠 العودة للقائمة الرئيسية', 'callback_data' => 'back_to_menu']
@@ -77,12 +77,12 @@ class TelegramWebhookController extends Controller
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '▶️ YouTube', 'url' => 'https://youtube.com/@CodeShell'], 
-                    ['text' => '🎵 TikTok', 'url' => 'https://tiktok.com/@CodeShell']
+                    ['text' => 'YouTube', 'url' => 'https://youtube.com/@CodeShell'], 
+                    ['text' => 'TikTok', 'url' => 'https://tiktok.com/@CodeShell']
                 ],
                 [
-                    ['text' => '📘 Facebook', 'url' => 'https://facebook.com/CodeShell'],
-                    ['text' => '📸 Instagram', 'url' => 'https://instagram.com/CodeShell']
+                    ['text' => 'Facebook', 'url' => 'https://facebook.com/CodeShell'],
+                    ['text' => 'Instagram', 'url' => 'https://instagram.com/CodeShell']
                 ],
                 [
                     ['text' => '🏠 العودة للقائمة الرئيسية', 'callback_data' => 'back_to_menu']
