@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\AdminContentController;
 use App\Http\Controllers\Api\TelegramAuthController;
+use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Models\Level;
 
 /*
@@ -20,6 +21,14 @@ use App\Models\Level;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+/*
+|--------------------------------------------------------------------------
+| Telegram Bot Webhook Route
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------
