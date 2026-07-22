@@ -42,7 +42,7 @@ class TelegramWebhookController extends Controller
             }
         }
 
-        // 2. معالجة ضغطات الأزرار التفاعلية (Callback Queries)
+        // 2. معالجة الضغط على الأزرار التفاعلية
         if (isset($data['callback_query'])) {
             $callbackQuery = $data['callback_query'];
             $chatId = $callbackQuery['message']['chat']['id'];
@@ -54,18 +54,13 @@ class TelegramWebhookController extends Controller
                 $this->processAccountVerification($chatId, $userId, $messageId);
             } elseif (str_starts_with($callbackData, 'get_otp_')) {
                 $userId = str_replace('get_otp_', '', $callbackData);
-                $this->generateOtpCode($chatId, $userId, $messageId);
-            } elseif ($callbackData === 'my_status') {
-                $this->checkAccountStatus($chatId, $messageId);
+                $this->generateOtpCode($chatId, $userId);
             }
         }
 
         return response()->json(['status' => 'success']);
     }
 
-    /**
-     * جلب الاسم الكامل للمستخدم بدمج أجزاء الاسم
-     */
     protected function getFullName($user): string
     {
         $nameParts = array_filter([
@@ -78,34 +73,35 @@ class TelegramWebhookController extends Controller
     }
 
     /**
-     * بطاقة توثيق الحساب الاحترافية (تظهر عند فتح البوت من التطبيق)
+     * بطاقة تفعيل وتأكيد الحساب الرئيسية
      */
     protected function sendVerificationCard($chatId, $userId)
     {
         $user = User::find($userId);
 
         if (!$user) {
-            $this->sendMessage($chatId, "⚠️ *عفواً، لم نتمكن من العثور على هذا الحساب في قاعدة البيانات.*");
+            $this->sendMessage($chatId, "⚠️ عفواً، لم نتمكن من العثور على هذا الحساب في النظام.");
             return;
         }
 
-        $fullName = $this->getFullName($user);
+        $fullName = e($this->getFullName($user));
+        $email = e($user->email);
         $isVerified = $user->email_verified_at ? "✅ مفعل" : "❌ غير مفعل";
 
-        $message = "🌐 *منصة Code Shell Security*\n";
+        $message = "🛡️ *مركز حماية Code Shell*\n";
         $message .= "━━━━━━━━━━━━━━━━━━━\n\n";
-        $message .= "مرحباً بك يا *{$fullName}* 👋\n\n";
-        $message .= "📌 *بيانات الحساب:*\n";
-        $message .= "• *الاسم الثلاثي:* {$fullName}\n";
-        $message .= "• *البريد الإلكتروني:* `{$user->email}`\n";
-        $message .= "• *حالة التفعيل:* {$isVerified}\n\n";
-        $message .= "يرجى اختيار الإجراء المطلوب من الأزرار أدناه 👇";
+        $message .= "مرحباً بك *{$fullName}* 👋\n\n";
+        $message .= "📋 *بيانات الحساب:*\n";
+        $message .= "• *الاسم:* {$fullName}\n";
+        $message .= "• *البريد:* `{$email}`\n";
+        $message .= "• *التفعيل:* {$isVerified}\n\n";
+        $message .= "اختر الإجراء المطلوب من الأزرار أدناه 👇";
 
         $buttons = [];
 
         if (!$user->email_verified_at) {
             $buttons[] = [
-                ['text' => '✅ تأكيد وتفعيل هذا الحساب', 'callback_data' => 'verify_' . $user->id]
+                ['text' => '✅ تفعيل البريد الإلكتروني', 'callback_data' => 'verify_' . $user->id]
             ];
         }
 
@@ -113,18 +109,16 @@ class TelegramWebhookController extends Controller
             ['text' => '🔑 طلب كود تغيير كلمة السر (OTP)', 'callback_data' => 'get_otp_' . $user->id]
         ];
 
-        $keyboard = ['inline_keyboard' => $buttons];
-
         $this->sendTelegramApi('sendMessage', [
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'Markdown',
-            'reply_markup' => json_encode($keyboard)
+            'reply_markup' => json_encode(['inline_keyboard' => $buttons])
         ]);
     }
 
     /**
-     * معالجة ضغطة زر تفعيل الحساب
+     * معالجة تفعيل الحساب
      */
     protected function processAccountVerification($chatId, $userId, $messageId)
     {
@@ -135,18 +129,19 @@ class TelegramWebhookController extends Controller
             $user->telegram_chat_id = $chatId;
             $user->save();
 
-            $fullName = $this->getFullName($user);
+            $fullName = e($this->getFullName($user));
+            $email = e($user->email);
 
-            $successText = "🎉 *تم تأكيد وتفعيل بريدك الإلكتروني بنجاح!*\n";
+            $successText = "🎉 *تم تفعيل بريدك الإلكتروني بنجاح!*\n";
             $successText .= "━━━━━━━━━━━━━━━━━━━\n\n";
             $successText .= "• *الاسم:* {$fullName}\n";
-            $successText .= "• *البريد:* `{$user->email}`\n";
-            $successText .= "• *الحالة:* مفعل ومربوط بالبوت ✅\n\n";
-            $successText .= "يمكنك الآن العودة لتطبيق *Code Shell* والاستفادة من كافة الخدمات!";
+            $successText .= "• *البريد:* `{$email}`\n";
+            $successText .= "• *الحالة:* مفعل ✅\n\n";
+            $successText .= "يمكنك الآن العودة لتطبيق *Code Shell* واستخدام كافة الخدمات!";
 
             $keyboard = [
                 'inline_keyboard' => [
-                    [['text' => '🔑 طلب كود تغيير كلمة السر', 'callback_data' => 'get_otp_' . $user->id]]
+                    [['text' => '🔑 طلب كود تغيير كلمة السر (OTP)', 'callback_data' => 'get_otp_' . $user->id]]
                 ]
             ];
 
@@ -161,23 +156,28 @@ class TelegramWebhookController extends Controller
     }
 
     /**
-     * إنشاء كود OTP لتغيير كلمة السر من إعدادات التطبيق
+     * إنشاء كود OTP وإرشاد المستخدم للتوجه للسيفر/التطبيق
+     * الميزة: تتيح نسخ الكود بنقرة واحدة بفضل خاصية Monospace
      */
-    protected function generateOtpCode($chatId, $userId, $messageId)
+    protected function generateOtpCode($chatId, $userId)
     {
         $user = User::find($userId);
 
         if ($user) {
             $otp = rand(100000, 999999);
             
+            // حفظ الكود لمدة 10 دقائق
             Cache::put('telegram_otp_' . $user->email, $otp, now()->addMinutes(10));
 
-            $otpText = "🔐 *كود التحقق الخاص بك (OTP)*\n";
+            $otpText = "🔑 *كود تغيير كلمة السر (OTP)*\n";
             $otpText .= "━━━━━━━━━━━━━━━━━━━\n\n";
-            $otpText .= "رمز التغيير الخاص بك هو:\n";
-            $otpText .= "👉 `{$otp}` 👈\n\n";
-            $otpText .= "⏱️ *الرمز صالحة لمدة 10 دقائق فقط.*\n";
-            $otpText .= "قم بنسخ الرقم وإدخاله في نافذة إعدادات البوت داخل التطبيق لتغيير كلمة السر.";
+            $otpText .= "انقر على الرقم أدناه لنسخه فوراً 👇\n\n";
+            $otpText .= "`{$otp}`\n\n";
+            $otpText .= "⏱️ *الرمز صالح لمدة 10 دقائق فقط.*\n\n";
+            $otpText .= "📱 *خطوات الاستخدام:*\n";
+            $otpText .= "1️⃣ اضغط على الرقم أعلاه لنسخه تلقائياً.\n";
+            $otpText .= "2️⃣ افتح تطبيق *Code Shell* واذهب إلى *الإعدادات*.\n";
+            $otpText .= "3️⃣ اضغط على *تغيير كلمة السر* وادخل الكود لتأكيده.";
 
             $this->sendTelegramApi('sendMessage', [
                 'chat_id' => $chatId,
@@ -187,14 +187,10 @@ class TelegramWebhookController extends Controller
         }
     }
 
-    /**
-     * قائمة الترحيب العامة للبوت
-     */
     protected function sendWelcomeMenu($chatId)
     {
         $text = "🤖 *أهلاً بك في بوت Code Shell الرسمي*\n\n";
-        $text .= "هذا البوت مخصص لتأكيد الحسابات وإدارة الأمان الخاصة بتطبيق Code Shell.\n\n";
-        $text .= "لفتح حسابك وتأكيده، يرجى الضغط على زر *تأكيد الحساب* من داخل التطبيق.";
+        $text .= "استخدم زر التفعيل من داخل التطبيق لفتح حسابك وتأكيده هنا تلقائياً.";
 
         $this->sendTelegramApi('sendMessage', [
             'chat_id' => $chatId,
