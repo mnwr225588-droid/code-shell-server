@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 class TelegramWebhookController extends Controller
 {
@@ -33,8 +32,7 @@ class TelegramWebhookController extends Controller
                     ['text' => '✅ تأكيد وربط الحساب', 'callback_data' => 'verify_' . $token]
                 ],
                 [
-                    ['text' => '❓ كيف يعمل هذا البوت؟', 'callback_data' => 'help_verification'],
-                    ['text' => '📱 فتح التطبيق', 'url' => 'https://codeshell.app/download']
+                    ['text' => '❓ كيف يعمل هذا البوت؟', 'callback_data' => 'help_verification']
                 ]
             ]
         ];
@@ -45,15 +43,49 @@ class TelegramWebhookController extends Controller
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '🔑 طلب كود OTP', 'callback_data' => 'get_otp'],
-                    ['text' => '⚙️ تغيير كلمة السر', 'web_app' => ['url' => 'https://code-shell-server-production.up.railway.app/settings/change-password']]
-                ],
-                [
-                    ['text' => '🆘 دعم فني', 'url' => 'https://t.me/CodeShell_Support'],
-                    ['text' => '📣 مشاركة البوت', 'switch_inline_query' => 'جرب بوت CodeShell للأمان!']
-                ],
-                [
+                    ['text' => '🔑 تغيير كلمة المرور', 'callback_data' => 'get_otp'],
                     ['text' => '🔄 إعادة عرض بياناتي', 'callback_data' => 'show_my_card']
+                ],
+                [
+                    ['text' => '📞 التواصل مع الدعم', 'callback_data' => 'show_support'],
+                    ['text' => '🌐 مواقع التواصل', 'callback_data' => 'show_social']
+                ],
+                [
+                    ['text' => '📣 مشاركة البوت', 'switch_inline_query' => 'جرب بوت CodeShell للأمان!']
+                ]
+            ]
+        ];
+    }
+
+    protected function getSupportKeyboard(): array
+    {
+        return [
+            'inline_keyboard' => [
+                [
+                    ['text' => '💬 واتساب', 'url' => 'https://wa.me/201097167348'],
+                    ['text' => '✉️ بريد إلكتروني', 'url' => 'mailto:codeshell.dev@gmail.com']
+                ],
+                [
+                    ['text' => '🏠 العودة للقائمة الرئيسية', 'callback_data' => 'back_to_menu']
+                ]
+            ]
+        ];
+    }
+
+    protected function getSocialKeyboard(): array
+    {
+        return [
+            'inline_keyboard' => [
+                [
+                    ['text' => '▶️ يوتيوب', 'url' => 'https://youtube.com/@CodeShell'], 
+                    ['text' => '🎵 تيك توك', 'url' => 'https://tiktok.com/@CodeShell']
+                ],
+                [
+                    ['text' => '📘 فيسبوك', 'url' => 'https://facebook.com/CodeShell'],
+                    ['text' => '📸 إنستغرام', 'url' => 'https://instagram.com/CodeShell']
+                ],
+                [
+                    ['text' => '🏠 العودة للقائمة الرئيسية', 'callback_data' => 'back_to_menu']
                 ]
             ]
         ];
@@ -64,7 +96,6 @@ class TelegramWebhookController extends Controller
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '📥 تحميل التطبيق', 'url' => 'https://codeshell.app/download'],
                     ['text' => '❓ التعليمات', 'callback_data' => 'help_welcome']
                 ]
             ]
@@ -77,7 +108,6 @@ class TelegramWebhookController extends Controller
 
     public function handle(Request $request)
     {
-        // التحقق من Header الأمان Secret Token
         if ($this->secretToken && $request->header('X-Telegram-Bot-Api-Secret-Token') !== $this->secretToken) {
             Log::warning('Unauthorized Telegram Webhook attempt.');
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -85,7 +115,6 @@ class TelegramWebhookController extends Controller
 
         $data = $request->all();
 
-        // معالجة الرسائل العادية
         if (isset($data['message'])) {
             $chatId = $data['message']['chat']['id'];
             $text = trim($data['message']['text'] ?? '');
@@ -103,7 +132,6 @@ class TelegramWebhookController extends Controller
             }
         }
 
-        // معالجة الضغط على الأزرار (Callback Queries)
         if (isset($data['callback_query'])) {
             $callbackQuery = $data['callback_query'];
             $callbackId = $callbackQuery['id'];
@@ -111,7 +139,6 @@ class TelegramWebhookController extends Controller
             $callbackData = $callbackQuery['data'];
             $messageId = $callbackQuery['message']['message_id'];
 
-            // إخفاء مؤشر التحميل من على الزر فوراً
             $this->sendTelegramApi('answerCallbackQuery', ['callback_query_id' => $callbackId]);
 
             if ($callbackData === 'back_to_menu') {
@@ -120,6 +147,10 @@ class TelegramWebhookController extends Controller
                 $this->resendUserCard($chatId, $messageId);
             } elseif ($callbackData === 'help_verification' || $callbackData === 'help_welcome') {
                 $this->sendHelpMessage($chatId, $messageId);
+            } elseif ($callbackData === 'show_support') {
+                $this->sendSupportMenu($chatId, $messageId);
+            } elseif ($callbackData === 'show_social') {
+                $this->sendSocialMenu($chatId, $messageId);
             } elseif (str_starts_with($callbackData, 'verify_')) {
                 $token = str_replace('verify_', '', $callbackData);
                 $this->processAccountVerification($chatId, $token, $messageId);
@@ -132,7 +163,7 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 3. دوال المعالجة والتفاعل
+    // 3. دوال المعالجة
     // ============================================================
 
     protected function processStartWithToken($chatId, $token)
@@ -227,17 +258,16 @@ class TelegramWebhookController extends Controller
         Cache::put('telegram_otp_' . $user->email, $otp, now()->addMinutes(10));
         Cache::put($rateKey, true, now()->addMinute());
 
-        $otpText = "🔑 *كود تغيير كلمة السر (OTP)*\n";
+        $otpText = "🔑 *كود تغيير كلمة المرور*\n";
         $otpText .= "━━━━━━━━━━━━━━━━━━━\n\n";
         $otpText .= "اضغط على الرقم لنسخه 👇\n\n";
         $otpText .= "`{$otp}`\n\n";
         $otpText .= "⏱️ صالح لمدة 10 دقائق.\n\n";
-        $otpText .= "📱 *ملاحظة:* يمكنك استخدام الأزرار أدناه لتغيير كلمة السر مباشرة.";
+        $otpText .= "📱 استخدم هذا الكود في تطبيق Code Shell لتغيير كلمة المرور.";
 
         $keyboard = [
             'inline_keyboard' => [
                 [
-                    ['text' => '⚙️ فتح التطبيق (تغيير كلمة السر)', 'web_app' => ['url' => 'https://codeshell.app/settings/change-password']],
                     ['text' => '🏠 القائمة الرئيسية', 'callback_data' => 'back_to_menu']
                 ]
             ]
@@ -262,8 +292,38 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 4. دوال القائمة والمساعدة
+    // 4. دوال القوائم الفرعية
     // ============================================================
+
+    protected function sendSupportMenu($chatId, $messageId)
+    {
+        $text = "📞 *التواصل مع الدعم*\n━━━━━━━━━━━━━━━━━━━\n\n";
+        $text .= "اختر وسيلة التواصل المناسبة لك:\n";
+        $text .= "• *واتساب:* للدعم الفوري عبر المحادثة.\n";
+        $text .= "• *البريد الإلكتروني:* للمراسلات الرسمية.";
+
+        $this->sendTelegramApi('editMessageText', [
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+            'text' => $text,
+            'parse_mode' => 'Markdown',
+            'reply_markup' => json_encode($this->getSupportKeyboard())
+        ]);
+    }
+
+    protected function sendSocialMenu($chatId, $messageId)
+    {
+        $text = "🌐 *تابعنا على مواقع التواصل*\n━━━━━━━━━━━━━━━━━━━\n\n";
+        $text .= "انضم إلينا على منصاتنا الرسمية لتحصل على آخر التحديثات.";
+
+        $this->sendTelegramApi('editMessageText', [
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+            'text' => $text,
+            'parse_mode' => 'Markdown',
+            'reply_markup' => json_encode($this->getSocialKeyboard())
+        ]);
+    }
 
     protected function sendMainMenu($chatId, $messageId)
     {
@@ -272,9 +332,9 @@ class TelegramWebhookController extends Controller
 
         $text = "🏠 *القائمة الرئيسية*\n━━━━━━━━━━━━━━━━━━━\n\n";
         $text .= "مرحباً {$name}!\nاختر ما تريد فعله من الأزرار أدناه:\n\n";
-        $text .= "• *OTP:* للحصول على كود تغيير كلمة السر.\n";
-        $text .= "• *تغيير كلمة السر:* يفتح التطبيق مباشرة.\n";
-        $text .= "• *الدعم:* للتواصل مع فريق الدعم.";
+        $text .= "• *تغيير كلمة المرور:* للحصول على كود تغيير كلمة السر.\n";
+        $text .= "• *الدعم:* للتواصل مع فريق الدعم عبر واتساب أو البريد.\n";
+        $text .= "• *مواقع التواصل:* لمتابعتنا على السوشيال ميديا.";
 
         $this->sendTelegramApi('editMessageText', [
             'chat_id' => $chatId,
@@ -316,7 +376,7 @@ class TelegramWebhookController extends Controller
         $text .= "2️⃣ اذهب إلى الإعدادات واختر *ربط تليجرام*.\n";
         $text .= "3️⃣ اضغط على زر التفعيل ليصلك رابط.\n";
         $text .= "4️⃣ اضغط على الرابط واختر *تأكيد* لربط حسابك.\n\n";
-        $text .= "🔐 بعد الربط، يمكنك طلب OTP بسهولة.";
+        $text .= "🔐 بعد الربط، يمكنك تغيير كلمة المرور بسهولة.";
 
         $keyboard = [
             'inline_keyboard' => [
@@ -347,7 +407,7 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 5. دوال التواصل مع API تليجرام
+    // 5. دوال المساعدة العامة
     // ============================================================
 
     protected function sendMessage($chatId, $text)
@@ -370,7 +430,10 @@ class TelegramWebhookController extends Controller
             $response = Http::post("https://api.telegram.org/bot{$this->botToken}/{$method}", $params);
             
             if (!$response->successful()) {
-                Log::error("Telegram API Error [{$method}]: " . $response->body());
+                // تجنب تسجيل الأخطاء العادية الخاصة بضغط نفس الزر مرتين
+                if (!str_contains($response->body(), 'message is not modified')) {
+                    Log::error("Telegram API Error [{$method}]: " . $response->body());
+                }
             }
 
             return $response->json();
