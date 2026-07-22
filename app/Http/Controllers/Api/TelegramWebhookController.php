@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class TelegramWebhookController extends Controller
 {
@@ -63,6 +64,20 @@ class TelegramWebhookController extends Controller
     }
 
     /**
+     * جلب الاسم الكامل للمستخدم بدمج أجزاء الاسم
+     */
+    protected function getFullName($user): string
+    {
+        $nameParts = array_filter([
+            $user->first_name ?? '',
+            $user->middle_name ?? '',
+            $user->last_name ?? ''
+        ]);
+
+        return !empty($nameParts) ? implode(' ', $nameParts) : ($user->name ?? 'مستخدم Code Shell');
+    }
+
+    /**
      * بطاقة توثيق الحساب الاحترافية (تظهر عند فتح البوت من التطبيق)
      */
     protected function sendVerificationCard($chatId, $userId)
@@ -74,20 +89,20 @@ class TelegramWebhookController extends Controller
             return;
         }
 
+        $fullName = $this->getFullName($user);
         $isVerified = $user->email_verified_at ? "✅ مفعل" : "❌ غير مفعل";
 
         $message = "🌐 *منصة Code Shell Security*\n";
         $message .= "━━━━━━━━━━━━━━━━━━━\n\n";
-        $message .= "مرحباً بك يا *{$user->name}* 👋\n\n";
+        $message .= "مرحباً بك يا *{$fullName}* 👋\n\n";
         $message .= "📌 *بيانات الحساب:*\n";
-        $message .= "• *الاسم:* {$user->name}\n";
+        $message .= "• *الاسم الثلاثي:* {$fullName}\n";
         $message .= "• *البريد الإلكتروني:* `{$user->email}`\n";
         $message .= "• *حالة التفعيل:* {$isVerified}\n\n";
-        $message .= "يرجى اختيار الإجراء المطلوبة من الأزرار أدناه 👇";
+        $message .= "يرجى اختيار الإجراء المطلوب من الأزرار أدناه 👇";
 
         $buttons = [];
 
-        // إظهار زر التأكيد فقط إذا لم يكن مفيداً
         if (!$user->email_verified_at) {
             $buttons[] = [
                 ['text' => '✅ تأكيد وتفعيل هذا الحساب', 'callback_data' => 'verify_' . $user->id]
@@ -96,10 +111,6 @@ class TelegramWebhookController extends Controller
 
         $buttons[] = [
             ['text' => '🔑 طلب كود تغيير كلمة السر (OTP)', 'callback_data' => 'get_otp_' . $user->id]
-        ];
-        
-        $buttons[] = [
-            ['text' => '🔍 فحص حالة التفعيل الحالية', 'callback_data' => 'my_status']
         ];
 
         $keyboard = ['inline_keyboard' => $buttons];
@@ -124,8 +135,11 @@ class TelegramWebhookController extends Controller
             $user->telegram_chat_id = $chatId;
             $user->save();
 
+            $fullName = $this->getFullName($user);
+
             $successText = "🎉 *تم تأكيد وتفعيل بريدك الإلكتروني بنجاح!*\n";
             $successText .= "━━━━━━━━━━━━━━━━━━━\n\n";
+            $successText .= "• *الاسم:* {$fullName}\n";
             $successText .= "• *البريد:* `{$user->email}`\n";
             $successText .= "• *الحالة:* مفعل ومربوط بالبوت ✅\n\n";
             $successText .= "يمكنك الآن العودة لتطبيق *Code Shell* والاستفادة من كافة الخدمات!";
@@ -147,7 +161,7 @@ class TelegramWebhookController extends Controller
     }
 
     /**
-     * إنشاء كود OTP لتغير كلمة السر من إعدادات التطبيق
+     * إنشاء كود OTP لتغيير كلمة السر من إعدادات التطبيق
      */
     protected function generateOtpCode($chatId, $userId, $messageId)
     {
@@ -156,12 +170,11 @@ class TelegramWebhookController extends Controller
         if ($user) {
             $otp = rand(100000, 999999);
             
-            // يمكنك حفظ الـ OTP في الـ Cache أو قاعدة البيانات
-            \Illuminate\Support\Facades\Cache::put('telegram_otp_' . $user->email, $otp, now()->addMinutes(10));
+            Cache::put('telegram_otp_' . $user->email, $otp, now()->addMinutes(10));
 
             $otpText = "🔐 *كود التحقق الخاص بك (OTP)*\n";
             $otpText .= "━━━━━━━━━━━━━━━━━━━\n\n";
-            $otpText .= "رمز التغير الخاص بك هو:\n";
+            $otpText .= "رمز التغيير الخاص بك هو:\n";
             $otpText .= "👉 `{$otp}` 👈\n\n";
             $otpText .= "⏱️ *الرمز صالحة لمدة 10 دقائق فقط.*\n";
             $otpText .= "قم بنسخ الرقم وإدخاله في نافذة إعدادات البوت داخل التطبيق لتغيير كلمة السر.";
