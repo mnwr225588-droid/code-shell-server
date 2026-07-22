@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\AdminContentController;
+use App\Http\Controllers\Api\TelegramAuthController;
 use App\Models\Level;
 
 /*
@@ -19,6 +20,18 @@ use App\Models\Level;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+/*
+|--------------------------------------------------------------------------
+| Telegram Authentication Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('auth/telegram')->group(function () {
+    Route::post('/link', [TelegramAuthController::class, 'linkTelegram']);
+    Route::post('/send-otp', [TelegramAuthController::class, 'sendOtp']);
+    Route::post('/reset-password', [TelegramAuthController::class, 'resetPassword']);
+});
 
 /*
 |--------------------------------------------------------------------------
