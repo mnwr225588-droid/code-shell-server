@@ -10,7 +10,6 @@ class Course extends Model
     use HasFactory;
 
     protected $fillable = [
-
         'title',
         'description',
         'thumbnail',
@@ -18,15 +17,12 @@ class Course extends Model
         'price',
         'is_active',
         'sort_order',
-
     ];
 
     protected $casts = [
-
         'is_free' => 'boolean',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
-
     ];
 
     /**
@@ -35,5 +31,21 @@ class Course extends Model
     public function sections()
     {
         return $this->hasMany(Section::class);
+    }
+
+    /**
+     * المستخدمون الذين حجزوا الكورس
+     */
+    public function reservedUsers()
+    {
+        return $this->belongsToMany(User::class, 'course_reservations')->withTimestamps();
+    }
+
+    /**
+     * حساب عدد الحاجزين الحقيقي للكورس
+     */
+    public function getReservationsCountAttribute()
+    {
+        return $this->reservedUsers()->count();
     }
 }

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\AdminContentController;
 use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TelegramWebhookController;
+use App\Http\Controllers\Api\CourseReservationController;
 use App\Models\Level;
 
 /*
@@ -128,10 +129,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Reservations
+    | Reservations & Waitlist
     |--------------------------------------------------------------------------
     */
 
     Route::post('/reserve-course', [ReservationController::class, 'store']);
+    
+    // مسارات قائمة انتظار الكورسات القادمة
+    Route::get('/courses/{id}/reservation-status', [CourseReservationController::class, 'getStatus']);
+    Route::post('/courses/{id}/reserve', [CourseReservationController::class, 'toggleReservation']);
 
 });

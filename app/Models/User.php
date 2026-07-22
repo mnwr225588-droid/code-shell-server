@@ -44,4 +44,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * الكورسات التي قام المستخدم بحجزها
+     */
+    public function reservedCourses()
+    {
+        return $this->belongsToMany(Course::class, 'course_reservations')->withTimestamps();
+    }
 }
