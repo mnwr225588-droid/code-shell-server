@@ -16,12 +16,12 @@ use App\Models\Level;
 
 /*
 |--------------------------------------------------------------------------
-| Public Routes
+| Public Routes (المسارات العامة)
 |--------------------------------------------------------------------------
 */
 
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
 /*
@@ -39,7 +39,7 @@ Route::prefix('admin')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Public / Student Routes
+| Public / Student Routes (مسارات المستويات والكورسات العامة)
 |--------------------------------------------------------------------------
 */
 Route::get('/levels/{course_id}', function ($course_id) {
@@ -54,7 +54,7 @@ Route::get('/levels/{course_id}', function ($course_id) {
 
 /*
 |--------------------------------------------------------------------------
-| Protected Routes (تتطلب تسجيل الدخول)
+| Protected Routes (تتطلب تسجيل الدخول وتوكن Sanctum)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
