@@ -1,3 +1,4 @@
+cat << 'EOF' > app/Models/Lesson.php
 <?php
 
 namespace App\Models;
@@ -12,21 +13,13 @@ class Lesson extends Model
     protected $fillable = [
         'level_id',
         'title',
-        'video_path',
+        'description',
         'thumbnail',
+        'video_url',
         'order_num'
     ];
 
-    protected $appends = ['video_url', 'thumbnail_url'];
-
-    public function getVideoUrlAttribute()
-    {
-        if (!$this->video_path) return null;
-        // إذا كان الفيديو رابطاً خارجياً (مثل يوتيوب أو سيرفر آخر) يرجعه كما هو، وإلا يرجعه من المجلد المحفوظ
-        return filter_var($this->video_path, FILTER_VALIDATE_URL) 
-            ? $this->video_path 
-            : asset('storage/' . $this->video_path);
-    }
+    protected $appends = ['thumbnail_url'];
 
     public function getThumbnailUrlAttribute()
     {
@@ -43,3 +36,4 @@ class Lesson extends Model
         return $this->hasMany(Question::class);
     }
 }
+EOF
