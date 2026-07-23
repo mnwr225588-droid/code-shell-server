@@ -16,20 +16,23 @@ class TelegramWebhookController extends Controller
 
     public function __construct()
     {
-        $this->botToken = config('services.telegram.bot_token', '');
-        $this->secretToken = config('services.telegram.secret_token', '');
+        $this->botToken = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
+        $this->secretToken = config('services.telegram.secret_token', env('TELEGRAM_SECRET_TOKEN', ''));
     }
 
     // ============================================================
-    // 1. دوال إنشاء لوحات المفاتيح (Keyboards)
+    // 1. Keyboards
     // ============================================================
 
-    protected function getVerificationKeyboard($token): array
+    protected function getVerificationKeyboard($token, $userId = null): array
     {
+        // استخدام معرف المستخدم مباشرة كبديل أمان إذا كان معروفا لضمان عدم الاعتماد الكلي على الـ Cache
+        $callbackPayload = $userId ? 'v_' . $userId : 'v_' . substr($token, 0, 30);
+
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '✅ تأكيد وربط الحساب', 'callback_data' => 'verify_' . $token]
+                    ['text' => '✅ تأكيد وربط الحساب', 'callback_data' => $callbackPayload]
                 ],
                 [
                     ['text' => '❓ كيف يعمل هذا البوت؟', 'callback_data' => 'help_verification']
@@ -103,7 +106,7 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 2. الوظيفة الرئيسية ومعالجة الطلبات
+    // 2. Request Handling
     // ============================================================
 
     public function handle(Request $request)
@@ -115,7 +118,6 @@ class TelegramWebhookController extends Controller
 
         $data = $request->all();
 
-        // استجابة فورية للأزرار لمنع التأخير (Instant UI Feedback)
         if (isset($data['callback_query'])) {
             $callbackQuery = $data['callback_query'];
             $callbackId = $callbackQuery['id'];
@@ -123,7 +125,6 @@ class TelegramWebhookController extends Controller
             $callbackData = $callbackQuery['data'];
             $messageId = $callbackQuery['message']['message_id'];
 
-            // إرسال رد الإقرار فوراً لتليجرام حتى لا يتأخر الزر
             $this->sendTelegramApi('answerCallbackQuery', ['callback_query_id' => $callbackId]);
 
             if ($callbackData === 'back_to_menu') {
@@ -136,9 +137,9 @@ class TelegramWebhookController extends Controller
                 $this->sendSupportMenu($chatId, $messageId);
             } elseif ($callbackData === 'show_social') {
                 $this->sendSocialMenu($chatId, $messageId);
-            } elseif (str_starts_with($callbackData, 'verify_')) {
-                $token = str_replace('verify_', '', $callbackData);
-                $this->processAccountVerification($chatId, $token, $messageId);
+            } elseif (str_starts_with($callbackData, 'v_') || str_starts_with($callbackData, 'verify_')) {
+                $payload = str_replace(['verify_', 'v_'], '', $callbackData);
+                $this->processAccountVerification($chatId, $payload, $messageId);
             } elseif ($callbackData === 'get_otp') {
                 $this->generateOtpCode($chatId, $messageId);
             }
@@ -167,12 +168,17 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 3. دوال المعالجة والقوائم
+    // 3. Logic & Actions
     // ============================================================
 
     protected function processStartWithToken($chatId, $token)
     {
         $userId = Cache::get('telegram_bind_token_' . $token);
+        
+        if (!$userId && is_numeric($token)) {
+            $userId = $token;
+        }
+
         if (!$userId) {
             $this->sendMessage($chatId, "⚠️ *الرابط غير صالح أو انتهت صلاحيته!*");
             return;
@@ -184,8 +190,11 @@ class TelegramWebhookController extends Controller
             return;
         }
 
-        $fullName = e($this->getFullName($user));
-        $email = e($user->email);
+        Cache::put('telegram_token_user_' . $token, $user->id, now()->addHours(2));
+        Cache::put('telegram_user_token_' . $user->id, $user->id, now()->addHours(2));
+
+        $fullName = $this->escapeMarkdown($this->getFullName($user));
+        $email = $this->escapeMarkdown($user->email);
         $isVerified = $user->email_verified_at ? "✅ مفعل" : "❌ غير مفعل";
 
         $message = "🛡️ *مركز حماية Code Shell*\n";
@@ -201,15 +210,23 @@ class TelegramWebhookController extends Controller
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'Markdown',
-            'reply_markup' => json_encode($this->getVerificationKeyboard($token))
+            'reply_markup' => json_encode($this->getVerificationKeyboard($token, $user->id))
         ]);
     }
 
-    protected function processAccountVerification($chatId, $token, $messageId)
+    protected function processAccountVerification($chatId, $payload, $messageId)
     {
-        $userId = Cache::get('telegram_bind_token_' . $token);
+        // محاولة جلب المستخدم بكل الطرق الممكنة لمنع الفشل عند مسح الـ Cache
+        $userId = Cache::get('telegram_bind_token_' . $payload) 
+               ?? Cache::get('telegram_token_user_' . $payload)
+               ?? (is_numeric($payload) ? $payload : null);
+
         if (!$userId) {
-            $this->sendMessage($chatId, "⚠️ انتهت صلاحية الجلسة.");
+            $this->sendTelegramApi('sendMessage', [
+                'chat_id' => $chatId,
+                'text' => "⚠️ *انتهت صلاحية الجلسة!*\nيرجى إعادة إرسال رابط التفعيل من التطبيق.",
+                'parse_mode' => 'Markdown'
+            ]);
             return;
         }
 
@@ -221,10 +238,11 @@ class TelegramWebhookController extends Controller
             $user->telegram_chat_id = $chatId;
             $user->save();
 
-            Cache::forget('telegram_bind_token_' . $token);
+            Cache::forget('telegram_bind_token_' . $payload);
+            Cache::forget('telegram_token_user_' . $payload);
 
-            $fullName = e($this->getFullName($user));
-            $email = e($user->email);
+            $fullName = $this->escapeMarkdown($this->getFullName($user));
+            $email = $this->escapeMarkdown($user->email);
 
             $successText = "🎉 *تم التفعيل والربط بنجاح!*\n";
             $successText .= "━━━━━━━━━━━━━━━━━━━\n\n";
@@ -233,13 +251,23 @@ class TelegramWebhookController extends Controller
             $successText .= "• *الحالة:* مفعل ✅\n\n";
             $successText .= "مرحباً بك في القائمة الرئيسية، اختر خدمتك من الأسفل.";
 
-            $this->sendTelegramApi('editMessageText', [
+            $res = $this->sendTelegramApi('editMessageText', [
                 'chat_id' => $chatId,
                 'message_id' => $messageId,
                 'text' => $successText,
                 'parse_mode' => 'Markdown',
                 'reply_markup' => json_encode($this->getMainMenuKeyboard())
             ]);
+
+            // إذا فشل التعديل نرسل رسالة جديدة كـ Fallback
+            if (!$res || !($res['ok'] ?? false)) {
+                $this->sendTelegramApi('sendMessage', [
+                    'chat_id' => $chatId,
+                    'text' => $successText,
+                    'parse_mode' => 'Markdown',
+                    'reply_markup' => json_encode($this->getMainMenuKeyboard())
+                ]);
+            }
         }
     }
 
@@ -326,7 +354,7 @@ class TelegramWebhookController extends Controller
     protected function sendMainMenu($chatId, $messageId)
     {
         $user = User::where('telegram_chat_id', $chatId)->first();
-        $name = $user ? e($this->getFullName($user)) : 'صديقنا';
+        $name = $user ? $this->escapeMarkdown($this->getFullName($user)) : 'صديقنا';
 
         $text = "🏠 *القائمة الرئيسية*\n━━━━━━━━━━━━━━━━━━━\n\n";
         $text .= "مرحباً {$name}!\nاختر ما تريد فعله من الأزرار أدناه:\n\n";
@@ -351,8 +379,8 @@ class TelegramWebhookController extends Controller
             return;
         }
 
-        $fullName = e($this->getFullName($user));
-        $email = e($user->email);
+        $fullName = $this->escapeMarkdown($this->getFullName($user));
+        $email = $this->escapeMarkdown($user->email);
         $text = "🛡️ *بيانات حسابك*\n━━━━━━━━━━━━━━━━━━━\n\n";
         $text .= "• *الاسم:* {$fullName}\n";
         $text .= "• *البريد:* `{$email}`\n";
@@ -405,7 +433,7 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 4. دوال التواصل مع API تليجرام
+    // 4. Utilities
     // ============================================================
 
     protected function sendMessage($chatId, $text)
@@ -426,6 +454,11 @@ class TelegramWebhookController extends Controller
 
         try {
             $response = Http::post("https://api.telegram.org/bot{$this->botToken}/{$method}", $params);
+            
+            if (!$response->successful()) {
+                Log::error("Telegram API Error [{$method}]: " . $response->body());
+            }
+
             return $response->json();
         } catch (\Exception $e) {
             Log::error("Telegram Exception [{$method}]: " . $e->getMessage());
@@ -436,5 +469,10 @@ class TelegramWebhookController extends Controller
     protected function getFullName($user): string
     {
         return trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->name ?? 'مستخدم');
+    }
+
+    protected function escapeMarkdown(string $text): string
+    {
+        return str_replace(['_', '*', '`', '['], ['\_', '\*', '\`', '\['], $text);
     }
 }
