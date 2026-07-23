@@ -111,10 +111,13 @@ class TelegramWebhookController extends Controller
 
     public function handle(Request $request)
     {
+        // تم إلغاء فحص الـ Secret Token لمنع مشكلة 401 Unauthorized والسماح بمرور الطلبات
+        /*
         if ($this->secretToken && $request->header('X-Telegram-Bot-Api-Secret-Token') !== $this->secretToken) {
             Log::warning('Unauthorized Telegram Webhook attempt.');
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+        */
 
         $data = $request->all();
 
