@@ -22,7 +22,9 @@ use App\Models\Level;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
+
+// مسار الـ Webhook الخاص ببوت التلجرام
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handleWebhook']);
 
 /*
 |--------------------------------------------------------------------------
