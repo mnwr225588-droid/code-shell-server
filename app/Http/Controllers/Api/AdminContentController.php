@@ -3,86 +3,162 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Course;
 use App\Models\Level;
 use App\Models\Lesson;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class AdminContentController extends Controller
 {
-    // 1. إضافة مستوى جديد بالترتيب المحدد (1, 2, 3...)
+    // 1️⃣ إضافة/تحديث قسم أو لغة برمجة مع الأيقونة
+    public function storeCategory(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'icon' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        $iconPath = null;
+        if ($request->hasFile('icon')) {
+            $iconPath = $request->file('icon')->store('categories', 'public');
+        }
+
+        $category = Category::create([
+            'name' => $request->name,
+            'icon' => $iconPath,
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تمت إضافة القسم بنجاح',
+            'data'    => $category
+        ]);
+    }
+
+    // 2️⃣ إضافة كورس مع الغلاف والنوع (مجاني/مدفوع/قريباً)
+    public function storeCourse(Request $request)
+    {
+        $request->validate([
+            'category_id'    => 'required|exists:categories,id',
+            'title'          => 'required|string|max:255',
+            'description'    => 'nullable|string',
+            'thumbnail'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'is_free'        => 'required|boolean',
+            'price'          => 'nullable|numeric',
+            'is_coming_soon' => 'boolean',
+        ]);
+
+        $thumbnailPath = null;
+        if ($request->hasFile('thumbnail')) {
+            $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
+        }
+
+        $course = Course::create([
+            'category_id'    => $request->category_id,
+            'title'          => $request->title,
+            'description'    => $request->description,
+            'thumbnail'      => $thumbnailPath,
+            'is_free'        => $request->is_free,
+            'price'          => $request->is_free ? 0 : $request->price,
+            'is_coming_soon' => $request->is_coming_soon ?? false,
+            'is_active'      => true,
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تمت إضافة الكورس بنجاح',
+            'data'    => $course
+        ]);
+    }
+
+    // 3️⃣ إضافة مستوى داخل كورس
     public function storeLevel(Request $request)
     {
         $request->validate([
             'course_id' => 'required|exists:courses,id',
-            'title'     => 'required|string',
+            'title'     => 'required|string|max:255',
             'order_num' => 'required|integer',
         ]);
 
-        $level = Level::create([
-            'course_id' => $request->course_id,
-            'title'     => $request->title,
-            'order_num' => $request->order_num,
-        ]);
+        $level = Level::create($request->all());
 
         return response()->json([
             'status'  => true,
             'message' => 'تم إنشاء المستوى بنجاح',
             'data'    => $level
-        ], 201);
+        ]);
     }
 
-    // 2. إضافة درس مع الفيديو والصورة والاختبار (الأسئلة والخيارات)
+    // 4️⃣ إضافة درس + فيديو + أسئلة الاختبار التابع له
     public function storeLessonWithQuiz(Request $request)
     {
         $request->validate([
-            'level_id'    => 'required|exists:levels,id',
-            'title'       => 'required|string',
-            'description' => 'nullable|string',
-            'thumbnail'   => 'nullable|image|max:2048',
-            'video'       => 'required|file|mimes:mp4,mkv,avi|max:100000', // رفع فيديو حتى 100MB
+            'level_id'     => 'required|exists:levels,id',
+            'title'        => 'required|string|max:255',
+            'video'        => 'nullable|file|mimes:mp4,mov,avi,wmv|max:500000', // دعم الفيديوهات حتى 500MB
+            'video_url'    => 'nullable|string',
+            'thumbnail'    => 'nullable|image|max:2048',
+            'order_num'    => 'required|integer',
+            'questions'    => 'nullable|array',
         ]);
 
-        // رفع الصورة المصغرة إذا وُجدت
-        $thumbnailPath = $request->hasFile('thumbnail') 
-            ? $request->file('thumbnail')->store('thumbnails', 'public') 
-            : null;
+        // رفع ملف الفيديو إن وجد أو أخذ الرابط
+        $videoPath = null;
+        if ($request->hasFile('video')) {
+            $videoPath = $request->file('video')->store('lessons/videos', 'public');
+        } elseif ($request->filled('video_url')) {
+            $videoPath = $request->video_url;
+        }
 
-        // رفع فيديو الدرس
-        $videoPath = $request->file('video')->store('videos', 'public');
+        $thumbnailPath = null;
+        if ($request->hasFile('thumbnail')) {
+            $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'public');
+        }
 
-        // حفظ بيانات الدرس
         $lesson = Lesson::create([
-            'level_id'    => $request->level_id,
-            'title'       => $request->title,
-            'description' => $request->description,
-            'thumbnail'   => $thumbnailPath,
-            'video_url'   => $videoPath,
+            'level_id'   => $request->level_id,
+            'title'      => $request->title,
+            'video_path' => $videoPath,
+            'thumbnail'  => $thumbnailPath,
+            'order_num'  => $request->order_num,
         ]);
 
-        // حفظ الأسئلة والاختيارات إن وُجدت
-        if ($request->has('questions')) {
-            $questionsData = is_string($request->questions) 
-                ? json_decode($request->questions, true) 
-                : $request->questions;
-
-            foreach ($questionsData as $q) {
+        // إضافة الأسئلة إن وجدت مع الدرس بداخل نفس النموذج
+        if ($request->has('questions') && is_array($request->questions)) {
+            foreach ($request->questions as $qData) {
                 $question = $lesson->questions()->create([
-                    'question_text' => $q['question_text'],
+                    'question_text' => $qData['question_text']
                 ]);
 
-                foreach ($q['options'] as $opt) {
-                    $question->options()->create([
-                        'option_text' => $opt['option_text'],
-                        'is_correct'  => $opt['is_correct'] ?? false,
-                    ]);
+                if (isset($qData['options']) && is_array($qData['options'])) {
+                    foreach ($qData['options'] as $optData) {
+                        $question->options()->create([
+                            'option_text' => $optData['option_text'],
+                            'is_correct'  => $optData['is_correct'] ?? false,
+                        ]);
+                    }
                 }
             }
         }
 
         return response()->json([
             'status'  => true,
-            'message' => 'تم حفظ الدرس والأسئلة بنجاح!',
+            'message' => 'تم حفظ الدرس مع الفيديو والأسئلة بنجاح',
             'data'    => $lesson->load('questions.options')
-        ], 201);
+        ]);
+    }
+
+    // 5️⃣ عرض كافة المستخدمين واشتراكاتهم المدفوعة فقط
+    public function getUsers(Request $request)
+    {
+        $users = User::select('id', 'first_name', 'middle_name', 'last_name', 'email', 'phone', 'birth_date', 'created_at')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data'   => $users
+        ]);
     }
 }

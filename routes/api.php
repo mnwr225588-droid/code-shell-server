@@ -22,42 +22,26 @@ use App\Models\Level;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
-/*
-|--------------------------------------------------------------------------
-| Telegram Bot Webhook Route
-|--------------------------------------------------------------------------
-*/
-
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------
-| Telegram Authentication Routes
+| Admin Routes (إضافة لغات، كورسات، مستويات، دروس بالفيديو، والمستخدمين)
 |--------------------------------------------------------------------------
 */
-
-Route::prefix('auth/telegram')->group(function () {
-    Route::post('/link', [TelegramAuthController::class, 'linkTelegram']);
-    Route::post('/send-otp', [TelegramAuthController::class, 'sendOtp']);
-    Route::post('/reset-password', [TelegramAuthController::class, 'resetPassword']);
+Route::prefix('admin')->group(function () {
+    Route::post('/categories', [AdminContentController::class, 'storeCategory']);
+    Route::post('/courses', [AdminContentController::class, 'storeCourse']);
+    Route::post('/levels', [AdminContentController::class, 'storeLevel']);
+    Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
+    Route::get('/users', [AdminContentController::class, 'getUsers']);
 });
 
 /*
 |--------------------------------------------------------------------------
-| Admin Routes (إضافة المستويات والدروس والاختبارات)
+| Public / Student Routes
 |--------------------------------------------------------------------------
 */
-
-Route::post('/admin/levels', [AdminContentController::class, 'storeLevel']);
-Route::post('/admin/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
-
-/*
-|--------------------------------------------------------------------------
-| Course Content & Levels Route (جلب البيانات مرتبة للتطبيق)
-|--------------------------------------------------------------------------
-*/
-
 Route::get('/levels/{course_id}', function ($course_id) {
     return response()->json([
         'status' => true,
@@ -70,73 +54,30 @@ Route::get('/levels/{course_id}', function ($course_id) {
 
 /*
 |--------------------------------------------------------------------------
-| Protected Routes
+| Protected Routes (تتطلب تسجيل الدخول)
 |--------------------------------------------------------------------------
 */
-
 Route::middleware('auth:sanctum')->group(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | Authentication
-    |--------------------------------------------------------------------------
-    */
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Profile
-    |--------------------------------------------------------------------------
-    */
-
+    // Profile
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Categories
-    |--------------------------------------------------------------------------
-    */
-
+    // Categories & Courses
     Route::get('/categories', [CategoryController::class, 'index']);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Courses
-    |--------------------------------------------------------------------------
-    */
-
     Route::get('/courses', [CourseController::class, 'index']);
     Route::get('/courses/{id}', [CourseController::class, 'show']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Progress
-    |--------------------------------------------------------------------------
-    */
-
+    // Progress
     Route::get('/progress', [ProgressController::class, 'index']);
     Route::post('/progress', [ProgressController::class, 'save']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Notifications
-    |--------------------------------------------------------------------------
-    */
-
+    // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reservations & Waitlist
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post('/reserve-course', [ReservationController::class, 'store']);
-    
-    // مسارات قائمة انتظار الكورسات القادمة
+    // Course Waitlist / Reservations
     Route::get('/courses/{id}/reservation-status', [CourseReservationController::class, 'getStatus']);
     Route::post('/courses/{id}/reserve', [CourseReservationController::class, 'toggleReservation']);
-
 });
