@@ -27,7 +27,8 @@ return new class extends Migration
                 $table->string('title'); // عنوان الدرس
                 $table->text('description')->nullable(); // وصف الدرس
                 $table->string('thumbnail')->nullable(); // صورة مصغرة
-                $table->string('video_url'); // رابط أو مسار الفيديو
+                $table->string('video_url')->nullable(); // رابط أو مسار الفيديو
+                $table->integer('order_num')->default(1); // رقم الترتيب للدرس داخل المستوى
                 $table->timestamps();
             });
         }
