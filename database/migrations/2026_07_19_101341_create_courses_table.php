@@ -6,43 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('courses', function (Blueprint $table) {
-
             $table->id();
-
-            // اسم الكورس
+            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
             $table->string('title');
-
-            // وصف مختصر
             $table->text('description')->nullable();
-
-            // صورة الكورس
             $table->string('thumbnail')->nullable();
-
-            // مجاني أم مدفوع
             $table->boolean('is_free')->default(true);
-
-            // سعر الكورس
-            $table->decimal('price', 10, 2)->default(0);
-
-            // هل الكورس ظاهر للمستخدم؟
+            $table->decimal('price', 8, 2)->default(0);
+            $table->boolean('is_coming_soon')->default(false);
             $table->boolean('is_active')->default(true);
-
-            // ترتيب العرض داخل التطبيق
             $table->integer('sort_order')->default(0);
-
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('courses');
