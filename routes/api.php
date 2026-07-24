@@ -86,4 +86,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // 🌐 Telegram Integration Routes (مهمة لربط التطبيق بالبوت)
     Route::get('/telegram/bind-url', [TelegramWebhookController::class, 'getBindUrl']);
     Route::get('/telegram/verify-url', [TelegramWebhookController::class, 'getBindUrl']);
+    Route::get('/telegram/otp-url', [TelegramWebhookController::class, 'getOtpUrl']);
 });

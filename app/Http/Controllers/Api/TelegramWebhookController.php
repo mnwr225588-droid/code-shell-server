@@ -21,7 +21,7 @@ class TelegramWebhookController extends Controller
     }
 
     // ============================================================
-    // 0. دالة جلب رابط التليجرام الخاص بالمستخدم (تطبيق Flutter)
+    // 0. دوال جلب روابط التليجرام الخاصة بالمستخدم (تطبيق Flutter)
     // ============================================================
 
     public function getBindUrl(Request $request)
@@ -35,7 +35,7 @@ class TelegramWebhookController extends Controller
             ], 401);
         }
 
-        // 1. توليد توكن عشوائي مؤقت
+        // 1. توليد توكن عشوائي مؤقت للربط
         $token = Str::random(32);
 
         // 2. حفظ التوكن في الكاش لمدة 15 دقيقة مرتبطاً بـ ID المستخدم
@@ -43,6 +43,43 @@ class TelegramWebhookController extends Controller
 
         // 3. إنشاء رابط التليجرام الخاص بالبوت مع التوكن
         $telegramUrl = "https://t.me/codeshell_new_bot?start={$token}";
+
+        return response()->json([
+            'status' => 'success',
+            'telegram_url' => $telegramUrl,
+        ]);
+    }
+
+    public function getOtpUrl(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'المستخدم غير مسجل الدخول'
+            ], 401);
+        }
+
+        if (!$user->telegram_chat_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'يجب ربط حسابك بتليجرام أولاً'
+            ], 400);
+        }
+
+        // 1. توليد كود الـ OTP فوراً وحفظه
+        $otp = random_int(100000, 999999);
+        Cache::put('telegram_otp_' . $user->email, $otp, now()->addMinutes(10));
+
+        // 2. توليد توكن مؤقت خاص بطلب الـ OTP عبر البوت
+        $token = Str::random(32);
+        Cache::put('telegram_otp_request_' . $token, [
+            'user_id' => $user->id,
+            'otp' => $otp
+        ], now()->addMinutes(5));
+
+        $telegramUrl = "https://t.me/codeshell_new_bot?start=otp_{$token}";
 
         return response()->json([
             'status' => 'success',
@@ -192,8 +229,16 @@ class TelegramWebhookController extends Controller
             if (str_starts_with($text, '/start')) {
                 $parts = explode(' ', $text);
                 $token = $parts[1] ?? null;
+                
                 if ($token) {
-                    $this->processStartWithToken($chatId, $token);
+                    if (str_starts_with($token, 'otp_')) {
+                        // معالجة طلب كود تغيير كلمة المرور فوراً عند فتح الرابط
+                        $realToken = str_replace('otp_', '', $token);
+                        $this->processOtpRequestViaStart($chatId, $realToken);
+                    } else {
+                        // الربط العادي للحساب
+                        $this->processStartWithToken($chatId, $token);
+                    }
                 } else {
                     $this->sendWelcomeMenu($chatId);
                 }
@@ -241,6 +286,47 @@ class TelegramWebhookController extends Controller
             'text' => $message,
             'parse_mode' => 'Markdown',
             'reply_markup' => json_encode($this->getVerificationKeyboard($token))
+        ]);
+    }
+
+    protected function processOtpRequestViaStart($chatId, $token)
+    {
+        $data = Cache::get('telegram_otp_request_' . $token);
+        if (!$data) {
+            $this->sendMessage($chatId, "⚠️ *انتهت صلاحية طلب الكود، يرجى المحاولة مرة أخرى من التطبيق.*");
+            return;
+        }
+
+        $user = User::find($data['user_id']);
+        if (!$user) {
+            $this->sendMessage($chatId, "⚠️ لم يتم العثور على الحساب المرتبط.");
+            return;
+        }
+
+        $otp = $data['otp'];
+        Cache::forget('telegram_otp_request_' . $token); // مسح التوكن لعدم إمكانية إعادة استخدامه
+
+        $otpText = "🔑 *كود تغيير كلمة المرور*\n";
+        $otpText .= "━━━━━━━━━━━━━━━━━━━\n\n";
+        $otpText .= "مرحباً *{$this->getFullName($user)}* 👋\n";
+        $otpText .= "إليك كود تغيير كلمة المرور الخاص بك، اضغط عليه لنسخه:\n\n";
+        $otpText .= "`{$otp}`\n\n";
+        $otpText .= "⏱️ صالح لمدة 10 دقائق.\n";
+        $otpText .= "📱 قم بلصق الكود في تطبيق Code Shell للمتابعة.";
+
+        $keyboard = [
+            'inline_keyboard' => [
+                [
+                    ['text' => '🏠 القائمة الرئيسية', 'callback_data' => 'back_to_menu']
+                ]
+            ]
+        ];
+
+        $this->sendTelegramApi('sendMessage', [
+            'chat_id' => $chatId,
+            'text' => $otpText,
+            'parse_mode' => 'Markdown',
+            'reply_markup' => json_encode($keyboard)
         ]);
     }
 
