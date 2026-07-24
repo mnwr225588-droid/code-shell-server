@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -55,5 +57,35 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'تم تسجيل الخروج بنجاح.',
         ]);
+    }
+
+    /**
+     * Change Password
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password'     => 'required|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // التحقق من صحة كلمة المرور الحالية
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'كلمة المرور الحالية غير صحيحة.',
+            ], 422);
+        }
+
+        // تحديث كلمة المرور الجديدة
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تغيير كلمة المرور بنجاح.',
+        ], 200);
     }
 }

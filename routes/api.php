@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\AdminContentController;
 use App\Http\Controllers\Api\TelegramAuthController;
-use App\Http\Controllers\Api\TelegramWebhookController; // التوجيه الصحيح للكنترولر داخل Api
+use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\CourseReservationController;
 use App\Models\Level;
 
@@ -62,6 +62,7 @@ Route::get('/levels/{course_id}', function ($course_id) {
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']); // مسار تغيير كلمة المرور
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'show']);
