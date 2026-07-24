@@ -11,13 +11,12 @@ use Illuminate\Support\Facades\Cache;
 
 class TelegramWebhookController extends Controller
 {
-    protected string $botToken;
-    protected string $secretToken;
+    protected string $botToken = '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U';
+    protected string $secretToken = '';
 
     public function __construct()
     {
-        protected string $botToken = '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U';
-        protected string $secretToken = '';
+        // تم تعيين التوكن مباشرة أعلى الكلاس لضمان العمل الفوري
     }
 
     // ============================================================
@@ -252,7 +251,6 @@ class TelegramWebhookController extends Controller
         }
     }
 
-    // دالة إظهار البريد كاملاً مؤقتاً
     protected function revealEmailHandler($chatId, $messageId)
     {
         $user = User::where('telegram_chat_id', $chatId)->first();
@@ -457,7 +455,6 @@ class TelegramWebhookController extends Controller
         return trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->name ?? 'مستخدم');
     }
 
-    // دالة لإخفاء جزء من البريد الإلكتروني (مثال: ho****@gmail.com)
     protected function maskEmail(string $email): string
     {
         $parts = explode('@', $email);
