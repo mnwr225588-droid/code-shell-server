@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
-    protected $token = '8933818027:AAFwevQ0noapxwu2QwI0gcGQ01q2fPDinLc';
+    protected $token = '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U';
 
     public function handle(Request $request)
     {
