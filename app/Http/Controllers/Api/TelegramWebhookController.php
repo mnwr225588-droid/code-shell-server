@@ -16,8 +16,8 @@ class TelegramWebhookController extends Controller
 
     public function __construct()
     {
-        $this->botToken = config('services.telegram.bot_token', '');
-        $this->secretToken = config('services.telegram.secret_token', '');
+        protected string $botToken = '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U';
+        protected string $secretToken = '';
     }
 
     // ============================================================
