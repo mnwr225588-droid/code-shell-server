@@ -20,7 +20,9 @@ use Laravel\Sanctum\HasApiTokens;
     'email',
     'phone',
     'password',
-    'is_active'
+    'is_active',
+    'telegram_chat_id', // أضفناه هنا لربط البوت
+    'telegram_username' // اختياري للاستيثاق
 ])]
 
 #[Hidden([

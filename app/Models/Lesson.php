@@ -1,4 +1,3 @@
-cat << 'EOF' > app/Models/Lesson.php
 <?php
 
 namespace App\Models;
@@ -36,4 +35,3 @@ class Lesson extends Model
         return $this->hasMany(Question::class);
     }
 }
-EOF
