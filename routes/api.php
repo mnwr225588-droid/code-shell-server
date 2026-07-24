@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\AdminContentController;
 use App\Http\Controllers\Api\TelegramAuthController;
-use App\Http\Controllers\TelegramController; // تم تعديل استدعاء كنترولر التليجرام الصحيح
+use App\Http\Controllers\Api\TelegramWebhookController; // التوجيه الصحيح للكنترولر داخل Api
 use App\Http\Controllers\Api\CourseReservationController;
 use App\Models\Level;
 
@@ -23,8 +23,8 @@ use App\Models\Level;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-// مسار الـ Webhook الخاص ببوت التلجرام (المصحح)
-Route::post('/telegram/webhook', [TelegramController::class, 'handle']);
+// مسار الـ Webhook الخاص ببوت التلجرام
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------
