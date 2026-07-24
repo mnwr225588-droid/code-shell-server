@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class TelegramWebhookController extends Controller
 {
@@ -17,6 +18,36 @@ class TelegramWebhookController extends Controller
     public function __construct()
     {
         // تم تعيين التوكن مباشرة أعلى الكلاس لضمان العمل الفوري
+    }
+
+    // ============================================================
+    // 0. دالة جلب رابط التليجرام الخاص بالمستخدم (تطبيق Flutter)
+    // ============================================================
+
+    public function getBindUrl(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'المستخدم غير مسجل الدخول'
+            ], 401);
+        }
+
+        // 1. توليد توكن عشوائي مؤقت
+        $token = Str::random(32);
+
+        // 2. حفظ التوكن في الكاش لمدة 15 دقيقة مرتبطاً بـ ID المستخدم
+        Cache::put('telegram_bind_token_' . $token, $user->id, now()->addMinutes(15));
+
+        // 3. إنشاء رابط التليجرام الخاص بالبوت مع التوكن
+        $telegramUrl = "https://t.me/codeshell_new_bot?start={$token}";
+
+        return response()->json([
+            'status' => 'success',
+            'telegram_url' => $telegramUrl,
+        ]);
     }
 
     // ============================================================

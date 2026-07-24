@@ -82,4 +82,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Course Waitlist / Reservations
     Route::get('/courses/{id}/reservation-status', [CourseReservationController::class, 'getStatus']);
     Route::post('/courses/{id}/reserve', [CourseReservationController::class, 'toggleReservation']);
+
+    // 🌐 Telegram Integration Routes (مهمة لربط التطبيق بالبوت)
+    Route::get('/telegram/bind-url', [TelegramWebhookController::class, 'getBindUrl']);
+    Route::get('/telegram/verify-url', [TelegramWebhookController::class, 'getBindUrl']);
 });
