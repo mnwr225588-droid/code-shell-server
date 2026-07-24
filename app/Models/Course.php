@@ -28,7 +28,7 @@ class Course extends Model
         'price'          => 'decimal:2',
     ];
 
-    protected $appends = ['thumbnail_url'];
+    protected $appends = ['thumbnail_url', 'reservations_count'];
 
     public function getThumbnailUrlAttribute()
     {
@@ -52,7 +52,7 @@ class Course extends Model
 
     public function reservedUsers()
     {
-        return $this->belongsToMany(User::class, 'course_reservations')->withTimestamps();
+        return $this->belongsToMany(User::class, 'course_reservations', 'course_id', 'user_id')->withTimestamps();
     }
 
     public function getReservationsCountAttribute()

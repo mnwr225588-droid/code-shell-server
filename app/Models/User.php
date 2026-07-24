@@ -21,8 +21,8 @@ use Laravel\Sanctum\HasApiTokens;
     'phone',
     'password',
     'is_active',
-    'telegram_chat_id', // أضفناه هنا لربط البوت
-    'telegram_username' // اختياري للاستيثاق
+    'telegram_chat_id',
+    'telegram_username'
 ])]
 
 #[Hidden([
@@ -52,6 +52,6 @@ class User extends Authenticatable
      */
     public function reservedCourses()
     {
-        return $this->belongsToMany(Course::class, 'course_reservations')->withTimestamps();
+        return $this->belongsToMany(Course::class, 'course_reservations', 'user_id', 'course_id')->withTimestamps();
     }
 }
