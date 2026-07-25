@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class CourseReservationController extends Controller
 {
     /**
      * جلب حالة الحجز والعدد الحقيقي للحاجزين للكورس
      */
-    public function getStatus(Request $request, $courseId)
+    public function getStatus(Request $request, $courseId): JsonResponse
     {
         $course = Course::findOrFail($courseId);
         $user = $request->user();
@@ -29,7 +30,7 @@ class CourseReservationController extends Controller
     /**
      * حجز مكان في الكورس أو إلغاء الحجز (Toggle)
      */
-    public function toggleReservation(Request $request, $courseId)
+    public function toggleReservation(Request $request, $courseId): JsonResponse
     {
         $course = Course::findOrFail($courseId);
         $user = $request->user();

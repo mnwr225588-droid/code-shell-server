@@ -57,6 +57,9 @@ class Course extends Model
 
     public function getReservationsCountAttribute()
     {
+        if ($this->relationLoaded('reservedUsers')) {
+            return $this->reservedUsers->count();
+        }
         return $this->reservedUsers()->count();
     }
 }
