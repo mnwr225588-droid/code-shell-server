@@ -120,7 +120,7 @@ class AdminContentController extends Controller
         $lesson = Lesson::create([
             'level_id'   => $request->level_id,
             'title'      => $request->title,
-            'video_path' => $videoPath,
+            'video_url'  => $videoPath,
             'thumbnail'  => $thumbnailPath,
             'order_num'  => $request->order_num,
         ]);
@@ -159,6 +159,20 @@ class AdminContentController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $users
+        ]);
+    }
+
+    // 6️⃣ تفعيل/إلغاء تفعيل الكورس (Publish Toggle)
+    public function togglePublish($id)
+    {
+        $course = Course::findOrFail($id);
+        $course->is_coming_soon = !$course->is_coming_soon;
+        $course->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => $course->is_coming_soon ? 'تم إخفاء الكورس (وضع الانتظار)' : 'تم نشر الكورس بنجاح',
+            'data' => $course
         ]);
     }
 }

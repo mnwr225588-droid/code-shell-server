@@ -37,6 +37,11 @@ Route::prefix('admin')->group(function () {
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
     Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
     Route::get('/users', [AdminContentController::class, 'getUsers']);
+    Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);
+    
+    // Reservations
+    Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
+    Route::get('/reservations/{course_id}', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCourseReservations']);
 });
 
 /*
@@ -45,12 +50,48 @@ Route::prefix('admin')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/levels/{course_id}', function ($course_id) {
+    $levels = Level::where('course_id', $course_id)
+        ->orderBy('order_num', 'asc')
+        ->with(['lessons' => function($q) {
+            $q->orderBy('order_num', 'asc')->with('questions.options');
+        }])
+        ->get();
+
+    $userId = auth('sanctum')->id();
+    $completedLessonIds = [];
+    
+    if ($userId) {
+        $completedLessonIds = \App\Models\LessonCompletion::where('user_id', $userId)
+            ->pluck('lesson_id')
+            ->toArray();
+    }
+
+    $isNextUnlocked = true; // First lesson is always unlocked
+
+    foreach ($levels as $level) {
+        $levelLocked = true;
+        foreach ($level->lessons as $lesson) {
+            $lesson->is_locked = !$isNextUnlocked;
+            
+            if (!$lesson->is_locked) {
+                $levelLocked = false;
+            }
+
+            // Check if this lesson is completed, which unlocks the next one
+            if (in_array($lesson->id, $completedLessonIds)) {
+                $lesson->is_completed = true;
+                $isNextUnlocked = true;
+            } else {
+                $lesson->is_completed = false;
+                $isNextUnlocked = false;
+            }
+        }
+        $level->is_locked = $levelLocked;
+    }
+
     return response()->json([
         'status' => true,
-        'data'   => Level::where('course_id', $course_id)
-            ->orderBy('order_num', 'asc')
-            ->with(['lessons.questions.options'])
-            ->get()
+        'data'   => $levels
     ]);
 });
 
@@ -76,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Progress
     Route::get('/progress', [ProgressController::class, 'index']);
     Route::post('/progress', [ProgressController::class, 'save']);
+    Route::post('/progress/lesson/{lesson_id}/complete', [ProgressController::class, 'markLessonComplete']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

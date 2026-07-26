@@ -53,4 +53,20 @@ class ProgressController extends Controller
             'progress' => $progress,
         ]);
     }
+
+    /**
+     * تعليم الدرس كمكتمل لفك قفل الدرس التالي
+     */
+    public function markLessonComplete($lesson_id): JsonResponse
+    {
+        \App\Models\LessonCompletion::firstOrCreate([
+            'user_id' => auth()->id(),
+            'lesson_id' => $lesson_id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تعليم الدرس كمكتمل بنجاح.',
+        ]);
+    }
 }
