@@ -31,16 +31,19 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
-// مسار مؤقت لإنشاء حساب الأدمن بسهولة على السيرفر
+// مسار مؤقت آمن لإنشاء حساب الأدمن
 Route::get('/create-admin-fix', function () {
-    $user = User::updateOrCreate(
-        ['email' => 'admin@codeshell.com'],
-        [
-            'name' => 'Admin',
-            'password' => Hash::make('password'),
-            'role' => 'admin'
-        ]
-    );
+    $user = User::where('email', 'admin@codeshell.com')->first();
+    
+    if (!$user) {
+        $user = new User();
+        $user->email = 'admin@codeshell.com';
+    }
+    
+    $user->name = 'Admin';
+    $user->password = Hash::make('password');
+    $user->role = 'admin';
+    $user->save();
 
     return response()->json([
         'status' => 'success',
