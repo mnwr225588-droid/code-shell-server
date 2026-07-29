@@ -15,7 +15,8 @@ use App\Http\Controllers\Api\CourseReservationController;
 use App\Models\Level;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,14 +33,40 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
-// مسار مؤقت لإعادة إنشاء الجداول وإضافة حساب الأدمن
+// مسار ذكي ومباشر لإصلاح الجدول وإنشاء حساب الأدمن
 Route::get('/create-admin-fix', function () {
     try {
-        // إعادة بناء الجداول من الصفر لتطبيق كل الأعمدة الجديدة
-        Artisan::call('migrate:fresh', ['--force' => true]);
+        // التأكد من وجود جدول users أو إنشاءه مع الأعمدة المطلوبة
+        if (!Schema::hasTable('users')) {
+            Schema::create('users', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('email')->unique();
+                $table->timestamp('email_verified_at')->nullable();
+                $table->string('password');
+                $table->string('role')->default('student');
+                $table->rememberToken();
+                $table->timestamps();
+            });
+        } else {
+            // إذا كان الجدول موجوداً، يتم إضافة الأعمدة الناقصة تلقائياً
+            Schema::table('users', function (Blueprint $table) {
+                if (!Schema::hasColumn('users', 'name')) {
+                    $table->string('name')->after('id');
+                }
+                if (!Schema::hasColumn('users', 'role')) {
+                    $table->string('role')->default('student')->after('password');
+                }
+            });
+        }
 
-        $user = new User();
-        $user->email = 'admin@codeshell.com';
+        $user = User::where('email', 'admin@codeshell.com')->first();
+        
+        if (!$user) {
+            $user = new User();
+            $user->email = 'admin@codeshell.com';
+        }
+        
         $user->name = 'Admin';
         $user->password = Hash::make('password');
         $user->role = 'admin';
@@ -47,7 +74,7 @@ Route::get('/create-admin-fix', function () {
 
         return response()->json([
             'status' => 'success',
-            'message' => 'تم إعادة إنشاء الجداول وإنشاء حساب الأدمن بنجاح!',
+            'message' => 'تم إصلاح جدول المستخدمين وإنشاء حساب الأدمن بنجاح!',
             'user' => $user
         ]);
     } catch (\Exception $e) {
