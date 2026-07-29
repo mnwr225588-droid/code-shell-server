@@ -16,7 +16,7 @@ use App\Models\Level;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,33 +33,33 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
-// مسار ذكي ومباشر لإصلاح الجدول وإنشاء حساب الأدمن
-Route::get('/create-admin-fix', function () {
+/*
+|--------------------------------------------------------------------------
+| Server & Database Diagnostic / Fix Route (مسار الفحص الشامل وإصلاح الأدمن)
+|--------------------------------------------------------------------------
+*/
+Route::get('/server-check', function () {
     try {
-        // التأكد من وجود جدول users أو إنشاءه مع الأعمدة المطلوبة
-        if (!Schema::hasTable('users')) {
-            Schema::create('users', function (Blueprint $table) {
-                $table->id();
-                $table->string('name');
-                $table->string('email')->unique();
-                $table->timestamp('email_verified_at')->nullable();
-                $table->string('password');
-                $table->string('role')->default('student');
-                $table->rememberToken();
-                $table->timestamps();
-            });
-        } else {
-            // إذا كان الجدول موجوداً، يتم إضافة الأعمدة الناقصة تلقائياً
-            Schema::table('users', function (Blueprint $table) {
-                if (!Schema::hasColumn('users', 'name')) {
-                    $table->string('name')->after('id');
-                }
-                if (!Schema::hasColumn('users', 'role')) {
-                    $table->string('role')->default('student')->after('password');
-                }
-            });
+        // 1. فحص الجداول الموجودة في قاعدة البيانات
+        $tables = [];
+        $rawTables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+        foreach ($rawTables as $tbl) {
+            $tables[] = $tbl->table_name;
         }
 
+        // 2. فحص أعمدة جدول users ومعرفة الحقول الإلزامية
+        $usersColumns = [];
+        if (in_array('users', $tables)) {
+            $rawCols = DB::select("SELECT column_name, is_nullable, data_type FROM information_schema.columns WHERE table_name = 'users'");
+            foreach ($rawCols as $col) {
+                $usersColumns[$col->column_name] = [
+                    'type' => $col->data_type,
+                    'nullable' => $col->is_nullable
+                ];
+            }
+        }
+
+        // 3. إنشاء أو تحديث حساب الأدمن مع ملء كافة الحقول المحتمل إجبارها (Not Null)
         $user = User::where('email', 'admin@codeshell.com')->first();
         
         if (!$user) {
@@ -67,22 +67,51 @@ Route::get('/create-admin-fix', function () {
             $user->email = 'admin@codeshell.com';
         }
         
+        // تعبئة البيانات بناءً على الأعمدة الشائعة في لاراول لتجنب أي Not Null Violation
         $user->name = 'Admin';
+        
+        if (Schema::hasColumn('users', 'first_name')) {
+            $user->first_name = 'Admin';
+        }
+        if (Schema::hasColumn('users', 'last_name')) {
+            $user->last_name = 'System';
+        }
+        if (Schema::hasColumn('users', 'username')) {
+            $user->username = 'admin';
+        }
+        if (Schema::hasColumn('users', 'phone')) {
+            $user->phone = '0123456789';
+        }
+        
         $user->password = Hash::make('password');
-        $user->role = 'admin';
+        
+        if (Schema::hasColumn('users', 'role')) {
+            $user->role = 'admin';
+        }
+        
         $user->save();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'تم إصلاح جدول المستخدمين وإنشاء حساب الأدمن بنجاح!',
-            'user' => $user
-        ]);
+            'message' => 'تم فحص السيرفر وقاعدة البيانات وإنشاء حساب الأدمن بنجاح!',
+            'database_tables' => $tables,
+            'users_table_columns' => $usersColumns,
+            'admin_user' => $user
+        ], 200);
+
     } catch (\Exception $e) {
         return response()->json([
             'status' => 'error',
-            'message' => $e->getMessage()
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
         ], 500);
     }
+});
+
+// للاحتفاظ بالرابط القديم يعمل أيضاً كمسار فحص
+Route::get('/create-admin-fix', function () {
+    return redirect('/api/server-check');
 });
 
 /*
