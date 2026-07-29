@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\CourseReservationController;
 use App\Models\Level;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +30,24 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
+
+// مسار مؤقت لإنشاء حساب الأدمن بسهولة على السيرفر
+Route::get('/create-admin-fix', function () {
+    $user = User::updateOrCreate(
+        ['email' => 'admin@codeshell.com'],
+        [
+            'name' => 'Admin',
+            'password' => Hash::make('password'),
+            'role' => 'admin'
+        ]
+    );
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'تم إنشاء حساب الأدمن بنجاح!',
+        'user' => $user
+    ]);
+});
 
 /*
 |--------------------------------------------------------------------------
