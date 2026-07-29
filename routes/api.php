@@ -23,6 +23,9 @@ use App\Models\Level;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
+// Admin Login Route
+Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 'login']);
+
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
@@ -32,6 +35,7 @@ Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->group(function () {
+    Route::get('/courses', [AdminContentController::class, 'getCourses']);
     Route::post('/categories', [AdminContentController::class, 'storeCategory']);
     Route::post('/courses', [AdminContentController::class, 'storeCourse']);
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
@@ -42,6 +46,9 @@ Route::prefix('admin')->group(function () {
     // Reservations
     Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
     Route::get('/reservations/{course_id}', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCourseReservations']);
+    
+    // Dashboard Stats
+    Route::middleware('auth:sanctum')->get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
 });
 
 /*
@@ -83,9 +90,19 @@ Route::get('/levels/{course_id}', function ($course_id) {
                 $isNextUnlocked = true;
             } else {
                 $lesson->is_completed = false;
-                $isNextUnlocked = false;
+                if (!$lesson->is_optional) {
+                    $isNextUnlocked = false;
+                } else {
+                    $isNextUnlocked = true;
+                }
             }
         }
+        
+        // If the entire level is optional, it should not block the next level
+        if ($level->is_optional) {
+            $isNextUnlocked = true;
+        }
+        
         $level->is_locked = $levelLocked;
     }
 

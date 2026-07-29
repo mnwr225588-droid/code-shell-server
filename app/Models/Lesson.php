@@ -15,7 +15,8 @@ class Lesson extends Model
         'description',
         'thumbnail',
         'video_url',
-        'order_num'
+        'order_num',
+        'is_optional'
     ];
 
     protected $appends = ['thumbnail_url'];

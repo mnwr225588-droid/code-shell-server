@@ -12,6 +12,17 @@ use Illuminate\Http\Request;
 
 class AdminContentController extends Controller
 {
+    // 0️⃣ جلب جميع الكورسات (بما فيها غير المنشورة)
+    public function getCourses(Request $request)
+    {
+        // Admin needs to see all courses to manage them
+        $courses = Course::with('category')->orderBy('id', 'desc')->get();
+        return response()->json([
+            'status' => true,
+            'data'   => $courses
+        ]);
+    }
+
     // 1️⃣ إضافة/تحديث قسم أو لغة برمجة مع الأيقونة
     public function storeCategory(Request $request)
     {
@@ -80,9 +91,13 @@ class AdminContentController extends Controller
             'course_id' => 'required|exists:courses,id',
             'title'     => 'required|string|max:255',
             'order_num' => 'required|integer',
+            'is_optional' => 'boolean'
         ]);
 
-        $level = Level::create($request->all());
+        $data = $request->all();
+        $data['is_optional'] = $request->is_optional ?? false;
+        
+        $level = Level::create($data);
 
         return response()->json([
             'status'  => true,
@@ -101,6 +116,7 @@ class AdminContentController extends Controller
             'video_url'    => 'nullable|string',
             'thumbnail'    => 'nullable|image|max:2048',
             'order_num'    => 'required|integer',
+            'is_optional'  => 'boolean',
             'questions'    => 'nullable|array',
         ]);
 
@@ -116,6 +132,8 @@ class AdminContentController extends Controller
         if ($request->hasFile('thumbnail')) {
             $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'public');
         }
+        
+        $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
 
         $lesson = Lesson::create([
             'level_id'   => $request->level_id,
@@ -123,6 +141,7 @@ class AdminContentController extends Controller
             'video_url'  => $videoPath,
             'thumbnail'  => $thumbnailPath,
             'order_num'  => $request->order_num,
+            'is_optional'=> $isOptional,
         ]);
 
         // إضافة الأسئلة إن وجدت مع الدرس بداخل نفس النموذج
