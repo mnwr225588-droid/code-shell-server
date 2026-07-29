@@ -16,7 +16,6 @@ use App\Models\Level;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,26 +39,6 @@ Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 */
 Route::get('/server-check', function () {
     try {
-        // 1. فحص الجداول الموجودة في قاعدة البيانات
-        $tables = [];
-        $rawTables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
-        foreach ($rawTables as $tbl) {
-            $tables[] = $tbl->table_name;
-        }
-
-        // 2. فحص أعمدة جدول users ومعرفة الحقول الإلزامية
-        $usersColumns = [];
-        if (in_array('users', $tables)) {
-            $rawCols = DB::select("SELECT column_name, is_nullable, data_type FROM information_schema.columns WHERE table_name = 'users'");
-            foreach ($rawCols as $col) {
-                $usersColumns[$col->column_name] = [
-                    'type' => $col->data_type,
-                    'nullable' => $col->is_nullable
-                ];
-            }
-        }
-
-        // 3. إنشاء أو تحديث حساب الأدمن مع ملء كافة الحقول المحتمل إجبارها (Not Null)
         $user = User::where('email', 'admin@codeshell.com')->first();
         
         if (!$user) {
@@ -67,11 +46,14 @@ Route::get('/server-check', function () {
             $user->email = 'admin@codeshell.com';
         }
         
-        // تعبئة البيانات بناءً على الأعمدة الشائعة في لاراول لتجنب أي Not Null Violation
+        // تعبئة كافة الحقول المحتملة لتجنب أي قيود Not Null
         $user->name = 'Admin';
         
         if (Schema::hasColumn('users', 'first_name')) {
             $user->first_name = 'Admin';
+        }
+        if (Schema::hasColumn('users', 'middle_name')) {
+            $user->middle_name = 'Admin';
         }
         if (Schema::hasColumn('users', 'last_name')) {
             $user->last_name = 'System';
@@ -93,9 +75,7 @@ Route::get('/server-check', function () {
 
         return response()->json([
             'status' => 'success',
-            'message' => 'تم فحص السيرفر وقاعدة البيانات وإنشاء حساب الأدمن بنجاح!',
-            'database_tables' => $tables,
-            'users_table_columns' => $usersColumns,
+            'message' => 'تم إنشاء حساب الأدمن وتجاوز القيود بنجاح!',
             'admin_user' => $user
         ], 200);
 
@@ -103,13 +83,11 @@ Route::get('/server-check', function () {
         return response()->json([
             'status' => 'error',
             'message' => $e->getMessage(),
-            'file' => $e->getFile(),
             'line' => $e->getLine()
         ], 500);
     }
 });
 
-// للاحتفاظ بالرابط القديم يعمل أيضاً كمسار فحص
 Route::get('/create-admin-fix', function () {
     return redirect('/api/server-check');
 });
