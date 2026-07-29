@@ -32,19 +32,14 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
-// مسار مؤقت لتشغيل الـ Migrations وإنشاء حساب الأدمن
+// مسار مؤقت لإعادة إنشاء الجداول وإضافة حساب الأدمن
 Route::get('/create-admin-fix', function () {
     try {
-        // تشغيل الـ Migrations على سيرفر Railway لتفعيل الجداول والأعمدة
-        Artisan::call('migrate', ['--force' => true]);
+        // إعادة بناء الجداول من الصفر لتطبيق كل الأعمدة الجديدة
+        Artisan::call('migrate:fresh', ['--force' => true]);
 
-        $user = User::where('email', 'admin@codeshell.com')->first();
-        
-        if (!$user) {
-            $user = new User();
-            $user->email = 'admin@codeshell.com';
-        }
-        
+        $user = new User();
+        $user->email = 'admin@codeshell.com';
         $user->name = 'Admin';
         $user->password = Hash::make('password');
         $user->role = 'admin';
@@ -52,7 +47,7 @@ Route::get('/create-admin-fix', function () {
 
         return response()->json([
             'status' => 'success',
-            'message' => 'تم تشغيل الـ Migrations وإنشاء حساب الأدمن بنجاح!',
+            'message' => 'تم إعادة إنشاء الجداول وإنشاء حساب الأدمن بنجاح!',
             'user' => $user
         ]);
     } catch (\Exception $e) {
