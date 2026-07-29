@@ -31,25 +31,32 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
-// مسار مؤقت آمن لإنشاء حساب الأدمن
+// مسار مؤقت آمن لإنشاء حساب الأدمن مع كشف الأخطاء
 Route::get('/create-admin-fix', function () {
-    $user = User::where('email', 'admin@codeshell.com')->first();
-    
-    if (!$user) {
-        $user = new User();
-        $user->email = 'admin@codeshell.com';
-    }
-    
-    $user->name = 'Admin';
-    $user->password = Hash::make('password');
-    $user->role = 'admin';
-    $user->save();
+    try {
+        $user = User::where('email', 'admin@codeshell.com')->first();
+        
+        if (!$user) {
+            $user = new User();
+            $user->email = 'admin@codeshell.com';
+        }
+        
+        $user->name = 'Admin';
+        $user->password = Hash::make('password');
+        $user->role = 'admin';
+        $user->save();
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'تم إنشاء حساب الأدمن بنجاح!',
-        'user' => $user
-    ]);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'تم إنشاء حساب الأدمن بنجاح!',
+            'user' => $user
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
 });
 
 /*
