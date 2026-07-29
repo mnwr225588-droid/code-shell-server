@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\CourseReservationController;
 use App\Models\Level;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,9 +32,12 @@ Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 
-// مسار مؤقت آمن لإنشاء حساب الأدمن مع كشف الأخطاء
+// مسار مؤقت لتشغيل الـ Migrations وإنشاء حساب الأدمن
 Route::get('/create-admin-fix', function () {
     try {
+        // تشغيل الـ Migrations على سيرفر Railway لتفعيل الجداول والأعمدة
+        Artisan::call('migrate', ['--force' => true]);
+
         $user = User::where('email', 'admin@codeshell.com')->first();
         
         if (!$user) {
@@ -48,7 +52,7 @@ Route::get('/create-admin-fix', function () {
 
         return response()->json([
             'status' => 'success',
-            'message' => 'تم إنشاء حساب الأدمن بنجاح!',
+            'message' => 'تم تشغيل الـ Migrations وإنشاء حساب الأدمن بنجاح!',
             'user' => $user
         ]);
     } catch (\Exception $e) {
