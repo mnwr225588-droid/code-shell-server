@@ -14,6 +14,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
+        'name',
         'first_name',
         'middle_name',
         'last_name',
@@ -42,6 +43,20 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * دمج الأسماء تلقائياً لملء حقل name لمنع حدوث خطأ قاعدة البيانات
+     */
+    protected static function booted()
+    {
+        static::saving(function ($user) {
+            $user->name = trim(
+                ($user->first_name ?? '') . ' ' . 
+                ($user->middle_name ?? '') . ' ' . 
+                ($user->last_name ?? '')
+            );
+        });
     }
 
     /**
