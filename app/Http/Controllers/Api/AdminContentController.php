@@ -88,9 +88,10 @@ class AdminContentController extends Controller
     public function storeLevel(Request $request)
     {
         $request->validate([
-            'course_id' => 'required|exists:courses,id',
-            'title'     => 'required|string|max:255',
-            'order_num' => 'required|integer',
+            'course_id'   => 'required|exists:courses,id',
+            'title'       => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'order_num'   => 'required|integer',
             'is_optional' => 'boolean'
         ]);
 
@@ -112,7 +113,8 @@ class AdminContentController extends Controller
         $request->validate([
             'level_id'     => 'required|exists:levels,id',
             'title'        => 'required|string|max:255',
-            'video'        => 'nullable|file|mimes:mp4,mov,avi,wmv|max:500000', // دعم الفيديوهات حتى 500MB
+            'description'  => 'nullable|string',
+            'video'        => 'nullable|file|mimes:mp4,mov,avi,wmv|max:500000',
             'video_url'    => 'nullable|string',
             'thumbnail'    => 'nullable|image|max:2048',
             'order_num'    => 'required|integer',
@@ -136,12 +138,13 @@ class AdminContentController extends Controller
         $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
 
         $lesson = Lesson::create([
-            'level_id'   => $request->level_id,
-            'title'      => $request->title,
-            'video_url'  => $videoPath,
-            'thumbnail'  => $thumbnailPath,
-            'order_num'  => $request->order_num,
-            'is_optional'=> $isOptional,
+            'level_id'    => $request->level_id,
+            'title'       => $request->title,
+            'description' => $request->description,
+            'video_url'   => $videoPath,
+            'thumbnail'   => $thumbnailPath,
+            'order_num'   => $request->order_num,
+            'is_optional' => $isOptional,
         ]);
 
         // إضافة الأسئلة إن وجدت مع الدرس بداخل نفس النموذج
