@@ -120,6 +120,18 @@ Route::prefix('admin')->group(function () {
 | Public / Student Routes (مسارات المستويات والكورسات العامة)
 |--------------------------------------------------------------------------
 */
+// جلب الدروس الخاصة بمستوى معين
+Route::get('/levels/{id}/lessons', function ($id) {
+    $level = \App\Models\Level::with(['lessons' => function($q) {
+        $q->orderBy('order_num', 'asc')->with('questions.options');
+    }])->findOrFail($id);
+
+    return response()->json([
+        'status' => true,
+        'data'   => $level->lessons
+    ]);
+});
+
 Route::get('/levels/{course_id}', function ($course_id) {
     $levels = Level::where('course_id', $course_id)
         ->orderBy('order_num', 'asc')
