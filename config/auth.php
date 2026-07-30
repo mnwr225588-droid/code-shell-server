@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Admin;
 use App\Models\User;
 
 return [
@@ -33,7 +34,7 @@ return [
     | users are actually retrieved out of your database or other storage
     | system used by the application. Typically, Eloquent is utilized.
     |
-    | Supported: "session"
+    | Supported: "session", "sanctum"
     |
     */
 
@@ -41,6 +42,11 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        'admin' => [
+            'driver' => 'sanctum',
+            'provider' => 'admins',
         ],
     ],
 
@@ -67,9 +73,14 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => Admin::class,
+        ],
+
         // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
+        //      'driver' => 'database',
+        //      'table' => 'users',
         // ],
     ],
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AdminContentController;
 use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\CourseReservationController;
+use App\Http\Controllers\AdminAuthController;
 use App\Models\Level;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +28,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 // Admin Login Route
-Route::post('/admin/login', [\App\Http\Controllers\Admin\AuthController::class, 'login']);
+Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
