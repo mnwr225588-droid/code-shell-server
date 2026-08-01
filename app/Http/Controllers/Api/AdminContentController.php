@@ -9,6 +9,8 @@ use App\Models\Level;
 use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AdminContentController extends Controller
 {
@@ -114,62 +116,78 @@ class AdminContentController extends Controller
             'level_id'     => 'required|exists:levels,id',
             'title'        => 'required|string|max:255',
             'description'  => 'nullable|string',
-            'video'        => 'nullable|file|mimes:mp4,mov,avi,wmv|max:500000',
+            'video'        => 'nullable|file|mimes:mp4,mov,avi,mkv,wmv|max:500000',
             'video_url'    => 'nullable|string',
-            'thumbnail'    => 'nullable|image|max:2048',
+            'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'order_num'    => 'required|integer',
-            'is_optional'  => 'boolean',
+            'is_optional'  => 'nullable',
             'questions'    => 'nullable|array',
         ]);
 
-        // رفع ملف الفيديو إن وجد أو أخذ الرابط
-        $videoPath = null;
-        if ($request->hasFile('video')) {
-            $videoPath = $request->file('video')->store('lessons/videos', 'public');
-        } elseif ($request->filled('video_url')) {
-            $videoPath = $request->video_url;
-        }
+        try {
+            // رفع ملف الفيديو إن وجد أو أخذ الرابط
+            $videoPath = null;
+            if ($request->hasFile('video')) {
+                $videoPath = $request->file('video')->store('lessons/videos', 'public');
+                Log::info('Video uploaded to: ' . $videoPath);
+            } elseif ($request->filled('video_url')) {
+                $videoPath = $request->video_url;
+            }
 
-        $thumbnailPath = null;
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'public');
-        }
-        
-        $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
+            $thumbnailPath = null;
+            if ($request->hasFile('thumbnail')) {
+                $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'public');
+                Log::info('Thumbnail uploaded to: ' . $thumbnailPath);
+            }
+            
+            $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
 
-        $lesson = Lesson::create([
-            'level_id'    => $request->level_id,
-            'title'       => $request->title,
-            'description' => $request->description,
-            'video_url'   => $videoPath,
-            'thumbnail'   => $thumbnailPath,
-            'order_num'   => $request->order_num,
-            'is_optional' => $isOptional,
-        ]);
+            $lesson = Lesson::create([
+                'level_id'    => $request->level_id,
+                'title'       => $request->title,
+                'description' => $request->description,
+                'video_url'   => $videoPath,
+                'thumbnail'   => $thumbnailPath,
+                'order_num'   => $request->order_num,
+                'is_optional' => $isOptional,
+            ]);
 
-        // إضافة الأسئلة إن وجدت مع الدرس بداخل نفس النموذج
-        if ($request->has('questions') && is_array($request->questions)) {
-            foreach ($request->questions as $qData) {
-                $question = $lesson->questions()->create([
-                    'question_text' => $qData['question_text']
-                ]);
+            // إضافة الأسئلة إن وجدت مع الدرس بداخل نفس النموذج
+            if ($request->has('questions') && is_array($request->questions)) {
+                foreach ($request->questions as $qData) {
+                    $question = $lesson->questions()->create([
+                        'question_text' => $qData['question_text']
+                    ]);
 
-                if (isset($qData['options']) && is_array($qData['options'])) {
-                    foreach ($qData['options'] as $optData) {
-                        $question->options()->create([
-                            'option_text' => $optData['option_text'],
-                            'is_correct'  => $optData['is_correct'] ?? false,
-                        ]);
+                    if (isset($qData['options']) && is_array($qData['options'])) {
+                        foreach ($qData['options'] as $optData) {
+                            $isCorrect = $optData['is_correct'] ?? false;
+                            // Handle string values from multipart form data
+                            if (is_string($isCorrect)) {
+                                $isCorrect = in_array(strtolower($isCorrect), ['true', '1', 'yes']);
+                            }
+                            $question->options()->create([
+                                'option_text' => $optData['option_text'],
+                                'is_correct'  => $isCorrect,
+                            ]);
+                        }
                     }
                 }
             }
-        }
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'تم حفظ الدرس مع الفيديو والأسئلة بنجاح',
-            'data'    => $lesson->load('questions.options')
-        ]);
+            return response()->json([
+                'status'  => true,
+                'message' => 'تم حفظ الدرس مع الفيديو والأسئلة بنجاح',
+                'data'    => $lesson->load('questions.options')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating lesson: ' . $e->getMessage());
+            return response()->json([
+                'status'  => false,
+                'message' => 'فشل في حفظ الدرس: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     // 5️⃣ عرض كافة المستخدمين واشتراكاتهم المدفوعة فقط
@@ -196,5 +214,97 @@ class AdminContentController extends Controller
             'message' => $course->is_coming_soon ? 'تم إخفاء الكورس (وضع الانتظار)' : 'تم نشر الكورس بنجاح',
             'data' => $course
         ]);
+    }
+
+    // 7️⃣ حذف درس مع ملفاته وأسئلته
+    public function deleteLesson($id)
+    {
+        try {
+            $lesson = Lesson::with('questions.options')->findOrFail($id);
+            
+            // Delete video file from storage
+            if ($lesson->video_url && !filter_var($lesson->video_url, FILTER_VALIDATE_URL)) {
+                if (Storage::disk('public')->exists($lesson->video_url)) {
+                    Storage::disk('public')->delete($lesson->video_url);
+                    Log::info('Deleted video: ' . $lesson->video_url);
+                }
+            }
+            
+            // Delete thumbnail file from storage
+            if ($lesson->thumbnail) {
+                if (Storage::disk('public')->exists($lesson->thumbnail)) {
+                    Storage::disk('public')->delete($lesson->thumbnail);
+                    Log::info('Deleted thumbnail: ' . $lesson->thumbnail);
+                }
+            }
+
+            // Delete questions and options
+            foreach ($lesson->questions as $question) {
+                $question->options()->delete();
+                $question->delete();
+            }
+
+            $lesson->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم حذف الدرس وملفاته بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting lesson #' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في حذف الدرس: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // 8️⃣ حذف مستوى بجميع دروسه وملفاته وأسئلته
+    public function deleteLevel($id)
+    {
+        try {
+            $level = Level::with('lessons.questions.options')->findOrFail($id);
+
+            foreach ($level->lessons as $lesson) {
+                // Delete video file
+                if ($lesson->video_url && !filter_var($lesson->video_url, FILTER_VALIDATE_URL)) {
+                    if (Storage::disk('public')->exists($lesson->video_url)) {
+                        Storage::disk('public')->delete($lesson->video_url);
+                        Log::info('Deleted video: ' . $lesson->video_url);
+                    }
+                }
+                
+                // Delete thumbnail file
+                if ($lesson->thumbnail) {
+                    if (Storage::disk('public')->exists($lesson->thumbnail)) {
+                        Storage::disk('public')->delete($lesson->thumbnail);
+                        Log::info('Deleted thumbnail: ' . $lesson->thumbnail);
+                    }
+                }
+                
+                // Delete questions and options
+                foreach ($lesson->questions as $question) {
+                    $question->options()->delete();
+                    $question->delete();
+                }
+
+                $lesson->delete();
+            }
+
+            $level->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم حذف المستوى ومحتوياته بالكامل'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting level #' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في حذف المستوى: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

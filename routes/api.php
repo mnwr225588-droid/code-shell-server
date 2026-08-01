@@ -107,9 +107,12 @@ Route::prefix('admin')->group(function () {
     Route::get('/users', [AdminContentController::class, 'getUsers']);
     Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);
     
-    // Reservations
     Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
     Route::get('/reservations/{course_id}', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCourseReservations']);
+    
+    // Delete operations
+    Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
+    Route::delete('/lessons/{id}', [AdminContentController::class, 'deleteLesson']);
     
     // Dashboard Stats
     Route::middleware('auth:sanctum')->get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
