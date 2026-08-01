@@ -51,11 +51,13 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::saving(function ($user) {
-            $user->name = trim(
-                ($user->first_name ?? '') . ' ' . 
-                ($user->middle_name ?? '') . ' ' . 
-                ($user->last_name ?? '')
-            );
+            if (\Schema::hasColumn('users', 'name')) {
+                $user->name = trim(
+                    ($user->first_name ?? '') . ' ' . 
+                    ($user->middle_name ?? '') . ' ' . 
+                    ($user->last_name ?? '')
+                );
+            }
         });
     }
 
