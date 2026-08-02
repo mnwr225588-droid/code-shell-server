@@ -222,6 +222,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/courses/{id}/reservation-status', [CourseReservationController::class, 'getStatus']);
     Route::post('/courses/{id}/reserve', [CourseReservationController::class, 'toggleReservation']);
 
+    // Course Subscriptions
+    Route::get('/courses/{id}/subscription-status', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'getStatus']);
+    Route::post('/courses/{id}/subscribe', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'subscribe']);
+
     // 🌐 Telegram Integration Routes (مهمة لربط التطبيق بالبوت)
     Route::get('/telegram/bind-url', [TelegramWebhookController::class, 'getBindUrl']);
     Route::get('/telegram/verify-url', [TelegramWebhookController::class, 'getBindUrl']);

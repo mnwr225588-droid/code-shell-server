@@ -68,4 +68,12 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Course::class, 'course_reservations', 'user_id', 'course_id')->withTimestamps();
     }
+
+    /**
+     * الكورسات التي اشترك فيها المستخدم
+     */
+    public function subscribedCourses()
+    {
+        return $this->belongsToMany(Course::class, 'course_subscriptions', 'user_id', 'course_id')->withTimestamps();
+    }
 }

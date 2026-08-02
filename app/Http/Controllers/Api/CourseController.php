@@ -8,12 +8,11 @@ use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
-    // جلب الكورسات المنشورة فقط (is_active و is_coming_soon=false)
+    // جلب جميع الكورسات النشطة (منشورة + قريباً) — التطبيق يحدد طريقة العرض
     public function index(Request $request)
     {
         $courses = Course::with('category')
             ->where('is_active', true)
-            ->where('is_coming_soon', false)
             ->orderBy('id', 'desc')
             ->get();
 
