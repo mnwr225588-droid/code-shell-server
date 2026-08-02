@@ -10,6 +10,7 @@ use App\Models\Lesson;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class AdminContentController extends Controller
@@ -202,7 +203,35 @@ class AdminContentController extends Controller
         ]);
     }
 
-    // 6️⃣ تفعيل/إلغاء تفعيل الكورس (Publish Toggle)
+    // 6️⃣ تفاصيل مستخدم كاملة (بيانات الحساب الكاملة من قاعدة البيانات)
+    public function showUser(Request $request, $id)
+    {
+        $fields = [
+            'id', 'first_name', 'middle_name', 'last_name', 'name',
+            'email', 'email_verified_at', 'phone', 'birth_date',
+            'is_active', 'created_at', 'updated_at',
+        ];
+        if (Schema::hasColumn('users', 'avatar')) {
+            $fields[] = 'avatar';
+        }
+
+        $user = User::select($fields)->findOrFail($id);
+
+        $userData = $user->toArray();
+        // حالة تأكيد البريد الإلكتروني — جاهزة لدعم نظام التحقق لاحقاً
+        $userData['email_verified'] = !is_null($user->email_verified_at);
+        // رابط صورة الحساب إن وجدت
+        $userData['avatar_url'] = (!empty($user->avatar) && Schema::hasColumn('users', 'avatar'))
+            ? $request->getSchemeAndHttpHost() . '/storage/' . $user->avatar
+            : null;
+
+        return response()->json([
+            'status' => true,
+            'data'   => $userData
+        ]);
+    }
+
+    // 7️⃣ تفعيل/إلغاء تفعيل الكورس (Publish Toggle)
     public function togglePublish($id)
     {
         $course = Course::findOrFail($id);

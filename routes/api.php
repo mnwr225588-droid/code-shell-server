@@ -105,6 +105,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
     Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
     Route::get('/users', [AdminContentController::class, 'getUsers']);
+    Route::get('/users/{id}', [AdminContentController::class, 'showUser']);
     Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);
     
     Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
