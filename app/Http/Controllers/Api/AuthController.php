@@ -6,9 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
+use App\Services\BrevoMailService;
+use App\Models\EmailVerification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Str;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -22,10 +26,31 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $result = $this->authService->register($request->validated());
+        $user = $result['user'];
+
+        // 1. توليد Token عشوائي طويل وآمن
+        $token = Str::random(64);
+
+        // 2. تخزين الـ Token في الجدول المستقل بصلاحية 24 ساعة
+        EmailVerification::create([
+            'user_id' => $user->id,
+            'token' => $token,
+            'expires_at' => now()->addHours(24),
+        ]);
+
+        // 3. بناء رابط التفعيل الآمن عبر HTTPS
+        $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
+
+        // 4. إرسال بريد التفعيل عبر خدمة Brevo
+        $mailService = new BrevoMailService();
+        $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+
+        // 5. تسجيل العملية في الـ Logs
+        Log::info("New user registered and verification email sent to: {$user->email}");
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إنشاء الحساب بنجاح.',
+            'message' => 'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.',
             'token' => $result['token'],
             'user' => $result['user'],
         ], 201);
@@ -37,6 +62,15 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authService->login($request->validated());
+        $user = $result['user'];
+
+        // منع تسجيل الدخول قبل تأكيد البريد الإلكتروني
+        if (!$user->email_verified_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.',
+            ], 403);
+        }
 
         return response()->json([
             'success' => true,
