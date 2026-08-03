@@ -11,7 +11,7 @@ use App\Models\EmailVerification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str; // <-- التعديل الصحيح هنا (بدون Facades)
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
@@ -64,19 +64,51 @@ class AuthController extends Controller
         $result = $this->authService->login($request->validated());
         $user = $result['user'];
 
-        // منع تسجيل الدخول قبل تأكيد البريد الإلكتروني
-        if (!$user->email_verified_at) {
-            return response()->json([
-                'success' => false,
-                'message' => 'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.',
-            ], 403);
-        }
-
+        // تم السماح بتسجيل الدخول لجميع الحسابات لإظهار نافذة تفعيل البريد في التطبيق
         return response()->json([
             'success' => true,
             'message' => 'تم تسجيل الدخول بنجاح.',
             'token' => $result['token'],
             'user' => $result['user'],
+        ], 200);
+    }
+
+    /**
+     * Resend Verification Email
+     */
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->email_verified_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الحساب مؤكد بالفعل.',
+            ], 400);
+        }
+
+        // حذف أي رموز تفعيل قديمة لنفس المستخدم
+        EmailVerification::where('user_id', $user->id)->delete();
+
+        // توليد Token جديد
+        $token = Str::random(64);
+
+        EmailVerification::create([
+            'user_id' => $user->id,
+            'token' => $token,
+            'expires_at' => now()->addHours(24),
+        ]);
+
+        $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
+
+        $mailService = new BrevoMailService();
+        $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+
+        Log::info("Verification email re-sent to: {$user->email}");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إعادة إرسال بريد التفعيل بنجاح.',
         ], 200);
     }
 

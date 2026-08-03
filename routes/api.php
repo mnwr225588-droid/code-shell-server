@@ -201,6 +201,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']); // مسار تغيير كلمة المرور
+    Route::post('/resend-verification', [AuthController::class, 'resendVerification']); // مسار إعادة إرسال بريد التفعيل
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'show']);
