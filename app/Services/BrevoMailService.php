@@ -3,59 +3,56 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Exception;
 
 class BrevoMailService
 {
     /**
-     * إرسال بريد إلكتروني عبر Brevo API
+     * إرسال رسالة HTML عبر Brevo API
      */
-    public static function send(
-        string $toEmail,
-        string $toName,
-        string $subject,
-        string $htmlContent
-    ): bool {
+    public function sendEmail($toEmail, $toName, $subject, $htmlContent)
+    {
+        $apiKey = env('BREVO_API_KEY');
+        $senderEmail = env('BREVO_SENDER_EMAIL');
+        $senderName = env('BREVO_SENDER_NAME');
 
-        $response = Http::withHeaders([
-            'accept' => 'application/json',
-            'api-key' => env('BREVO_API_KEY'),
-            'content-type' => 'application/json',
-        ])->post('https://api.brevo.com/v3/smtp/email', [
-
-            'sender' => [
-                'name'  => env('MAIL_FROM_NAME'),
-                'email' => env('MAIL_FROM_ADDRESS'),
-            ],
-
-            'to' => [
-                [
-                    'email' => $toEmail,
-                    'name'  => $toName,
-                ]
-            ],
-
-            'subject' => $subject,
-
-            'htmlContent' => $htmlContent,
-
-        ]);
-
-        if ($response->successful()) {
-
-            Log::info('Brevo Email Sent', [
-                'to' => $toEmail,
+        try {
+            $response = Http::withHeaders([
+                'accept' => 'application/json',
+                'api-key' => $apiKey,
+                'content-type' => 'application/json',
+            ])->post('https://api.brevo.com/v3/smtp/email', [
+                'sender' => [
+                    'name' => $senderName,
+                    'email' => $senderEmail,
+                ],
+                'to' => [
+                    [
+                        'email' => $toEmail,
+                        'name' => $toName ?? 'مستخدم',
+                    ]
+                ],
                 'subject' => $subject,
+                'htmlContent' => $htmlContent,
             ]);
 
-            return true;
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'message' => 'تم إرسال البريد بنجاح عبر Brevo API',
+                    'data' => $response->json()
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'فشل الإرسال: ' . $response->body()
+                ];
+            }
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'خطأ في الاتصال: ' . $e->getMessage()
+            ];
         }
-
-        Log::error('Brevo API Error', [
-            'status' => $response->status(),
-            'body' => $response->body(),
-        ]);
-
-        return false;
     }
 }
