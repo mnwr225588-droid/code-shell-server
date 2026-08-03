@@ -11,7 +11,7 @@ use App\Models\EmailVerification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Str;
+use Illuminate\Support\Str; // <-- التعديل الصحيح هنا (بدون Facades)
 use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
