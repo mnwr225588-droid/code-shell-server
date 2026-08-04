@@ -15,5 +15,10 @@ class AppVersion extends Model
         'version_name',
         'file_path',
         'changelog',
+        'downloads_count',
+    ];
+
+    protected $casts = [
+        'downloads_count' => 'integer',
     ];
 }

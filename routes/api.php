@@ -37,6 +37,12 @@ Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 // مسار فحص التحديثات (متاح لجميع المستخدمين للتأكد من وجود إصدار جديد للتطبيق)
 Route::get('/check-version', [AppUpdateController::class, 'checkVersion']);
 
+// App info for the public website
+Route::get('/app-info', [AppUpdateController::class, 'appInfo']);
+
+// Download app file with real download counter
+Route::get('/download/{platform}', [AppUpdateController::class, 'download']);
+
 /*
 |--------------------------------------------------------------------------
 | Server & Database Diagnostic / Fix Route (مسار الفحص الشامل وإصلاح الأدمن)

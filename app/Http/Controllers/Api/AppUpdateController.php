@@ -36,6 +36,7 @@ class AppUpdateController extends Controller
                 'version_code' => $latestVersion->version_code,
                 'version_name' => $latestVersion->version_name,
                 'changelog' => $latestVersion->changelog,
+                'downloads_count' => (int) $latestVersion->downloads_count,
                 'file_url' => asset('storage/' . $latestVersion->file_path), // الرابط المباشر للتحميل من السيرفر
             ], 200);
         }
@@ -78,5 +79,78 @@ class AppUpdateController extends Controller
             'message' => 'تم رفع التحديث بنجاح وإتاحته للمستخدمين.',
             'data' => $appVersion
         ], 201);
+    }
+
+    /**
+     * 3. معلومات الإصدار الأحدث لمنصة معينة (للموقع الإلكتروني)
+     * GET /api/app-info?platform=android
+     */
+    public function appInfo(Request $request)
+    {
+        $platform = $request->input('platform');
+
+        if (!in_array($platform, ['android', 'windows'])) {
+            return response()->json([
+                'status' => false,
+                'message' => 'منصة غير صالحة. يجب أن تكون android أو windows.'
+            ], 422);
+        }
+
+        $latestVersion = AppVersion::where('platform', $platform)
+            ->orderBy('version_code', 'desc')
+            ->first();
+
+        if (!$latestVersion) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا توجد إصدارات متاحة لهذه المنصة بعد.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'platform' => $latestVersion->platform,
+                'version_code' => $latestVersion->version_code,
+                'version_name' => $latestVersion->version_name,
+                'changelog' => $latestVersion->changelog,
+                'downloads_count' => (int) $latestVersion->downloads_count,
+                'file_url' => asset('storage/' . $latestVersion->file_path),
+                'updated_at' => $latestVersion->updated_at?->format('Y-m-d'),
+            ]
+        ], 200);
+    }
+
+    /**
+     * 4. تنزيل ملف التطبيق مع عدّ التحميلات الحقيقي
+     * GET /api/download/{platform}
+     */
+    public function download(Request $request, $platform)
+    {
+        if (!in_array($platform, ['android', 'windows'])) {
+            return response()->json([
+                'status' => false,
+                'message' => 'منصة غير صالحة. يجب أن تكون android أو windows.'
+            ], 422);
+        }
+
+        $latestVersion = AppVersion::where('platform', $platform)
+            ->orderBy('version_code', 'desc')
+            ->first();
+
+        if (!$latestVersion || !Storage::disk('public')->exists($latestVersion->file_path)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا توجد نسخة متاحة للتنزيل لهذه المنصة بعد.'
+            ], 404);
+        }
+
+        // زيادة عداد التنزيلات الحقيقي (مرة واحدة لكل طلب تنزيل فعلي)
+        $latestVersion->increment('downloads_count');
+
+        $extension = pathinfo($latestVersion->file_path, PATHINFO_EXTENSION);
+        $downloadName = 'codeshell_' . $platform . '_v' . $latestVersion->version_name . '.' . $extension;
+
+        return Storage::disk('public')->download($latestVersion->file_path, $downloadName);
     }
 }
