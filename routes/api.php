@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AdminContentController;
 use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\CourseReservationController;
+use App\Http\Controllers\Api\AppUpdateController;
 use App\Http\Controllers\AdminAuthController;
 use App\Models\Level;
 use App\Models\User;
@@ -32,6 +33,9 @@ Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
+
+// مسار فحص التحديثات (متاح لجميع المستخدمين للتأكد من وجود إصدار جديد للتطبيق)
+Route::get('/check-version', [AppUpdateController::class, 'checkVersion']);
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +114,9 @@ Route::prefix('admin')->group(function () {
     
     Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
     Route::get('/reservations/{course_id}', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCourseReservations']);
+    
+    // مسار رفع تحديثات التطبيق من لوحة الأدمن
+    Route::post('/upload-version', [AppUpdateController::class, 'uploadVersion']);
     
     // Delete operations
     Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
