@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppVersion;
+use App\Models\DownloadSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -134,6 +135,16 @@ class AppUpdateController extends Controller
             ], 422);
         }
 
+        // إذا كان الأدمن أوقف التنزيل لهذه المنصة من تطبيق الأدمن — يُمنع
+        // حتى التنزيل المباشر عبر الرابط، وليس فقط إخفاء الزر من الموقع.
+        $setting = DownloadSetting::where('platform', $platform)->first();
+        if (!$setting || !$setting->download_enabled) {
+            return response()->json([
+                'status' => false,
+                'message' => 'التنزيل متوقف حالياً لهذه المنصة من لوحة التحكم.'
+            ], 403);
+        }
+
         $latestVersion = AppVersion::where('platform', $platform)
             ->orderBy('version_code', 'desc')
             ->first();
@@ -222,5 +233,51 @@ class AppUpdateController extends Controller
             return null;
         }
         return (int) Storage::disk('public')->size($filePath);
+    }
+
+    /**
+     * 7. حالة تفعيل التنزيل لكل منصة (للموقع الإلكتروني وتطبيق الأدمن)
+     * GET /api/download-settings
+     */
+    public function downloadSettings(Request $request)
+    {
+        $settings = DownloadSetting::all()->pluck('download_enabled', 'platform');
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'android' => (bool) ($settings['android'] ?? true),
+                'windows' => (bool) ($settings['windows'] ?? true),
+            ],
+        ]);
+    }
+
+    /**
+     * 8. تحديث حالة تفعيل/إيقاف التنزيل لكل منصة من تطبيق الأدمن.
+     * PUT /api/admin/download-settings
+     * الجسم: { "android": true, "windows": false }
+     */
+    public function updateDownloadSettings(Request $request)
+    {
+        $request->validate([
+            'android' => 'required|boolean',
+            'windows' => 'required|boolean',
+        ]);
+
+        foreach (['android', 'windows'] as $platform) {
+            DownloadSetting::updateOrCreate(
+                ['platform' => $platform],
+                ['download_enabled' => (bool) $request->input($platform)]
+            );
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تحديث إعدادات التحميل بنجاح.',
+            'data' => [
+                'android' => (bool) $request->input('android'),
+                'windows' => (bool) $request->input('windows'),
+            ],
+        ]);
     }
 }

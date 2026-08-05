@@ -48,6 +48,9 @@ Route::get('/app-info', [AppUpdateController::class, 'appInfo']);
 // Download app file with real download counter
 Route::get('/download/{platform}', [AppUpdateController::class, 'download']);
 
+// حالة تفعيل التنزيل لكل منصة (يستخدمها الموقع وتطبيق الأدمن)
+Route::get('/download-settings', [AppUpdateController::class, 'downloadSettings']);
+
 /*
 |--------------------------------------------------------------------------
 | Server & Database Diagnostic / Fix Route (مسار الفحص الشامل وإصلاح الأدمن)
@@ -132,6 +135,8 @@ Route::prefix('admin')->group(function () {
     // مسارات إدارة التحديثات: قائمة التحديثات + حذف تحديث
     Route::get('/releases', [AppUpdateController::class, 'getUpdates']);
     Route::delete('/releases/{id}', [AppUpdateController::class, 'deleteUpdate']);
+    // التحكم في تفعيل/إيقاف التنزيل من الموقع لكل منصة (محمي بتوكن الأدمن)
+    Route::middleware('auth:sanctum')->put('/download-settings', [AppUpdateController::class, 'updateDownloadSettings']);
     
     // Delete operations
     Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
