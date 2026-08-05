@@ -62,8 +62,8 @@ class Course extends Model
         if (!$user) {
             return false;
         }
-        // حساب الأدمن يملك وصولاً كاملاً لكل الكورسات دون اشتراك.
-        if ($user->isAdmin()) {
+        // حساب الأدمن (من جدول users أو admins) يملك وصولاً كاملاً لكل الكورسات دون اشتراك.
+        if ($user instanceof \App\Models\Admin || (method_exists($user, 'isAdmin') && $user->isAdmin())) {
             return true;
         }
         return $this->subscribedUsers()->where('user_id', $user->id)->exists();

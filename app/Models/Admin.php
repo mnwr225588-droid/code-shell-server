@@ -20,4 +20,10 @@ class Admin extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    /** الأدمن الحقيقي (من جدول admins) يملك وصولاً كاملاً لكل شيء دائماً. */
+    public function isAdmin(): bool
+    {
+        return true;
+    }
 }
