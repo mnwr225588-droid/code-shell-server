@@ -7,8 +7,17 @@ use App\Models\AppVersion;
 use App\Models\DownloadSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+
 class AppUpdateController extends Controller
 {
+    /**
+     * رابط الملف العام بحروف https إجبارياً (بعض الشبكات تمنع الروابط النصية http).
+     */
+    private function secureFileUrl(string $filePath): string
+    {
+        return str_replace('http://', 'https://', asset('storage/' . $filePath));
+    }
+
     /**
      * 1. فحص ما إذا كان هناك تحديث جديد متوفر للتطبيق
      */
@@ -38,7 +47,7 @@ class AppUpdateController extends Controller
                 'version_name' => $latestVersion->version_name,
                 'changelog' => $latestVersion->changelog,
                 'downloads_count' => (int) $latestVersion->downloads_count,
-                'file_url' => asset('storage/' . $latestVersion->file_path), // الرابط المباشر للتحميل من السيرفر
+                'file_url' => $this->secureFileUrl($latestVersion->file_path), // الرابط المباشر للتحميل من السيرفر
             ], 200);
         }
 
@@ -251,7 +260,7 @@ class AppUpdateController extends Controller
                 'version_name' => $latestVersion->version_name,
                 'changelog' => $latestVersion->changelog,
                 'downloads_count' => (int) $latestVersion->downloads_count,
-                'file_url' => asset('storage/' . $latestVersion->file_path),
+                'file_url' => $this->secureFileUrl($latestVersion->file_path),
                 'updated_at' => $latestVersion->updated_at?->format('Y-m-d'),
             ]
         ], 200);
@@ -322,7 +331,7 @@ class AppUpdateController extends Controller
                 'version_name' => $version->version_name,
                 'changelog' => $version->changelog,
                 'downloads_count' => (int) $version->downloads_count,
-                'file_url' => asset('storage/' . $version->file_path),
+                'file_url' => $this->secureFileUrl($version->file_path),
                 'created_at' => $version->created_at?->format('Y-m-d H:i'),
                 'file_size' => $this->fileSize($version->file_path),
                 'is_update' => (bool) $version->is_update,
