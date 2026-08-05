@@ -116,7 +116,7 @@ Route::get('/create-admin-fix', function () {
 | Admin Routes (إضافة لغات، كورسات، مستويات، دروس بالفيديو، والمستخدمين)
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->group(function () {
+Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/courses', [AdminContentController::class, 'getCourses']);
     Route::post('/categories', [AdminContentController::class, 'storeCategory']);
     Route::post('/courses', [AdminContentController::class, 'storeCourse']);
@@ -138,15 +138,15 @@ Route::prefix('admin')->group(function () {
     // مسارات إدارة التحديثات: قائمة التحديثات + حذف تحديث
     Route::get('/releases', [AppUpdateController::class, 'getUpdates']);
     Route::delete('/releases/{id}', [AppUpdateController::class, 'deleteUpdate']);
-    // التحكم في تفعيل/إيقاف التنزيل من الموقع لكل منصة (محمي بتوكن الأدمن)
-    Route::middleware('auth:sanctum')->put('/download-settings', [AppUpdateController::class, 'updateDownloadSettings']);
+    // التحكم في تفعيل/إيقاف التنزيل من الموقع لكل منصة
+    Route::put('/download-settings', [AppUpdateController::class, 'updateDownloadSettings']);
     
     // Delete operations
     Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
     Route::delete('/lessons/{id}', [AdminContentController::class, 'deleteLesson']);
     
     // Dashboard Stats
-    Route::middleware('auth:sanctum')->get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
+    Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
 });
 
 /*

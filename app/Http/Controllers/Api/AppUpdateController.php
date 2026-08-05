@@ -17,8 +17,9 @@ class AppUpdateController extends Controller
         $platform = $request->input('platform'); // android أو windows
         $currentVersionCode = (int) $request->input('current_version', 0);
 
-        // جلب أحدث إصدار مرفوع لهذه المنصة
+        // جلب أحدث إصدار مرفوع لهذه المنصة (فقط الإصدارات المفعّلة كتحديثات)
         $latestVersion = AppVersion::where('platform', $platform)
+            ->where('is_update', true)
             ->orderBy('version_code', 'desc')
             ->first();
 
@@ -58,6 +59,7 @@ class AppUpdateController extends Controller
             'version_name' => 'required|string',
             'app_file' => 'required|file', // استقبال الملف (APK أو EXE)
             'changelog' => 'nullable|string',
+            'is_update' => 'nullable|boolean',
         ]);
 
         // رفع الملف إلى مجلد storage/app_releases داخل السيرفر
@@ -72,6 +74,7 @@ class AppUpdateController extends Controller
             'version_name' => $request->version_name,
             'file_path' => $filePath,
             'changelog' => $request->changelog,
+            'is_update' => $request->boolean('is_update', true),
         ]);
 
         return response()->json([
@@ -124,6 +127,7 @@ class AppUpdateController extends Controller
             'changelog' => 'nullable|string',
             'total_chunks' => 'required|integer|min:1|max:10000',
             'filename' => 'required|string|max:255',
+            'is_update' => 'nullable|boolean',
         ]);
 
         $uploadId = $request->upload_id;
@@ -203,6 +207,7 @@ class AppUpdateController extends Controller
             'version_name' => $request->version_name,
             'file_path' => $publicPath,
             'changelog' => $request->changelog,
+            'is_update' => $request->boolean('is_update', true),
         ]);
 
         return response()->json([
@@ -320,6 +325,7 @@ class AppUpdateController extends Controller
                 'file_url' => asset('storage/' . $version->file_path),
                 'created_at' => $version->created_at?->format('Y-m-d H:i'),
                 'file_size' => $this->fileSize($version->file_path),
+                'is_update' => (bool) $version->is_update,
             ];
         });
 

@@ -16,9 +16,11 @@ class AppVersion extends Model
         'file_path',
         'changelog',
         'downloads_count',
+        'is_update',
     ];
 
     protected $casts = [
         'downloads_count' => 'integer',
+        'is_update' => 'boolean',
     ];
 }
