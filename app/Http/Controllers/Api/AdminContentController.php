@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Level;
 use App\Models\Lesson;
 use App\Models\User;
+use App\Services\PricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -62,6 +63,8 @@ class AdminContentController extends Controller
             'is_free'        => 'required|boolean',
             'price'          => 'nullable|numeric',
             'is_coming_soon' => 'boolean',
+            'prices'         => 'nullable',
+            'prices.*'       => 'nullable|numeric',
         ]);
 
         $thumbnailPath = null;
@@ -69,13 +72,17 @@ class AdminContentController extends Controller
             $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
         }
 
+        $prices = PricingService::normalizePrices($request->input('prices'));
+
         $course = Course::create([
             'category_id'    => $request->category_id,
             'title'          => $request->title,
             'description'    => $request->description,
             'thumbnail'      => $thumbnailPath,
             'is_free'        => $request->is_free,
-            'price'          => $request->is_free ? 0 : $request->price,
+            // العمود القديم للتوافق؛ المصدر الحقيقي هو مصفوفة prices (EGP افتراضياً).
+            'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
+            'prices'         => $prices,
             'is_coming_soon' => $request->is_coming_soon ?? false,
             'is_active'      => true,
         ]);
@@ -83,6 +90,53 @@ class AdminContentController extends Controller
         return response()->json([
             'status'  => true,
             'message' => 'تمت إضافة الكورس بنجاح',
+            'data'    => $course
+        ]);
+    }
+
+    // 2️⃣.ب تعديل كورس (البيانات الأساسية + الأسعار متعددة العملات)
+    public function updateCourse(Request $request, $id)
+    {
+        $course = Course::findOrFail($id);
+
+        $request->validate([
+            'category_id'    => 'sometimes|exists:categories,id',
+            'title'          => 'sometimes|string|max:255',
+            'description'    => 'nullable|string',
+            'is_free'        => 'sometimes|boolean',
+            'is_active'      => 'sometimes|boolean',
+            'is_coming_soon' => 'sometimes|boolean',
+            'prices'         => 'nullable',
+            'prices.*'       => 'nullable|numeric',
+        ]);
+
+        if ($request->has('category_id')) {
+            $course->category_id = $request->category_id;
+        }
+        if ($request->has('title')) {
+            $course->title = $request->title;
+        }
+        if ($request->has('description')) {
+            $course->description = $request->description;
+        }
+        if ($request->has('is_free')) {
+            $course->is_free = $request->is_free;
+        }
+        if ($request->has('is_active')) {
+            $course->is_active = $request->is_active;
+        }
+        if ($request->has('is_coming_soon')) {
+            $course->is_coming_soon = $request->is_coming_soon;
+        }
+        if ($request->has('prices')) {
+            $course->prices = PricingService::normalizePrices($request->input('prices'));
+        }
+
+        $course->save();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'تم تحديث الكورس بنجاح',
             'data'    => $course
         ]);
     }

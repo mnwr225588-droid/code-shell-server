@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\CourseReservationController;
 use App\Http\Controllers\Api\AppUpdateController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\AdminAuthController;
 use App\Models\Level;
 use App\Models\User;
@@ -33,6 +34,10 @@ Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
+
+// Webhook بوابة الدفع: يستقبل إشعارات النجاح/الفشل من البوابة (أو المحاكي)
+// بدون مصادقة Sanctum — الحماية عبر التحقق من توقيع الطلب داخل الـ Controller.
+Route::post('/payment/webhook', [PaymentController::class, 'webhook']);
 
 // مسار فحص التحديثات (متاح لجميع المستخدمين للتأكد من وجود إصدار جديد للتطبيق)
 Route::get('/check-version', [AppUpdateController::class, 'checkVersion']);
@@ -112,6 +117,7 @@ Route::prefix('admin')->group(function () {
     Route::get('/courses', [AdminContentController::class, 'getCourses']);
     Route::post('/categories', [AdminContentController::class, 'storeCategory']);
     Route::post('/courses', [AdminContentController::class, 'storeCourse']);
+    Route::put('/courses/{id}', [AdminContentController::class, 'updateCourse']);
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
     Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
     Route::get('/users', [AdminContentController::class, 'getUsers']);
@@ -123,6 +129,9 @@ Route::prefix('admin')->group(function () {
     
     // مسار رفع تحديثات التطبيق من لوحة الأدمن
     Route::post('/upload-version', [AppUpdateController::class, 'uploadVersion']);
+    // مسارات إدارة التحديثات: قائمة التحديثات + حذف تحديث
+    Route::get('/releases', [AppUpdateController::class, 'getUpdates']);
+    Route::delete('/releases/{id}', [AppUpdateController::class, 'deleteUpdate']);
     
     // Delete operations
     Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
@@ -159,6 +168,7 @@ Route::get('/levels/{course_id}', function ($course_id) {
 
     $userId = auth('sanctum')->id();
     $completedLessonIds = [];
+    $isAdmin = auth('sanctum')->user()?->isAdmin() ?? false;
     
     if ($userId) {
         $completedLessonIds = \App\Models\LessonCompletion::where('user_id', $userId)
@@ -171,7 +181,8 @@ Route::get('/levels/{course_id}', function ($course_id) {
     foreach ($levels as $level) {
         $levelLocked = true;
         foreach ($level->lessons as $lesson) {
-            $lesson->is_locked = !$isNextUnlocked;
+            // حساب الأدمن: كل الدروس مفتوحة دائماً دون قيود.
+            $lesson->is_locked = $isAdmin ? false : !$isNextUnlocked;
             
             if (!$lesson->is_locked) {
                 $levelLocked = false;
@@ -196,7 +207,7 @@ Route::get('/levels/{course_id}', function ($course_id) {
             $isNextUnlocked = true;
         }
         
-        $level->is_locked = $levelLocked;
+        $level->is_locked = $isAdmin ? false : $levelLocked;
     }
 
     return response()->json([
@@ -240,6 +251,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Course Subscriptions
     Route::get('/courses/{id}/subscription-status', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'getStatus']);
     Route::post('/courses/{id}/subscribe', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'subscribe']);
+
+    // 💳 Payment Gateway (نظام الدفع الإلكتروني)
+    Route::post('/courses/{id}/pay', [PaymentController::class, 'initiate']);
+    Route::get('/courses/{id}/payment-status', [PaymentController::class, 'paymentStatus']);
 
     // 🌐 Telegram Integration Routes (مهمة لربط التطبيق بالبوت)
     Route::get('/telegram/bind-url', [TelegramWebhookController::class, 'getBindUrl']);

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Models\EmailVerification;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Api\PaymentController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -56,3 +57,12 @@ Route::get('/verify-email/{token}', function ($token) {
         'message' => 'تم تأكيد وتفعيل بريدك الإلكتروني بنجاح تام! يمكنك الآن تسجيل الدخول إلى تطبيقك.'
     ]);
 })->name('verification.verify');
+
+// صفحة الدفع التجريبية لمحاكي Sandbox (تستخدمها جلسة الدفع المؤقتة فقط)
+Route::get('/api/payment/sandbox/{ref}', [PaymentController::class, 'sandboxPage'])
+    ->name('payment.sandbox.page');
+
+// صفحة إغلاق جلسة الدفع (تُفتح داخل WebView ثم يغلقها التطبيق)
+Route::get('/api/payment/closed', function () {
+    return view('payment.closed');
+});

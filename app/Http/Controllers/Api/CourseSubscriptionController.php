@@ -17,7 +17,7 @@ class CourseSubscriptionController extends Controller
         $course = Course::findOrFail($courseId);
         $user = $request->user();
 
-        $isSubscribed = $user ? $course->subscribedUsers()->where('user_id', $user->id)->exists() : false;
+        $isSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
 
         return response()->json([
             'status'        => true,

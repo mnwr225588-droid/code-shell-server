@@ -18,6 +18,9 @@ class Progress extends Model
         'last_lesson',
         'progress_percentage',
         'completed',
+        'exam_scores',
+        'last_video_second',
+        'last_video_lesson',
 
     ];
 
@@ -25,6 +28,7 @@ class Progress extends Model
 
         'completed' => 'boolean',
         'progress_percentage' => 'decimal:2',
+        'exam_scores' => 'array',
 
     ];
 

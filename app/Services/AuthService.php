@@ -21,6 +21,7 @@ class AuthService
             'birth_date' => $data['birth_date'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
+            'country' => $data['country'] ?? null,
             'password' => Hash::make($data['password']),
             'is_active' => true,
 
@@ -47,6 +48,13 @@ class AuthService
                 'email' => ['البريد الإلكتروني أو كلمة المرور غير صحيحة.']
             ]);
 
+        }
+
+        // ربط الدولة تلقائياً عند تسجيل الدخول: إن أرسل التطبيق قيمة
+        // country (اسم الدولة أو رمزها) يتم تحديثها في حساب المستخدم.
+        if (!empty($data['country']) && $user->country !== $data['country']) {
+            $user->country = $data['country'];
+            $user->save();
         }
 
         $token = $user->createToken('CodeShell')->plainTextToken;

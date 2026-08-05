@@ -21,6 +21,8 @@ class User extends Authenticatable
         'birth_date',
         'email',
         'phone',
+        'country',
+        'is_admin',
         'password',
         'is_active',
         'telegram_chat_id',
@@ -41,8 +43,17 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'is_admin' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * هل هذا الحساب أدمن (تُفتح له جميع الكورسات دون اشتراك)؟
+     */
+    public function isAdmin(): bool
+    {
+        return (bool) $this->is_admin;
     }
 
     /**

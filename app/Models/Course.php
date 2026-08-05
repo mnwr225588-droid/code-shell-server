@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PricingService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,6 +17,7 @@ class Course extends Model
         'thumbnail',
         'is_free',
         'price',
+        'prices',
         'is_active',
         'is_coming_soon',
         'sort_order',
@@ -30,6 +32,7 @@ class Course extends Model
         'is_active'      => 'boolean',
         'is_coming_soon' => 'boolean',
         'price'          => 'decimal:2',
+        'prices'         => 'json',
         'features'       => 'json',
         'what_will_learn'=> 'json',
     ];
@@ -41,6 +44,9 @@ class Course extends Model
         'levels_count',
         'lessons_count',
         'students_count',
+        'price',
+        'currency_code',
+        'currency_symbol',
     ];
 
     public function getThumbnailUrlAttribute()
@@ -52,9 +58,26 @@ class Course extends Model
 
     public function getIsSubscribedAttribute()
     {
-        $userId = auth('sanctum')->id();
-        if (!$userId) {
+        $user = auth('sanctum')->user();
+        if (!$user) {
             return false;
+        }
+        // حساب الأدمن يملك وصولاً كاملاً لكل الكورسات دون اشتراك.
+        if ($user->isAdmin()) {
+            return true;
+        }
+        return $this->subscribedUsers()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * هل المستخدم يملك صلاحية الوصول لهذا الكورس؟
+     * (الأدمن: دائماً؛ غيره: الاشتراك الفعلي في جدول الاشتراكات)
+     */
+    public function isUserSubscribed($userId): bool
+    {
+        $user = \App\Models\User::find($userId);
+        if ($user && $user->isAdmin()) {
+            return true;
         }
         return $this->subscribedUsers()->where('user_id', $userId)->exists();
     }
@@ -113,6 +136,66 @@ class Course extends Model
             'بناء وتصميم وتطوير مشاريع حقيقية خطوة بخطوة',
             'أفضل الممارسات المتبعة في كتابة الأكواد النظيفة',
         ];
+    }
+
+    // --- Multi-Currency Pricing ---
+
+    /**
+     * مصفوفة أسعار الكورس بكل العملات.
+     * عند غياب القيم تُستخدم الأسعار الافتراضية الثابتة (18 عملة).
+     */
+    public function getPricesAttribute($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        $decoded = json_decode((string) $value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * السعر المناسب لدولة المستخدم المسجلة في حسابه.
+     * (الكورس المجاني = 0 دائماً)
+     */
+    public function getPriceAttribute(): float
+    {
+        if ($this->is_free) {
+            return 0.0;
+        }
+        $prices = $this->prices ?? [];
+        if (empty($prices)) {
+            $prices = PricingService::defaults();
+        }
+        $country = auth('sanctum')->user()?->country;
+        return PricingService::priceFor($country, $prices)['price'];
+    }
+
+    /** كود العملة المناسب لدولة المستخدم (EGP افتراضياً). */
+    public function getCurrencyCodeAttribute(): string
+    {
+        if ($this->is_free) {
+            return 'EGP';
+        }
+        $prices = $this->prices ?? [];
+        if (empty($prices)) {
+            $prices = PricingService::defaults();
+        }
+        $country = auth('sanctum')->user()?->country;
+        return PricingService::priceFor($country, $prices)['currency_code'];
+    }
+
+    /** الرمز النصي للعملة (ج.م، ر.س، ₪ ...). */
+    public function getCurrencySymbolAttribute(): string
+    {
+        if ($this->is_free) {
+            return 'ج.م';
+        }
+        $prices = $this->prices ?? [];
+        if (empty($prices)) {
+            $prices = PricingService::defaults();
+        }
+        $country = auth('sanctum')->user()?->country;
+        return PricingService::priceFor($country, $prices)['currency_symbol'];
     }
 
     public function category()

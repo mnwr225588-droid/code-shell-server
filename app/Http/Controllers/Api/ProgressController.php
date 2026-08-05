@@ -19,17 +19,34 @@ class ProgressController extends Controller
             'last_lesson' => 'required|integer|min:1',
             'progress_percentage' => 'required|numeric|min:0|max:100',
             'completed' => 'required|boolean',
+            'exam_scores' => 'nullable|json',
+            'last_video_second' => 'nullable|integer|min:0',
+            'last_video_lesson' => 'nullable|string|max:255',
         ]);
 
+        // درجات الاختبارات تُرسل من التطبيق كنص JSON — تحويلها لخريطة
+        // ليُخزنها Eloquent بشكل صحيح في عمود JSON.
+        $examScores = null;
+        if (!empty($validated['exam_scores'])) {
+            $examScores = is_string($validated['exam_scores'])
+                ? json_decode($validated['exam_scores'], true)
+                : $validated['exam_scores'];
+        }
+
+        // user_id يُؤخذ حصراً من المستخدم المصادق عليه عبر التوكن
+        // ولا يُقبل أبداً من بيانات يرسلها العميل.
         $progress = Progress::updateOrCreate(
             [
-                'user_id' => auth()->id(),
+                'user_id' => auth('sanctum')->id(),
                 'course_id' => $validated['course_id'],
             ],
             [
                 'last_lesson' => $validated['last_lesson'],
                 'progress_percentage' => $validated['progress_percentage'],
                 'completed' => $validated['completed'],
+                'exam_scores' => $examScores,
+                'last_video_second' => $validated['last_video_second'] ?? 0,
+                'last_video_lesson' => $validated['last_video_lesson'] ?? null,
             ]
         );
 
@@ -45,7 +62,8 @@ class ProgressController extends Controller
      */
     public function index(): JsonResponse
     {
-        $progress = Progress::where('user_id', auth()->id())
+        // جلب حصري عبر user_id الخاص بالمستخدم المسجل حالياً فقط
+        $progress = Progress::where('user_id', auth('sanctum')->id())
             ->get();
 
         return response()->json([

@@ -29,6 +29,8 @@ class LoginRequest extends FormRequest
                 'required',
                 'string',
             ],
+
+            'country' => 'nullable|string|max:100',
         ];
     }
 

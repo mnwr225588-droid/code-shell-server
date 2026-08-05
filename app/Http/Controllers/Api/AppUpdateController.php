@@ -153,4 +153,74 @@ class AppUpdateController extends Controller
 
         return Storage::disk('public')->download($latestVersion->file_path, $downloadName);
     }
+
+    /**
+     * 5. جلب جميع التحديثات المرفوعة (لصفحة إدارة التحديثات في تطبيق الأدمن)
+     * GET /api/admin/releases
+     */
+    public function getUpdates(Request $request)
+    {
+        $platform = $request->input('platform');
+
+        $query = AppVersion::orderBy('platform', 'asc')->orderBy('version_code', 'desc');
+
+        if (in_array($platform, ['android', 'windows'])) {
+            $query->where('platform', $platform);
+        }
+
+        $versions = $query->get()->map(function ($version) {
+            return [
+                'id' => $version->id,
+                'platform' => $version->platform,
+                'version_code' => (int) $version->version_code,
+                'version_name' => $version->version_name,
+                'changelog' => $version->changelog,
+                'downloads_count' => (int) $version->downloads_count,
+                'file_url' => asset('storage/' . $version->file_path),
+                'created_at' => $version->created_at?->format('Y-m-d H:i'),
+                'file_size' => $this->fileSize($version->file_path),
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'data' => $versions,
+        ]);
+    }
+
+    /**
+     * 6. حذف تحديث من صفحة الإدارة.
+     *
+     * ملاحظة: الحذف يزيل التحديث من السيرفر (لا يعود يُقترح على من لم
+     * يُحدّث بعد)، ولا يؤثر أبداً على المستخدمين الذين حدّثوا تطبيقاتهم
+     * بالفعل — التطبيق المثبّت لديهم يبقى كما هو.
+     * DELETE /api/admin/releases/{id}
+     */
+    public function deleteUpdate(Request $request, $id)
+    {
+        $version = AppVersion::findOrFail($id);
+
+        // حذف الملف من التخزين (إن وُجد) ثم حذف السجل
+        if ($version->file_path && Storage::disk('public')->exists($version->file_path)) {
+            Storage::disk('public')->delete($version->file_path);
+        }
+
+        $version->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حذف التحديث بنجاح. المستخدمون الذين حدّثوا أجهزتهم يحتفظون بالنسخة الجديدة.',
+        ]);
+    }
+
+    /**
+     * حجم ملف التحديث بالبايت (أو null إن لم يوجد).
+     */
+    private function fileSize(?string $filePath): ?int
+    {
+        if (!$filePath || !Storage::disk('public')->exists($filePath)) {
+            return null;
+        }
+        return (int) Storage::disk('public')->size($filePath);
+    }
 }
