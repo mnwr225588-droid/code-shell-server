@@ -132,6 +132,9 @@ Route::prefix('admin')->group(function () {
     
     // مسار رفع تحديثات التطبيق من لوحة الأدمن
     Route::post('/upload-version', [AppUpdateController::class, 'uploadVersion']);
+    // الرفع المجزأ لملفات التطبيق الكبيرة (مقاطع + تجميع)
+    Route::post('/upload-chunk', [AppUpdateController::class, 'uploadChunk']);
+    Route::post('/upload-complete', [AppUpdateController::class, 'completeChunkedUpload']);
     // مسارات إدارة التحديثات: قائمة التحديثات + حذف تحديث
     Route::get('/releases', [AppUpdateController::class, 'getUpdates']);
     Route::delete('/releases/{id}', [AppUpdateController::class, 'deleteUpdate']);

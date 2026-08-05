@@ -7,7 +7,6 @@ use App\Models\AppVersion;
 use App\Models\DownloadSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-
 class AppUpdateController extends Controller
 {
     /**
@@ -79,6 +78,137 @@ class AppUpdateController extends Controller
             'status' => true,
             'message' => 'تم رفع التحديث بنجاح وإتاحته للمستخدمين.',
             'data' => $appVersion
+        ], 201);
+    }
+
+    /**
+     * 2b. استقبال جزء واحد من ملف التطبيق (رفع مجزأ بمقاطع صغيرة).
+     *
+     * يرفع تطبيق الأدمن الملف على شكل مقاطع (1MB) لتجنب أي حد لحجم
+     * الطلب أو انقطاع الاتصال عند رفع ملف كبير دفعة واحدة، ثم يستدعي
+     * upload-complete لتجميعها وحفظ الإصدار.
+     * POST /api/admin/upload-chunk
+     */
+    public function uploadChunk(Request $request)
+    {
+        $request->validate([
+            'upload_id' => 'required|string|max:100',
+            'index' => 'required|integer|min:0|max:10000',
+            'data' => 'required|file',
+        ]);
+
+        $path = $request->file('data')->storeAs(
+            'chunks/' . $request->upload_id,
+            (int) $request->index . '.part',
+            'local'
+        );
+
+        return response()->json([
+            'status' => true,
+            'received' => (int) $request->index,
+            'path' => $path,
+        ], 200);
+    }
+
+    /**
+     * 2c. تجميع المقاطع المرفوعة وإنشاء الإصدار الجديد.
+     * POST /api/admin/upload-complete
+     */
+    public function completeChunkedUpload(Request $request)
+    {
+        $request->validate([
+            'upload_id' => 'required|string|max:100',
+            'platform' => 'required|in:android,windows',
+            'version_code' => 'required|integer',
+            'version_name' => 'required|string|max:255',
+            'changelog' => 'nullable|string',
+            'total_chunks' => 'required|integer|min:1|max:10000',
+            'filename' => 'required|string|max:255',
+        ]);
+
+        $uploadId = $request->upload_id;
+        $totalChunks = (int) $request->total_chunks;
+        $chunkDir = 'chunks/' . $uploadId;
+        $disk = Storage::disk('local');
+
+        // التأكد من استلام كل المقاطع
+        $missing = [];
+        for ($i = 0; $i < $totalChunks; $i++) {
+            if (!$disk->exists($chunkDir . '/' . $i . '.part')) {
+                $missing[] = $i;
+            }
+        }
+        if (!empty($missing)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لم تكتمل المقاطع المرفوعة بعد. أعد المحاولة.',
+                'missing' => $missing,
+            ], 422);
+        }
+
+        // تجميع المقاطع بالترتيب في ملف واحد مؤقت
+        $mergedTmp = $disk->path($chunkDir . '/merged.tmp');
+        $out = @fopen($mergedTmp, 'wb');
+        if (!$out) {
+            return response()->json([
+                'status' => false,
+                'message' => 'تعذر إنشاء ملف مؤقت للتجميع.',
+            ], 500);
+        }
+        try {
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $in = @fopen($disk->path($chunkDir . '/' . $i . '.part'), 'rb');
+                if (!$in) {
+                    throw new \RuntimeException('مقطع مفقود أثناء التجميع');
+                }
+                stream_copy_to_stream($in, $out);
+                fclose($in);
+            }
+        } finally {
+            fclose($out);
+        }
+
+        // الحد الأقصى المسموح لحجم ملف التطبيق: 700 ميجابايت
+        $maxBytes = 734003200; // 700 * 1024 * 1024
+        if (filesize($mergedTmp) > $maxBytes) {
+            $disk->deleteDirectory($chunkDir);
+            return response()->json([
+                'status' => false,
+                'message' => 'حجم الملف يتجاوز الحد الأقصى المسموح (700 ميجابايت).',
+            ], 422);
+        }
+
+        // نقل الملف المجمّع إلى التخزين العام لملفات الإصدارات
+        $safeName = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $request->filename);
+        $publicPath = 'app_releases/' . $safeName;
+        $publicDisk = Storage::disk('public');
+        $in = @fopen($mergedTmp, 'rb');
+        if (!$in || !$publicDisk->writeStream($publicPath, $in)) {
+            @fclose($in);
+            $disk->deleteDirectory($chunkDir);
+            return response()->json([
+                'status' => false,
+                'message' => 'تعذر حفظ الملف المجمّع على السيرفر.',
+            ], 500);
+        }
+        fclose($in);
+
+        // تنظيف المقاطع المؤقتة
+        $disk->deleteDirectory($chunkDir);
+
+        // إنشاء سجل الإصدار الجديد
+        $appVersion = AppVersion::create([
+            'platform' => $request->platform,
+            'version_code' => $request->version_code,
+            'version_name' => $request->version_name,
+            'file_path' => $publicPath,
+            'changelog' => $request->changelog,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم رفع التحديث بنجاح وإتاحته للمستخدمين.',
+            'data' => $appVersion,
         ], 201);
     }
 
