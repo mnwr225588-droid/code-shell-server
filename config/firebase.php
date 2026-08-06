@@ -2,6 +2,19 @@
 
 declare(strict_types=1);
 
+// عند النشر (Railway/GitHub): لا نرفع مفتاح الحساب الخدمي في git أبداً.
+// يُمرَّر عبر متغير البيئة FIREBASE_CREDENTIALS_JSON_B64 (Base64)، ويُكتب
+// مرة واحدة إلى ملف storage/app/firebase/firebase-credentials.json.
+$firebaseCredentialsJsonB64 = env('FIREBASE_CREDENTIALS_JSON_B64');
+$firebaseCredentialsFile = storage_path('app/firebase/firebase-credentials.json');
+if ($firebaseCredentialsJsonB64 && !file_exists($firebaseCredentialsFile)) {
+    $firebaseDir = dirname($firebaseCredentialsFile);
+    if (!is_dir($firebaseDir)) {
+        mkdir($firebaseDir, 0755, true);
+    }
+    file_put_contents($firebaseCredentialsFile, base64_decode($firebaseCredentialsJsonB64, true) ?: '');
+}
+
 return [
     /*
      * ------------------------------------------------------------------------
