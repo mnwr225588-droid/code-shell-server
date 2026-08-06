@@ -126,6 +126,26 @@ class AuthController extends Controller
     }
 
     /**
+     * حفظ توكن جهاز الطالب (FCM Token) لاستقبال الإشعارات.
+     * يُرسل من تطبيق الطالب عند تسجيل الدخول/التسجيل وعند تجديد التوكن.
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $user->fcm_token = $request->fcm_token;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token updated successfully',
+        ]);
+    }
+
+    /**
      * Change Password
      */
     public function changePassword(Request $request): JsonResponse

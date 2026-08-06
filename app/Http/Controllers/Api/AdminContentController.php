@@ -292,11 +292,56 @@ class AdminContentController extends Controller
         $course->is_coming_soon = !$course->is_coming_soon;
         $course->save();
 
+        // 🎉 عند نشر الكورس: أرسل إشعاراً للطلاب المحجوزين/المشتركين
+        // (حفظ التفاعل في جدول notifications + إرسال FCM لكل جهاز مسجل).
+        if (!$course->is_coming_soon) {
+            $this->notifyCoursePublished($course);
+        }
+
         return response()->json([
             'status' => true,
             'message' => $course->is_coming_soon ? 'تم إخفاء الكورس (وضع الانتظار)' : 'تم نشر الكورس بنجاح',
             'data' => $course
         ]);
+    }
+
+    /**
+     * إشعار "تم نشر الكورس" للطلاب المحجوزين أو المشتركين في الكورس:
+     * 1) حفظ سطر في جدول notifications لكل طالب (لحفظ التفاعل الفعلي).
+     * 2) إرسال إشعار فوري عبر Firebase FCM (حزمة kreait/laravel-firebase)
+     *    لكل طالب لديه fcm_token — يعمل حتى لو كان التطبيق مغلقاً تماماً.
+     */
+    private function notifyCoursePublished(Course $course): void
+    {
+        try {
+            $userIdLists = collect([
+                \DB::table('course_reservations')->where('course_id', $course->id)->pluck('user_id'),
+                \DB::table('course_subscriptions')->where('course_id', $course->id)->pluck('user_id'),
+            ])->flatten()->unique()->values();
+
+            if ($userIdLists->isEmpty()) {
+                return;
+            }
+
+            $title = 'الكورس أصبح متاحاً الآن! 🚀';
+            $body = "الكورس '{$course->title}' الذي حجزته تم نشره رسمياً، يمكنك الانضمام إليه والبدء بالتعلم.";
+
+            $users = User::whereIn('id', $userIdLists)->get();
+
+            \App\Services\PushNotificationService::sendToUsers(
+                users: $users,
+                title: $title,
+                body: $body,
+                data: ['type' => 'course_published'],
+                courseId: $course->id,
+                type: 'course',
+            );
+
+            \Log::info("Course #{$course->id} published — notification saved & FCM sent to " . $users->count() . " users");
+        } catch (\Throwable $e) {
+            // فشل الإشعارات لا يمنع نشر الكورس أبداً
+            \Log::error('notifyCoursePublished error for course #' . $course->id . ': ' . $e->getMessage());
+        }
     }
 
     // 7️⃣ حذف درس مع ملفاته وأسئلته

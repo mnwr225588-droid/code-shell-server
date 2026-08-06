@@ -147,6 +147,11 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     
     // Dashboard Stats
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
+
+    // 📢 إرسال إشعارات من لوحة الأدمن (كل المستخدمين / مشتركو كورس / غير المشتركين / فردي بالإيميل) + صورة اختيارية
+    Route::post('/send-notification', [NotificationController::class, 'send']);
+    // 📋 سجل الإشعارات المرسلة سابقاً (لتطبيق الأدمن)
+    Route::get('/notifications-history', [NotificationController::class, 'history']);
 });
 
 /*
@@ -251,6 +256,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    // FCM Token (اشعارات فايربيس) — يستقبله تطبيق الطالب بعد تسجيل الدخول
+    Route::post('/update-fcm-token', [AuthController::class, 'updateFcmToken']);
 
     // Course Waitlist / Reservations
     Route::get('/courses/{id}/reservation-status', [CourseReservationController::class, 'getStatus']);
