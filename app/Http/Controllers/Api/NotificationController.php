@@ -38,8 +38,13 @@ class NotificationController extends Controller
                 ];
             });
 
+        $unreadCount = Notification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->count();
+
         return response()->json([
             'status' => true,
+            'unread_count' => $unreadCount,
             'data'   => $notifications,
         ]);
     }
@@ -79,6 +84,23 @@ class NotificationController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم تعليم جميع الإشعارات كمقروءة',
+        ]);
+    }
+
+    /**
+     * حذف إشعار معين من قاعدة البيانات.
+     */
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        $notification = Notification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $notification->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حذف الإشعار بنجاح',
         ]);
     }
 
