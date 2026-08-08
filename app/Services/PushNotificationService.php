@@ -92,6 +92,7 @@ class PushNotificationService
                     'priority' => 'high',
                     'notification' => [
                         'channel_id' => 'codeshell_notifications',
+                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
                         'title' => $title,
                         'body'  => $body,
                     ],
