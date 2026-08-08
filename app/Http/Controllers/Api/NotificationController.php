@@ -30,8 +30,10 @@ class NotificationController extends Controller
                     'body'       => $n->body,
                     'type'       => $n->type,
                     'course_id'  => $n->course_id,
+                    'image_url'  => $n->image_url,
                     'data'       => $n->data,
                     'is_read'    => $n->is_read,
+                    'read_at'    => $n->read_at ? $n->read_at->toIso8601String() : null,
                     'created_at' => $n->created_at->toIso8601String(),
                 ];
             });
@@ -43,13 +45,36 @@ class NotificationController extends Controller
     }
 
     /**
+     * تعليم إشعار معين كمقروء.
+     */
+    public function markRead(Request $request, $id): JsonResponse
+    {
+        $notification = Notification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $notification->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تعليم الإشعار كمقروء بنجاح',
+        ]);
+    }
+
+    /**
      * تعليم جميع الإشعارات كمقروءة.
      */
     public function markAllRead(Request $request): JsonResponse
     {
         Notification::where('user_id', $request->user()->id)
             ->where('is_read', false)
-            ->update(['is_read' => true]);
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
 
         return response()->json([
             'status' => true,
@@ -59,11 +84,10 @@ class NotificationController extends Controller
 
     /**
      * إرسال إشعار من لوحة الأدمن (يُستدعى فقط ضمن مجموعة مسارات admin):
-     * - target=all            : جميع المستخدمين
-     * - target=course         : المحجوزون/المشتركون في كورس محدد (course_id)
-     * - target=not_subscribed : المستخدمون غير المشتركين وغير المحجوزين في أي كورس
-     * - target=email          : مستخدم واحد عبر البريد الإلكتروني
-     * يدعم صورة اختيارية تُرفع للتخزين العام وتظهر في شريط الإشعارات وفي شاشة الإشعارات.
+     * - target=all            : جميع المستخدمين (خلفية)
+     * - target=course         : المحجوزون/المشتركون في كورس محدد (خلفية)
+     * - target=not_subscribed : المستخدمون غير المشتركين وغير المحجوزين (خلفية)
+     * - target=email          : مستخدم واحد عبر البريد الإلكتروني (فوري)
      */
     public function send(Request $request): JsonResponse
     {
@@ -90,8 +114,7 @@ class NotificationController extends Controller
             'image.max'             => 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت',
         ]);
 
-        // الصورة: نُخزّن المسار النسبي (مثل المصغرات — التطبيق يبني الرابط بنفسه)،
-        // ونبني رابطاً مطلقاً HTTPS فقط للإشعار الفوري (FCM يتطلب رابطاً مشابهاً).
+        // الصورة اختيارية بالكامل:
         $imageUrl = null;
         $imageStoragePath = null;
         if ($request->hasFile('image')) {
@@ -138,49 +161,80 @@ class NotificationController extends Controller
 
         if ($users->isEmpty()) {
             return response()->json([
-                'status'     => true,
+                'status'     => false,
                 'message'    => 'لا يوجد مستخدمون ينطبق عليهم هذا الخيار حالياً',
                 'users_count' => 0,
                 'fcm_sent'   => 0,
-            ]);
+            ], 422);
         }
 
-        $result = PushNotificationService::sendToUsers(
-            users: $users,
-            title: $request->title,
-            body: $request->body,
-            data: array_merge(
-                ['type' => 'admin'],
-                $imageStoragePath !== null ? ['image_url' => $imageStoragePath] : [],
-            ),
-            imageUrl: $imageUrl,
-            courseId: $request->filled('course_id') ? $request->course_id : null,
-            type: 'general',
-        );
-
-        // حفظ سجل الإرسال — يظهر في "سجل الإشعارات" داخل تطبيق الأدمن.
-        NotificationSend::create([
+        // حفظ سجل الإرسال أولاً لتحديثه بعد الإرسال
+        $notificationSend = NotificationSend::create([
             'title'       => $request->title,
             'body'        => $request->body,
             'image_url'   => $imageStoragePath,
             'target_type' => $request->target,
             'course_id'   => $request->filled('course_id') ? $request->course_id : null,
             'email'       => $request->filled('email') ? $request->email : null,
-            'users_count' => $result['saved'],
-            'fcm_sent'    => $result['fcm_sent'],
-            'no_token'    => $result['no_token'],
-            'sent_by'     => $request->user() instanceof \App\Models\Admin
-                ? $request->user()->id
-                : null,
+            'users_count' => $users->count(),
+            'fcm_sent'    => 0,
+            'no_token'    => 0,
+            'sent_by'     => $request->user()?->id,
             'sent_at'     => now(),
         ]);
 
+        // إذا كان الاستهداف لشخص واحد (مثل البريد)، يُنفّذ الإرسال بشكل synchronous
+        if ($users->count() === 1) {
+            $result = PushNotificationService::sendToUsers(
+                users: $users,
+                title: $request->title,
+                body: $request->body,
+                data: array_merge(
+                    ['type' => 'admin'],
+                    $imageStoragePath !== null ? ['image_url' => $imageStoragePath] : [],
+                ),
+                imageUrl: $imageUrl,
+                courseId: $request->filled('course_id') ? $request->course_id : null,
+                type: 'general',
+            );
+
+            // تحديث سجل الإرسال بالنتائج
+            $notificationSend->update([
+                'users_count' => $result['saved'],
+                'fcm_sent'    => $result['fcm_sent'],
+                'no_token'    => $result['no_token'],
+            ]);
+
+            return response()->json([
+                'status'      => true,
+                'message'     => 'تم إرسال الإشعار بنجاح.',
+                'users_count' => $result['saved'],
+                'fcm_sent'    => $result['fcm_sent'],
+                'no_token'    => $result['no_token'],
+            ]);
+        }
+
+        // إذا كان الاستهداف جماعياً، يتم جدولته في الـ Queue
+        \App\Jobs\SendPushNotificationJob::dispatch(
+            $users->pluck('id')->toArray(),
+            $request->title,
+            $request->body,
+            array_merge(
+                ['type' => 'admin'],
+                $imageStoragePath !== null ? ['image_url' => $imageStoragePath] : [],
+            ),
+            $imageUrl,
+            $request->filled('course_id') ? $request->course_id : null,
+            'general',
+            $notificationSend->id
+        );
+
         return response()->json([
             'status'      => true,
-            'message'     => "تم إرسال الإشعار إلى {$result['saved']} مستخدم",
-            'users_count' => $result['saved'],
-            'fcm_sent'    => $result['fcm_sent'],
-            'no_token'    => $result['no_token'],
+            'message'     => 'تم بدء إرسال الإشعار في الخلفية.',
+            'users_count' => $users->count(),
+            'fcm_sent'    => 0,
+            'no_token'    => 0,
         ]);
     }
 

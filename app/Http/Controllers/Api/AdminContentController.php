@@ -289,12 +289,16 @@ class AdminContentController extends Controller
     public function togglePublish($id)
     {
         $course = Course::findOrFail($id);
+
+        // حفظ الحالة القديمة قبل التبديل
+        $wasComingSoon = (bool) $course->is_coming_soon;
+
         $course->is_coming_soon = !$course->is_coming_soon;
         $course->save();
 
-        // 🎉 عند نشر الكورس: أرسل إشعاراً للطلاب المحجوزين/المشتركين
-        // (حفظ التفاعل في جدول notifications + إرسال FCM لكل جهاز مسجل).
-        if (!$course->is_coming_soon) {
+        // 🎉 عند نشر الكورس (انتقال فعلي من is_coming_soon=true إلى false فقط):
+        // أرسل إشعاراً للطلاب المحجوزين عبر Queue.
+        if ($wasComingSoon && !$course->is_coming_soon) {
             $this->notifyCoursePublished($course);
         }
 
@@ -306,38 +310,44 @@ class AdminContentController extends Controller
     }
 
     /**
-     * إشعار "تم نشر الكورس" للطلاب المحجوزين أو المشتركين في الكورس:
-     * 1) حفظ سطر في جدول notifications لكل طالب (لحفظ التفاعل الفعلي).
-     * 2) إرسال إشعار فوري عبر Firebase FCM (حزمة kreait/laravel-firebase)
-     *    لكل طالب لديه fcm_token — يعمل حتى لو كان التطبيق مغلقاً تماماً.
+     * إشعار "الكورس أصبح متاحاً" للطلاب الذين حجزوا الكورس فقط.
+     * يُرسل عبر Queue لمنع Timeout عند وجود عدد كبير من المستخدمين.
+     * يستخدم type = course_available لمنع التكرار عبر PushNotificationService.
      */
     private function notifyCoursePublished(Course $course): void
     {
         try {
-            $userIdLists = collect([
-                \DB::table('course_reservations')->where('course_id', $course->id)->pluck('user_id'),
-                \DB::table('course_subscriptions')->where('course_id', $course->id)->pluck('user_id'),
-            ])->flatten()->unique()->values();
+            // فقط المستخدمون الذين حجزوا الكورس (course_reservations)
+            $userIds = \DB::table('course_reservations')
+                ->where('course_id', $course->id)
+                ->pluck('user_id')
+                ->unique()
+                ->values()
+                ->toArray();
 
-            if ($userIdLists->isEmpty()) {
+            if (empty($userIds)) {
+                \Log::info("Course #{$course->id} published — no reservations found, skipping notification.");
                 return;
             }
 
-            $title = 'الكورس أصبح متاحاً الآن! 🚀';
-            $body = "الكورس '{$course->title}' الذي حجزته تم نشره رسمياً، يمكنك الانضمام إليه والبدء بالتعلم.";
+            $title = 'الكورس أصبح متاحًا 🎉';
+            $body = "الكورس '{$course->title}' الذي قمت بحجزه أصبح متاحًا الآن.";
 
-            $users = User::whereIn('id', $userIdLists)->get();
-
-            \App\Services\PushNotificationService::sendToUsers(
-                users: $users,
-                title: $title,
-                body: $body,
-                data: ['type' => 'course_published'],
-                courseId: $course->id,
-                type: 'course',
+            \App\Jobs\SendPushNotificationJob::dispatch(
+                $userIds,
+                $title,
+                $body,
+                [
+                    'type' => 'course_available',
+                    'course_id' => (string) $course->id,
+                ],
+                null, // لا توجد صورة
+                $course->id,
+                'course_available', // type for de-duplication
+                null // لا يوجد سجل NotificationSend لهذا النوع
             );
 
-            \Log::info("Course #{$course->id} published — notification saved & FCM sent to " . $users->count() . " users");
+            \Log::info("Course #{$course->id} published — dispatched notification job for " . count($userIds) . " reserved users.");
         } catch (\Throwable $e) {
             // فشل الإشعارات لا يمنع نشر الكورس أبداً
             \Log::error('notifyCoursePublished error for course #' . $course->id . ': ' . $e->getMessage());

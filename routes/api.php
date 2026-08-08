@@ -256,6 +256,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
     // FCM Token (اشعارات فايربيس) — يستقبله تطبيق الطالب بعد تسجيل الدخول

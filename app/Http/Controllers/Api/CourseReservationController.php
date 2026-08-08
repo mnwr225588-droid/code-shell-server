@@ -40,6 +40,27 @@ class CourseReservationController extends Controller
 
         $isReserved = count($changes['attached']) > 0;
 
+        // إذا نجح الحجز، نرسل إشعاراً فورياً (synchronous)
+        if ($isReserved) {
+            try {
+                \App\Services\PushNotificationService::sendToUsers(
+                    users: [$user],
+                    title: 'تم الحجز بنجاح 🎉',
+                    body: "تم حجز الكورس '{$course->title}' بنجاح، ويمكنك متابعة حالة الكورس من التطبيق.",
+                    data: [
+                        'type' => 'course_reserved',
+                        'course_id' => (string)$course->id,
+                    ],
+                    imageUrl: null,
+                    courseId: $course->id,
+                    type: 'course',
+                );
+            } catch (\Throwable $e) {
+                // فشل الإشعارات الفورية لا يمنع إتمام عملية الحجز محلياً
+                \Illuminate\Support\Facades\Log::error('FCM reservation notification failed: ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'status'             => true,
             'message'            => $isReserved ? 'تم حجز مكانك بنجاح!' : 'تم إلغاء الحجز بنجاح.',

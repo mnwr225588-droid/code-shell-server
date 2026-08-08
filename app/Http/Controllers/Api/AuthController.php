@@ -117,7 +117,15 @@ class AuthController extends Controller
      */
     public function logout(): JsonResponse
     {
-        auth()->user()->currentAccessToken()->delete();
+        $user = auth()->user();
+
+        // مسح FCM Token لمنع وصول إشعارات لحساب تم تسجيل الخروج منه
+        if ($user) {
+            $user->fcm_token = null;
+            $user->save();
+        }
+
+        $user->currentAccessToken()->delete();
 
         return response()->json([
             'success' => true,
