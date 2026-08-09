@@ -71,21 +71,34 @@ class PushNotificationService
             }
 
             try {
-                $notification = \Kreait\Firebase\Messaging\Notification::create($title, $body);
+                // Ensure image is in top-level notification if available
+                $notification = $imageUrl 
+                    ? \Kreait\Firebase\Messaging\Notification::create($title, $body, $imageUrl)
+                    : \Kreait\Firebase\Messaging\Notification::create($title, $body);
+
+                // Prepare data payload, ensuring all values are strings for FCM
+                $fcmData = array_merge(
+                    $data,
+                    [
+                        'type' => $type,
+                        'notification_id' => (string)$notif->id,
+                    ]
+                );
+                
+                // Add course_id explicitly to data payload
+                if ($courseId !== null) {
+                    $fcmData['course_id'] = (string)$courseId;
+                }
+
+                // Ensure image_url is fully qualified if present
+                if ($imageUrl !== null) {
+                    $fcmData['image_url'] = $imageUrl;
+                }
 
                 $message = \Kreait\Firebase\Messaging\CloudMessage::new()
                     ->withToken($user->fcm_token)
                     ->withNotification($notification)
-                    ->withData(array_merge(
-                        $data,
-                        $imageUrl !== null && !array_key_exists('image_url', $data)
-                            ? ['image_url' => $imageUrl]
-                            : [],
-                        [
-                            'type' => $type,
-                            'notification_id' => (string)$notif->id,
-                        ],
-                    ));
+                    ->withData($fcmData);
 
                 // صورة كبيرة في شريط الإشعارات (Android 7+) وتكوين القناة للأندرويد
                 $androidConfig = [
@@ -95,6 +108,9 @@ class PushNotificationService
                         'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
                         'title' => $title,
                         'body'  => $body,
+                        'sound' => 'default',
+                        'default_sound' => true,
+                        'notification_priority' => 'PRIORITY_HIGH',
                     ],
                 ];
 
