@@ -171,7 +171,7 @@ class AdminContentController extends Controller
             'level_id'     => 'required|exists:levels,id',
             'title'        => 'required|string|max:255',
             'description'  => 'nullable|string',
-            'video'        => 'nullable|file|mimes:mp4,mov,avi,mkv,wmv|max:500000',
+            'video'        => 'nullable|file|mimes:mp4,mov,avi,mkv,wmv|max:1048576',
             'video_url'    => 'nullable|string',
             'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'order_num'    => 'required|integer',

@@ -44,4 +44,24 @@ class CourseSubscriptionController extends Controller
             'students_count'=> $course->subscribedUsers()->count() + 120,
         ]);
     }
+
+    /**
+     * إلغاء اشتراك المستخدم الحالي في كورس معين
+     */
+    public function cancel(Request $request, $courseId): JsonResponse
+    {
+        $course = Course::findOrFail($courseId);
+        $user = $request->user();
+
+        // إزالة ربط المستخدم بالكورس من جدول الاشتراكات
+        $user->subscribedCourses()->detach($courseId);
+
+        return response()->json([
+            'status'        => true,
+            'success'       => true,
+            'message'       => 'تم إلغاء الاشتراك في الكورس بنجاح!',
+            'is_subscribed' => false,
+            'students_count'=> $course->subscribedUsers()->count() + 120,
+        ]);
+    }
 }

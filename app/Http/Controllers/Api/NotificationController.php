@@ -289,4 +289,40 @@ class NotificationController extends Controller
             'data'   => $sends,
         ]);
     }
+
+    /**
+     * للـ Debugging: التحقق من التوكن وربط Firebase
+     */
+    public function debugFCM(Request $request)
+    {
+        $user = $request->user();
+        $token = $user->fcm_token;
+        
+        $debugInfo = [
+            'user_id' => $user->id,
+            'fcm_token' => $token ?? 'NULL',
+            'fcm_credentials_exists' => file_exists(storage_path('app/firebase/firebase-credentials.json')),
+            'fcm_env_var_set' => env('FIREBASE_CREDENTIALS_JSON_B64') ? 'YES' : 'NO',
+            'test_result' => null,
+            'error' => null
+        ];
+
+        if (!$token) {
+            $debugInfo['error'] = 'لا يوجد FCM Token لهذا المستخدم في قاعدة البيانات. التطبيق لا يرسل التوكن بنجاح.';
+            return response()->json($debugInfo);
+        }
+
+        try {
+            $messaging = app('firebase.messaging');
+            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $token)
+                ->withNotification(\Kreait\Firebase\Messaging\Notification::create('Test', 'Test'));
+            $messaging->send($message);
+            $debugInfo['test_result'] = 'تم الإرسال لـ Firebase بنجاح.';
+        } catch (\Throwable $e) {
+            $debugInfo['test_result'] = 'فشل الإرسال';
+            $debugInfo['error'] = $e->getMessage();
+        }
+
+        return response()->json($debugInfo);
+    }
 }
