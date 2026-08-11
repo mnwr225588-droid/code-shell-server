@@ -124,14 +124,20 @@ class PushNotificationService
                 $fcmSent++;
             } catch (\Throwable $e) {
                 // تسجيل الخطأ الفعلي بالتفصيل في الـ logs الفنية للسيرفر
-                Log::error('FCM Delivery failure for user #' . $user->id . ' - Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+                $errorMsg = $e->getMessage();
+                Log::error('FCM Delivery failure for user #' . $user->id . ' - Error: ' . $errorMsg . "\n" . $e->getTraceAsString());
+
+                // DEBUGGING: إرفاق الخطأ في صندوق الإشعارات لكي يراه العميل فوراً
+                $notif->update([
+                    'body' => $notif->body . "\n\n[FCM Error]: " . $errorMsg
+                ]);
 
                 // التحقق مما إذا كان الـ Token غير صالح لتنظيفه من قاعدة البيانات
                 $isInvalidToken = false;
                 if ($e instanceof \Kreait\Firebase\Exception\Messaging\NotFound) {
                     $isInvalidToken = true;
                 } else {
-                    $msg = strtolower($e->getMessage());
+                    $msg = strtolower($errorMsg);
                     if (str_contains($msg, 'unregistered') || 
                         str_contains($msg, 'notregistered') || 
                         str_contains($msg, 'invalid') || 
