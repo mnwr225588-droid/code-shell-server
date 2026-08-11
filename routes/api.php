@@ -234,6 +234,21 @@ Route::get('/levels/{course_id}', function ($course_id) {
 | Protected Routes (تتطلب تسجيل الدخول وتوكن Sanctum)
 |--------------------------------------------------------------------------
 */
+// مسار مؤقت لقراءة أخطاء السيرفر (Logs)
+Route::get('/server-logs', function () {
+    $logFile = storage_path('logs/laravel.log');
+    if (!file_exists($logFile)) {
+        return "No log file found at: $logFile";
+    }
+    
+    // قراءة آخر 100 سطر لتجنب انهيار المتصفح
+    $lines = file($logFile);
+    $lastLines = array_slice($lines, -100);
+    
+    return response("<pre style='word-wrap: break-word; white-space: pre-wrap;'>" . htmlspecialchars(implode("", $lastLines)) . "</pre>")
+        ->header('Content-Type', 'text/html; charset=UTF-8');
+});
+
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
