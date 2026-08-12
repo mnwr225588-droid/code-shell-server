@@ -183,16 +183,16 @@ class AdminContentController extends Controller
             // رفع ملف الفيديو إن وجد أو أخذ الرابط
             $videoPath = null;
             if ($request->hasFile('video')) {
-                $videoPath = $request->file('video')->store('lessons/videos', 'public');
-                Log::info('Video uploaded to: ' . $videoPath);
+                $videoPath = $request->file('video')->store('lessons/videos', 'r2');
+                Log::info('Video uploaded to R2: ' . $videoPath);
             } elseif ($request->filled('video_url')) {
                 $videoPath = $request->video_url;
             }
 
             $thumbnailPath = null;
             if ($request->hasFile('thumbnail')) {
-                $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'public');
-                Log::info('Thumbnail uploaded to: ' . $thumbnailPath);
+                $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'r2');
+                Log::info('Thumbnail uploaded to R2: ' . $thumbnailPath);
             }
             
             $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
@@ -362,20 +362,23 @@ class AdminContentController extends Controller
             
             // Delete video file from storage
             if ($lesson->video_url && !filter_var($lesson->video_url, FILTER_VALIDATE_URL)) {
-                if (Storage::disk('public')->exists($lesson->video_url)) {
+                if (Storage::disk('r2')->exists($lesson->video_url)) {
+                    Storage::disk('r2')->delete($lesson->video_url);
+                } elseif (Storage::disk('public')->exists($lesson->video_url)) {
                     Storage::disk('public')->delete($lesson->video_url);
-                    Log::info('Deleted video: ' . $lesson->video_url);
                 }
+                Log::info('Deleted video: ' . $lesson->video_url);
             }
             
             // Delete thumbnail file from storage
             if ($lesson->thumbnail) {
-                if (Storage::disk('public')->exists($lesson->thumbnail)) {
+                if (Storage::disk('r2')->exists($lesson->thumbnail)) {
+                    Storage::disk('r2')->delete($lesson->thumbnail);
+                } elseif (Storage::disk('public')->exists($lesson->thumbnail)) {
                     Storage::disk('public')->delete($lesson->thumbnail);
-                    Log::info('Deleted thumbnail: ' . $lesson->thumbnail);
                 }
+                Log::info('Deleted thumbnail: ' . $lesson->thumbnail);
             }
-
             // Delete questions and options
             foreach ($lesson->questions as $question) {
                 $question->options()->delete();
@@ -407,18 +410,22 @@ class AdminContentController extends Controller
             foreach ($level->lessons as $lesson) {
                 // Delete video file
                 if ($lesson->video_url && !filter_var($lesson->video_url, FILTER_VALIDATE_URL)) {
-                    if (Storage::disk('public')->exists($lesson->video_url)) {
+                    if (Storage::disk('r2')->exists($lesson->video_url)) {
+                        Storage::disk('r2')->delete($lesson->video_url);
+                    } elseif (Storage::disk('public')->exists($lesson->video_url)) {
                         Storage::disk('public')->delete($lesson->video_url);
-                        Log::info('Deleted video: ' . $lesson->video_url);
                     }
+                    Log::info('Deleted video: ' . $lesson->video_url);
                 }
                 
                 // Delete thumbnail file
                 if ($lesson->thumbnail) {
-                    if (Storage::disk('public')->exists($lesson->thumbnail)) {
+                    if (Storage::disk('r2')->exists($lesson->thumbnail)) {
+                        Storage::disk('r2')->delete($lesson->thumbnail);
+                    } elseif (Storage::disk('public')->exists($lesson->thumbnail)) {
                         Storage::disk('public')->delete($lesson->thumbnail);
-                        Log::info('Deleted thumbnail: ' . $lesson->thumbnail);
                     }
+                    Log::info('Deleted thumbnail: ' . $lesson->thumbnail);
                 }
                 
                 // Delete questions and options

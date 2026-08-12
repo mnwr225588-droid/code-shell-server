@@ -23,15 +23,28 @@ class Lesson extends Model
 
     public function getThumbnailUrlAttribute()
     {
-        return $this->thumbnail ? asset('storage/' . $this->thumbnail) : null;
+        if (!$this->thumbnail) return null;
+        if (filter_var($this->thumbnail, FILTER_VALIDATE_URL)) {
+            return $this->thumbnail;
+        }
+        
+        $r2Url = env('R2_PUBLIC_URL');
+        if ($r2Url) {
+            return rtrim($r2Url, '/') . '/' . ltrim($this->thumbnail, '/');
+        }
+        return asset('storage/' . $this->thumbnail);
     }
 
     public function getVideoUrlFullAttribute()
     {
         if (!$this->video_url) return null;
-        // If it's already a full URL, return as-is
         if (filter_var($this->video_url, FILTER_VALIDATE_URL)) {
             return $this->video_url;
+        }
+
+        $r2Url = env('R2_PUBLIC_URL');
+        if ($r2Url) {
+            return rtrim($r2Url, '/') . '/' . ltrim($this->video_url, '/');
         }
         return asset('storage/' . $this->video_url);
     }
