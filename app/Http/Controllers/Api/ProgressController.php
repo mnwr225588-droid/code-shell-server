@@ -14,6 +14,25 @@ class ProgressController extends Controller
      */
     public function save(Request $request): JsonResponse
     {
+        // Ensure the built-in Computer Fundamentals course exists in DB to pass validation
+        if (in_array($request->course_id, [1, 11])) {
+            $category = \App\Models\Category::firstOrCreate(
+                ['id' => 1],
+                ['name' => 'كورسات أساسية']
+            );
+            \App\Models\Course::firstOrCreate(
+                ['id' => $request->course_id],
+                [
+                    'title' => 'أساسيات الحاسوب',
+                    'category_id' => $category->id,
+                    'description' => 'كورس أساسيات الحاسوب (مدمج في التطبيق)',
+                    'is_free' => true,
+                    'price' => 0,
+                    'is_active' => true,
+                ]
+            );
+        }
+
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
             'last_lesson' => 'required|integer|min:1',
