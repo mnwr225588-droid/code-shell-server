@@ -157,6 +157,15 @@ class AdminContentController extends Controller
         
         $level = Level::create($data);
 
+        // Send silent push to update content
+        try {
+            $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('topic', 'content_updates')
+                ->withData(['action' => 'refresh_content']);
+            app('firebase.messaging')->send($message);
+        } catch (\Throwable $e) {
+            Log::error('FCM update error: ' . $e->getMessage());
+        }
+
         return response()->json([
             'status'  => true,
             'message' => 'تم إنشاء المستوى بنجاح',
@@ -228,6 +237,15 @@ class AdminContentController extends Controller
                         }
                     }
                 }
+            }
+
+            // Send silent push to update content
+            try {
+                $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('topic', 'content_updates')
+                    ->withData(['action' => 'refresh_content']);
+                app('firebase.messaging')->send($message);
+            } catch (\Throwable $e) {
+                Log::error('FCM update error: ' . $e->getMessage());
             }
 
             return response()->json([
@@ -462,6 +480,17 @@ class AdminContentController extends Controller
             // Delete avatar if exists
             if ($user->avatar_url && Storage::disk('public')->exists($user->avatar_url)) {
                 Storage::disk('public')->delete($user->avatar_url);
+            }
+
+            // Send silent push to force logout before deleting the user
+            if ($user->fcm_token) {
+                try {
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $user->fcm_token)
+                        ->withData(['action' => 'force_logout']);
+                    app('firebase.messaging')->send($message);
+                } catch (\Throwable $e) {
+                    Log::error('FCM force logout error for user #' . $id . ': ' . $e->getMessage());
+                }
             }
 
             // Database relationships (Progress, Reservations, EmailVerifications, PasswordResets)

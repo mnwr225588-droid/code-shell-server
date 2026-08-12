@@ -35,7 +35,7 @@ class ProgressController extends Controller
 
         $validated = $request->validate([
             'course_id' => 'required|exists:courses,id',
-            'last_lesson' => 'required|integer|min:1',
+            'last_lesson' => 'required|string',
             'progress_percentage' => 'required|numeric|min:0|max:100',
             'completed' => 'required|boolean',
             'exam_scores' => 'nullable|json',
