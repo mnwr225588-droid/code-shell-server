@@ -445,4 +445,33 @@ class AdminContentController extends Controller
             ], 500);
         }
     }
+
+    // 9️⃣ حذف مستخدم نهائياً
+    public function deleteUser($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            
+            // Delete avatar if exists
+            if ($user->avatar_url && Storage::disk('public')->exists($user->avatar_url)) {
+                Storage::disk('public')->delete($user->avatar_url);
+            }
+
+            // Database relationships (Progress, Reservations, EmailVerifications, PasswordResets)
+            // Should be handled by ON DELETE CASCADE in DB, but just in case we force delete the user.
+            $user->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم حذف الحساب نهائياً بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting user #' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في حذف الحساب: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -8,6 +8,8 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 use App\Services\BrevoMailService;
 use App\Models\EmailVerification;
+use App\Models\PasswordReset;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -181,5 +183,49 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'تم تغيير كلمة المرور بنجاح.',
         ], 200);
+    }
+
+    /**
+     * Forgot Password - إرسال رابط إعادة تعيين كلمة المرور
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        // لأسباب أمنية نرد بنجاح حتى لو لم يوجد المستخدم
+        if (!$user) {
+            return response()->json([
+                'success' => true,
+                'message' => 'إذا كان البريد مسجلاً، ستصلك رسالة خلال دقيقة.',
+            ]);
+        }
+
+        // حذف طلبات إعادة التعيين السابقة لنفس المستخدم
+        PasswordReset::where('email', $user->email)->delete();
+
+        // توليد Token فريد وآمن
+        $token = Str::random(64);
+
+        PasswordReset::create([
+            'email'      => $user->email,
+            'token'      => $token,
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $resetUrl = "https://code-shell-server-production.up.railway.app/reset-password/{$token}";
+
+        $mailService = new BrevoMailService();
+        $mailService->sendPasswordResetEmail($user->email, $user->name, $resetUrl);
+
+        Log::info("Password reset email sent to: {$user->email}");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
+        ]);
     }
 }

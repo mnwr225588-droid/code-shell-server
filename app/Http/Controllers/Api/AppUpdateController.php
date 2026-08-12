@@ -227,6 +227,51 @@ class AppUpdateController extends Controller
     }
 
     /**
+     * الرفع في الخلفية: يستقبل الملف كاملاً دفعة واحدة.
+     */
+    public function uploadReleaseBackground(Request $request)
+    {
+        $request->validate([
+            'platform' => 'required|string|in:android,windows',
+            'version_code' => 'required|integer',
+            'version_name' => 'required|string',
+            'app_file' => 'required|file|max:716800', // max 700MB in KB
+            'changelog' => 'nullable|string',
+            'is_update' => 'nullable|boolean',
+        ]);
+
+        $file = $request->file('app_file');
+        
+        $safeName = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+        $publicPath = 'app_releases/' . $safeName;
+        
+        $path = $file->storeAs('app_releases', $safeName, 'public');
+
+        if (!$path) {
+            return response()->json([
+                'status' => false,
+                'message' => 'تعذر حفظ الملف على السيرفر.',
+            ], 500);
+        }
+
+        // إنشاء سجل الإصدار الجديد
+        $appVersion = AppVersion::create([
+            'platform' => $request->platform,
+            'version_code' => $request->version_code,
+            'version_name' => $request->version_name,
+            'file_path' => $publicPath,
+            'changelog' => $request->changelog,
+            'is_update' => $request->boolean('is_update', true),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم رفع التحديث بنجاح وإتاحته للمستخدمين.',
+            'data' => $appVersion,
+        ], 201);
+    }
+
+    /**
      * 3. معلومات الإصدار الأحدث لمنصة معينة (للموقع الإلكتروني)
      * GET /api/app-info?platform=android
      */

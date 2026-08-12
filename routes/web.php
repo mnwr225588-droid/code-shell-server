@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Models\EmailVerification;
+use App\Models\PasswordReset;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\PaymentController;
 
@@ -57,6 +61,54 @@ Route::get('/verify-email/{token}', function ($token) {
         'message' => 'تم تأكيد وتفعيل بريدك الإلكتروني بنجاح تام! يمكنك الآن تسجيل الدخول إلى تطبيقك.'
     ]);
 })->name('verification.verify');
+
+// ── صفحة إعادة تعيين كلمة المرور (GET: عرض النموذج) ──
+Route::get('/reset-password/{token}', function ($token) {
+    $reset = PasswordReset::where('token', $token)->first();
+
+    if (!$reset) {
+        return view('auth.reset-password', ['invalid' => true, 'token' => '']);
+    }
+
+    if (now()->greaterThan($reset->expires_at)) {
+        $reset->delete();
+        return view('auth.reset-password', ['expired' => true, 'token' => '']);
+    }
+
+    return view('auth.reset-password', ['token' => $token]);
+})->name('password.reset');
+
+// ── صفحة إعادة تعيين كلمة المرور (POST: تطبيق التغيير) ──
+Route::post('/reset-password/{token}', function (Request $request, $token) {
+    $request->validate([
+        'password'              => 'required|min:8|confirmed',
+        'password_confirmation' => 'required',
+    ]);
+
+    $reset = PasswordReset::where('token', $token)->first();
+
+    if (!$reset) {
+        return view('auth.reset-password', ['invalid' => true, 'token' => '']);
+    }
+
+    if (now()->greaterThan($reset->expires_at)) {
+        $reset->delete();
+        return view('auth.reset-password', ['expired' => true, 'token' => '']);
+    }
+
+    $user = User::where('email', $reset->email)->first();
+
+    if ($user) {
+        $user->password = Hash::make($request->password);
+        $user->save();
+        Log::info("Password reset successfully for user: {$user->email}");
+    }
+
+    // حذف الـ Token بعد الاستخدام
+    $reset->delete();
+
+    return view('auth.reset-password', ['success' => true, 'token' => '']);
+})->name('password.reset.post');
 
 // صفحة الدفع التجريبية لمحاكي Sandbox (تستخدمها جلسة الدفع المؤقتة فقط)
 Route::get('/api/payment/sandbox/{ref}', [PaymentController::class, 'sandboxPage'])

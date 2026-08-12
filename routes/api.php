@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Schema;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
 // Admin Login Route
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
@@ -132,6 +133,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     
     // مسار رفع تحديثات التطبيق من لوحة الأدمن
     Route::post('/upload-version', [AppUpdateController::class, 'uploadVersion']);
+    Route::post('/upload-release-background', [AppUpdateController::class, 'uploadReleaseBackground']);
     // الرفع المجزأ لملفات التطبيق الكبيرة (مقاطع + تجميع)
     Route::post('/upload-chunk', [AppUpdateController::class, 'uploadChunk']);
     Route::post('/upload-complete', [AppUpdateController::class, 'completeChunkedUpload']);
@@ -144,6 +146,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     // Delete operations
     Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
     Route::delete('/lessons/{id}', [AdminContentController::class, 'deleteLesson']);
+    Route::delete('/users/{id}', [AdminContentController::class, 'deleteUser']);
     
     // Dashboard Stats
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
@@ -285,6 +288,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Course Subscriptions
     Route::get('/courses/{id}/subscription-status', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'getStatus']);
     Route::post('/courses/{id}/subscribe', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'subscribe']);
+    Route::post('/courses/{id}/cancel', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'cancel']);
 
     // 💳 Payment Gateway (نظام الدفع الإلكتروني)
     Route::post('/courses/{id}/pay', [PaymentController::class, 'initiate']);
