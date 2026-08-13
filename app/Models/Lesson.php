@@ -27,12 +27,8 @@ class Lesson extends Model
         if (filter_var($this->thumbnail, FILTER_VALIDATE_URL)) {
             return $this->thumbnail;
         }
-        
-        $r2Url = env('R2_PUBLIC_URL');
-        if ($r2Url) {
-            return rtrim($r2Url, '/') . '/' . ltrim($this->thumbnail, '/');
-        }
-        return asset('storage/' . $this->thumbnail);
+
+        return $this->fullUrl($this->thumbnail);
     }
 
     public function getVideoUrlFullAttribute()
@@ -42,11 +38,21 @@ class Lesson extends Model
             return $this->video_url;
         }
 
-        $r2Url = env('R2_PUBLIC_URL');
-        if ($r2Url) {
-            return rtrim($r2Url, '/') . '/' . ltrim($this->video_url, '/');
+        return $this->fullUrl($this->video_url);
+    }
+
+    /**
+     * يبني رابطاً كاملاً وقابلاً للبث لملف مُخزَّن على Cloudflare R2.
+     * R2 يدعم Range Requests (206) — لذلك البث المباشر يعمل بشكل مثالي
+     * عبر `R2_PUBLIC_URL`، ولا نمرر الملف عبر سيرفر Laravel إطلاقاً.
+     */
+    private function fullUrl(string $path): string
+    {
+        $r2 = rtrim((string) config('filesystems.disks.r2.url', env('R2_PUBLIC_URL')), '/');
+        if ($r2 !== '') {
+            return $r2 . '/' . ltrim($path, '/');
         }
-        return asset('storage/' . $this->video_url);
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     public function level()
