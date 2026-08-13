@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["...", "nginx", "php83"]
+nixPkgs = ["...", "nginx", "php83", "ffmpeg", "python3"]
 
 [phases.build]
 cmds = ["...", "mkdir -p /etc/nginx/conf.d", "echo 'client_max_body_size 1024M;' > /etc/nginx/conf.d/uploads.conf"]

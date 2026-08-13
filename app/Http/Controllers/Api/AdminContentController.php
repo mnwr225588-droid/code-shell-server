@@ -9,6 +9,7 @@ use App\Models\Level;
 use App\Models\Lesson;
 use App\Models\User;
 use App\Services\PricingService;
+use App\Services\VideoProcessor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -192,8 +193,26 @@ class AdminContentController extends Controller
             // رفع ملف الفيديو إن وجد أو أخذ الرابط
             $videoPath = null;
             if ($request->hasFile('video')) {
-                $videoPath = $request->file('video')->store('lessons/videos', 'r2');
-                Log::info('Video uploaded to R2: ' . $videoPath);
+                $file = $request->file('video');
+                $key = $file->store('lessons/videos', 'r2');
+                Log::info('Video uploaded to R2: ' . $key);
+
+                // تحويل MP4 إلى Fast-Start (moov في البداية) حتى لا يتوقف
+                // البث بعد ثوانٍ من التشغيل — بدون إعادة ترميز (لا فقد جودة).
+                try {
+                    $processor = new VideoProcessor();
+                    $processed = $processor->fastStart($file->getRealPath(), $file->getClientOriginalName());
+                    if ($processed !== $file->getRealPath()) {
+                        $disk = Storage::disk('r2');
+                        $disk->put($key, fopen($processed, 'rb'), ['ContentType' => 'video/mp4']);
+                        @unlink($processed);
+                        Log::info('Video fast-start applied: ' . $key);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Video fast-start skipped: ' . $e->getMessage());
+                }
+
+                $videoPath = $key;
             } elseif ($request->filled('video_url')) {
                 $videoPath = $request->video_url;
             }

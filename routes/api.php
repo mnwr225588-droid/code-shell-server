@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\Api\TelegramWebhookController;
 use App\Http\Controllers\Api\CourseReservationController;
 use App\Http\Controllers\Api\AppUpdateController;
+use App\Http\Controllers\Api\AppReviewController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\AdminAuthController;
 use App\Models\Level;
@@ -51,6 +52,10 @@ Route::get('/download/{platform}', [AppUpdateController::class, 'download']);
 
 // حالة تفعيل التنزيل لكل منصة (يستخدمها الموقع وتطبيق الأدمن)
 Route::get('/download-settings', [AppUpdateController::class, 'downloadSettings']);
+
+// تقييمات وتعليقات التطبيق (يستخدمها موقع E:\code_shell_web)
+Route::get('/app-reviews', [AppReviewController::class, 'index']);
+Route::post('/app-reviews', [AppReviewController::class, 'store']);
 
 /*
 |--------------------------------------------------------------------------
