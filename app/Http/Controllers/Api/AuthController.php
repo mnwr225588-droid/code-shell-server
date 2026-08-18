@@ -228,4 +228,47 @@ class AuthController extends Controller
             'message' => 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
         ]);
     }
+
+    /**
+     * حذف الحساب نهائياً — يتطلب كلمة المرور الحالية.
+     * يُحذف المستخدم وكل بياناته المرتبطة (التقدم، الإشعارات، الاشتراكات،
+     * الحجوزات، المعاملات...) عبر الـ cascade في قاعدة البيانات.
+     */
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $request->validate([
+            'password'    => 'required',
+            'reason'      => 'nullable|string|max:255',
+            'reason_text' => 'nullable|string|max:1000',
+        ]);
+
+        $user = $request->user();
+
+        // التحقق من صحة كلمة المرور قبل الحذف
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'كلمة المرور غير صحيحة.',
+            ], 422);
+        }
+
+        // تسجيل سبب الحذف في الـ Logs للتحليل
+        Log::info('Account deletion requested', [
+            'user_id' => $user->id,
+            'email'   => $user->email,
+            'reason'  => $request->reason,
+            'reason_text' => $request->reason_text,
+        ]);
+
+        // حذف كل التوكنات (Sanctum) قبل حذف الحساب
+        $user->tokens()->delete();
+
+        // الحذف النهائي — البيانات المرتبطة تُحذف تلقائياً عبر cascade
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف حسابك نهائياً.',
+        ], 200);
+    }
 }
