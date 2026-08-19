@@ -135,6 +135,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     
     Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
     Route::get('/reservations/{course_id}', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCourseReservations']);
+
+    Route::get('/subscriptions', [\App\Http\Controllers\Api\AdminSubscriptionController::class, 'getCoursesWithSubscriptionCounts']);
+    Route::get('/subscriptions/{course_id}', [\App\Http\Controllers\Api\AdminSubscriptionController::class, 'getCourseSubscriptions']);
     
     // مسار رفع تحديثات التطبيق من لوحة الأدمن
     Route::post('/upload-version', [AppUpdateController::class, 'uploadVersion']);

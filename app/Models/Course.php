@@ -40,6 +40,7 @@ class Course extends Model
     protected $appends = [
         'thumbnail_url', 
         'reservations_count', 
+        'subscriptions_count',
         'is_subscribed',
         'levels_count',
         'lessons_count',
@@ -229,5 +230,13 @@ class Course extends Model
             return $this->reservedUsers->count();
         }
         return $this->reservedUsers()->count();
+    }
+
+    public function getSubscriptionsCountAttribute()
+    {
+        if ($this->relationLoaded('subscribedUsers')) {
+            return $this->subscribedUsers->count();
+        }
+        return $this->subscribedUsers()->count();
     }
 }
