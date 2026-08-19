@@ -73,6 +73,19 @@ return [
             'report' => false,
         ],
 
+        'r2_updates' => [
+            'driver' => 's3',
+            'key' => env('R2_UPDATES_ACCESS_KEY_ID'),
+            'secret' => env('R2_UPDATES_SECRET_ACCESS_KEY'),
+            'region' => env('R2_UPDATES_DEFAULT_REGION', 'auto'),
+            'bucket' => env('R2_UPDATES_BUCKET'),
+            'url' => env('R2_UPDATES_PUBLIC_URL'),
+            'endpoint' => env('R2_UPDATES_ENDPOINT'),
+            'use_path_style_endpoint' => env('R2_UPDATES_USE_PATH_STYLE_ENDPOINT', true),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

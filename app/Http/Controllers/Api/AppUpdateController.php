@@ -15,7 +15,9 @@ class AppUpdateController extends Controller
      */
     private function secureFileUrl(string $filePath): string
     {
-        return str_replace('http://', 'https://', asset('storage/' . $filePath));
+        // إذا كان الملف مخزناً على R2 (s3)، فإن Storage::disk('r2_updates')->url() ستعيد الرابط العام للملف
+        // بناءً على المتغير R2_PUBLIC_URL في ملف .env
+        return Storage::disk('r2_updates')->url($filePath);
     }
 
     /**
@@ -71,10 +73,10 @@ class AppUpdateController extends Controller
             'is_update' => 'nullable|boolean',
         ]);
 
-        // رفع الملف إلى مجلد storage/app_releases داخل السيرفر
+        // رفع الملف إلى R2 داخل مجلد app_releases
         $file = $request->file('app_file');
         $fileName = time() . '_' . $file->getClientOriginalName();
-        $filePath = $file->storeAs('app_releases', $fileName, 'public');
+        $filePath = $file->storeAs('app_releases', $fileName, 'r2_updates');
 
         // حفظ بيانات الإصدار في قاعدة البيانات
         $appVersion = AppVersion::create([
@@ -191,12 +193,13 @@ class AppUpdateController extends Controller
             ], 422);
         }
 
-        // نقل الملف المجمّع إلى التخزين العام لملفات الإصدارات
+        // نقل الملف المجمّع إلى R2
         $safeName = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $request->filename);
-        $publicPath = 'app_releases/' . $safeName;
-        $publicDisk = Storage::disk('public');
+        $r2Path = 'app_releases/' . $safeName;
+        $r2Disk = Storage::disk('r2_updates');
+        
         $in = @fopen($mergedTmp, 'rb');
-        if (!$in || !$publicDisk->writeStream($publicPath, $in)) {
+        if (!$in || !$r2Disk->writeStream($r2Path, $in)) {
             @fclose($in);
             $disk->deleteDirectory($chunkDir);
             return response()->json([
@@ -214,7 +217,7 @@ class AppUpdateController extends Controller
             'platform' => $request->platform,
             'version_code' => $request->version_code,
             'version_name' => $request->version_name,
-            'file_path' => $publicPath,
+            'file_path' => $r2Path,
             'changelog' => $request->changelog,
             'is_update' => $request->boolean('is_update', true),
         ]);
@@ -243,9 +246,9 @@ class AppUpdateController extends Controller
         $file = $request->file('app_file');
         
         $safeName = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
-        $publicPath = 'app_releases/' . $safeName;
+        $r2Path = 'app_releases/' . $safeName;
         
-        $path = $file->storeAs('app_releases', $safeName, 'public');
+        $path = $file->storeAs('app_releases', $safeName, 'r2_updates');
 
         if (!$path) {
             return response()->json([
@@ -259,7 +262,7 @@ class AppUpdateController extends Controller
             'platform' => $request->platform,
             'version_code' => $request->version_code,
             'version_name' => $request->version_name,
-            'file_path' => $publicPath,
+            'file_path' => $r2Path,
             'changelog' => $request->changelog,
             'is_update' => $request->boolean('is_update', true),
         ]);
@@ -338,7 +341,7 @@ class AppUpdateController extends Controller
             ->orderBy('version_code', 'desc')
             ->first();
 
-        if (!$latestVersion || !Storage::disk('public')->exists($latestVersion->file_path)) {
+        if (!$latestVersion || !Storage::disk('r2_updates')->exists($latestVersion->file_path)) {
             return response()->json([
                 'status' => false,
                 'message' => 'لا توجد نسخة متاحة للتنزيل لهذه المنصة بعد.'
@@ -351,7 +354,8 @@ class AppUpdateController extends Controller
         $extension = pathinfo($latestVersion->file_path, PATHINFO_EXTENSION);
         $downloadName = 'codeshell_' . $platform . '_v' . $latestVersion->version_name . '.' . $extension;
 
-        return Storage::disk('public')->download($latestVersion->file_path, $downloadName);
+        // لتوفير الباندويث الخاص بالسيرفر ولأن الملفات كبيرة، نقوم بتوجيه المستخدم للرابط المباشر للملف في R2
+        return redirect()->away($this->secureFileUrl($latestVersion->file_path));
     }
 
     /**
@@ -401,9 +405,9 @@ class AppUpdateController extends Controller
     {
         $version = AppVersion::findOrFail($id);
 
-        // حذف الملف من التخزين (إن وُجد) ثم حذف السجل
-        if ($version->file_path && Storage::disk('public')->exists($version->file_path)) {
-            Storage::disk('public')->delete($version->file_path);
+        // حذف الملف من R2 (إن وُجد) ثم حذف السجل
+        if ($version->file_path && Storage::disk('r2_updates')->exists($version->file_path)) {
+            Storage::disk('r2_updates')->delete($version->file_path);
         }
 
         $version->delete();
@@ -419,10 +423,10 @@ class AppUpdateController extends Controller
      */
     private function fileSize(?string $filePath): ?int
     {
-        if (!$filePath || !Storage::disk('public')->exists($filePath)) {
+        if (!$filePath || !Storage::disk('r2_updates')->exists($filePath)) {
             return null;
         }
-        return (int) Storage::disk('public')->size($filePath);
+        return (int) Storage::disk('r2_updates')->size($filePath);
     }
 
     /**
