@@ -203,6 +203,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 // جلب المستويات، الدروس، والمحاضرات للكورس
 Route::get('/levels/{course_id}', [CourseController::class, 'getLevels']);
 
+// جلب دروس مستوى معين
+Route::get('/levels/{level_id}/lessons', [CourseController::class, 'getLessonsForLevel']);
+
 // جلب المجموعات המتاحة لكورس معين
 Route::get('/courses/{id}/groups', [CourseController::class, 'getGroups']);
 

@@ -148,4 +148,18 @@ class CourseController extends Controller
             'group_status' => $groupStatus,
         ]);
     }
+
+    // جلب الدروس لمستوى معين (للوحة التحكم)
+    public function getLessonsForLevel($level_id)
+    {
+        $lessons = \App\Models\Lesson::with('questions.options')
+            ->where('level_id', $level_id)
+            ->orderBy('order_num', 'asc')
+            ->get();
+            
+        return response()->json([
+            'status' => true,
+            'data' => $lessons
+        ]);
+    }
 }
