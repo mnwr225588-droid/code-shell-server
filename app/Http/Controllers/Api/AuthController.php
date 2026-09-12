@@ -55,16 +55,23 @@ class AuthController extends Controller
         // 3. بناء رابط التفعيل الآمن عبر HTTPS
         $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
 
-        // 4. إرسال بريد التفعيل عبر خدمة Brevo
+        // 4. إرسال بريد التفعيل عبر خدمة Brevo — مع فحص النتيجة الفعلية
         $mailService = new BrevoMailService();
-        $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+        $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
 
-        // 5. تسجيل العملية في الـ Logs
-        Log::info("New user registered and verification email sent to: {$user->email}");
+        if (!$mailResult['success']) {
+            // تسجيل الخطأ — الحساب أُنشئ لكن الرسالة لم تُرسل
+            Log::error("User registered but verification email FAILED for: {$user->email} — {$mailResult['message']}");
+        } else {
+            Log::info("New user registered and verification email sent to: {$user->email}");
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.',
+            'message' => $mailResult['success']
+                ? 'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.'
+                : 'تم إنشاء الحساب لكن فشل إرسال بريد التفعيل. يرجى المحاولة لاحقاً من الإعدادات.',
+            'email_sent' => $mailResult['success'],
             'token' => $result['token'],
             'user' => $result['user'],
         ], 201);
@@ -120,7 +127,17 @@ class AuthController extends Controller
         $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
 
         $mailService = new BrevoMailService();
-        $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+        $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+
+        // التحقق من نتيجة الإرسال الفعلية قبل إخبار المستخدم
+        if (!$mailResult['success']) {
+            Log::error("Resend verification email FAILED for: {$user->email} — {$mailResult['message']}");
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل إرسال بريد التفعيل. تأكد من صحة بريدك الإلكتروني وحاول مرة أخرى.',
+                'error_detail' => $mailResult['message'],
+            ], 500);
+        }
 
         Log::info("Verification email re-sent to: {$user->email}");
 
