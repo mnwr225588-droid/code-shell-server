@@ -9,43 +9,20 @@ use Exception;
 class BrevoMailService
 {
     /**
-     * إرسال رسالة عامة عبر Brevo API
+     * إرسال رسالة عامة عبر خدمة البريد في لارافيل (SMTP)
      */
     public function sendEmail($toEmail, $toName, $subject, $htmlContent)
     {
-        $apiKey = env('BREVO_API_KEY');
-        $senderEmail = env('BREVO_SENDER_EMAIL');
-        $senderName = env('BREVO_SENDER_NAME');
-
         try {
-            $response = Http::withHeaders([
-                'accept' => 'application/json',
-                'api-key' => $apiKey,
-                'content-type' => 'application/json',
-            ])->post('https://api.brevo.com/v3/smtp/email', [
-                'sender' => [
-                    'name' => $senderName,
-                    'email' => $senderEmail,
-                ],
-                'to' => [
-                    [
-                        'email' => $toEmail,
-                        'name' => $toName ?? 'مستخدم',
-                    ]
-                ],
-                'subject' => $subject,
-                'htmlContent' => $htmlContent,
-            ]);
+            \Illuminate\Support\Facades\Mail::html($htmlContent, function ($message) use ($toEmail, $toName, $subject) {
+                $message->to($toEmail, $toName)
+                        ->subject($subject);
+            });
 
-            if ($response->successful()) {
-                Log::info("Brevo API: Email sent successfully to {$toEmail}");
-                return ['success' => true, 'message' => 'تم إرسال البريد بنجاح'];
-            } else {
-                Log::error("Brevo API Failed for {$toEmail}: " . $response->body());
-                return ['success' => false, 'message' => 'فشل الإرسال: ' . $response->body()];
-            }
+            Log::info("Email sent successfully to {$toEmail} using Laravel Mail (SMTP)");
+            return ['success' => true, 'message' => 'تم إرسال البريد بنجاح'];
         } catch (Exception $e) {
-            Log::error("Brevo API Exception for {$toEmail}: " . $e->getMessage());
+            Log::error("Mail Exception for {$toEmail}: " . $e->getMessage());
             return ['success' => false, 'message' => 'خطأ في الاتصال: ' . $e->getMessage()];
         }
     }

@@ -189,6 +189,15 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::post('/send-notification', [NotificationController::class, 'send']);
     // 📋 سجل الإشعارات المرسلة سابقاً (لتطبيق الأدمن)
     Route::get('/notifications-history', [NotificationController::class, 'history']);
+
+    // 👨‍🏫 إدارة المدرسين
+    Route::get('/teachers', [\App\Http\Controllers\Api\AdminTeacherController::class, 'index']);
+    Route::post('/teachers', [\App\Http\Controllers\Api\AdminTeacherController::class, 'store']);
+    Route::delete('/teachers/{id}', [\App\Http\Controllers\Api\AdminTeacherController::class, 'destroy']);
+
+    // 📋 طلبات تأجيل المحاضرات
+    Route::get('/postponement-requests', [\App\Http\Controllers\Api\AdminTeacherController::class, 'postponementRequests']);
+    Route::post('/postponement-requests/{id}/handle', [\App\Http\Controllers\Api\AdminTeacherController::class, 'handlePostponement']);
 });
 
 /*
@@ -282,4 +291,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/telegram/bind-url', [TelegramWebhookController::class, 'getBindUrl']);
     Route::get('/telegram/verify-url', [TelegramWebhookController::class, 'getBindUrl']);
     Route::get('/telegram/otp-url', [TelegramWebhookController::class, 'getOtpUrl']);
+
+    // 👨‍🏫 Teacher Mode Routes (مسارات وضع المدرس في تطبيق الطالب)
+    Route::prefix('teacher')->group(function () {
+        Route::get('/my-groups', [\App\Http\Controllers\Api\TeacherController::class, 'myGroups']);
+        Route::get('/groups/{groupId}/students', [\App\Http\Controllers\Api\TeacherController::class, 'groupStudents']);
+        Route::get('/my-sessions', [\App\Http\Controllers\Api\TeacherController::class, 'mySessions']);
+        Route::get('/sessions/{id}', [\App\Http\Controllers\Api\TeacherController::class, 'sessionDetails']);
+        Route::post('/start-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'startLecture']);
+        Route::post('/postpone', [\App\Http\Controllers\Api\TeacherController::class, 'requestPostponement']);
+        Route::post('/break', [\App\Http\Controllers\Api\TeacherController::class, 'startBreak']);
+    });
 });

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Teacher;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -32,6 +33,7 @@ class AuthService
         return [
             'user' => $user,
             'token' => $token,
+            'user_type' => 'student',
         ];
     }
 
@@ -40,28 +42,40 @@ class AuthService
      */
     public function login(array $data): array
     {
+        // أولاً: نبحث في جدول المستخدمين (طلاب + أدمنز)
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if ($user && Hash::check($data['password'], $user->password)) {
+            // ربط الدولة تلقائياً عند تسجيل الدخول
+            if (!empty($data['country']) && $user->country !== $data['country']) {
+                $user->country = $data['country'];
+                $user->save();
+            }
 
-            throw ValidationException::withMessages([
-                'email' => ['البريد الإلكتروني أو كلمة المرور غير صحيحة.']
-            ]);
+            $token = $user->createToken('CodeShell')->plainTextToken;
 
+            return [
+                'user' => $user,
+                'token' => $token,
+                'user_type' => 'student',
+            ];
         }
 
-        // ربط الدولة تلقائياً عند تسجيل الدخول: إن أرسل التطبيق قيمة
-        // country (اسم الدولة أو رمزها) يتم تحديثها في حساب المستخدم.
-        if (!empty($data['country']) && $user->country !== $data['country']) {
-            $user->country = $data['country'];
-            $user->save();
+        // ثانياً: نبحث في جدول المدرسين
+        $teacher = Teacher::where('email', $data['email'])->first();
+
+        if ($teacher && Hash::check($data['password'], $teacher->password)) {
+            $token = $teacher->createToken('CodeShell')->plainTextToken;
+
+            return [
+                'user' => $teacher,
+                'token' => $token,
+                'user_type' => 'teacher',
+            ];
         }
 
-        $token = $user->createToken('CodeShell')->plainTextToken;
-
-        return [
-            'user' => $user,
-            'token' => $token,
-        ];
+        throw ValidationException::withMessages([
+            'email' => ['البريد الإلكتروني أو كلمة المرور غير صحيحة.']
+        ]);
     }
 }
