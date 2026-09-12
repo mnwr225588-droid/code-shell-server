@@ -13,7 +13,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 use App\Services\BrevoMailService;
-use App\Services\BrevoApiMailService;
+use App\Services\BrevoMailService;
 use App\Models\EmailVerification;
 use App\Models\PasswordReset;
 use App\Models\User;
@@ -127,7 +127,7 @@ class AuthController extends Controller
 
         $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
 
-        $mailService = new BrevoApiMailService();
+        $mailService = new BrevoMailService();
         $htmlContent = '
             <div style="font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 40px 0; direction: rtl;">
                 <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -270,7 +270,7 @@ class AuthController extends Controller
 
         $resetUrl = "https://code-shell-server-production.up.railway.app/reset-password/{$token}";
 
-        $mailService = new BrevoApiMailService();
+        $mailService = new BrevoMailService();
         $htmlContent = '
             <div style="font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 40px 0; direction: rtl;">
                 <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
