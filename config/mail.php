@@ -21,8 +21,8 @@ return [
         'smtp' => [
             'transport' => 'smtp',
 
-            // smtp أو smtps فقط (تم التعديل لتجاهل env('MAIL_SCHEME') لتفادي خطأ tls)
-            'scheme' => null,
+            // smtp أو smtps فقط
+            'scheme' => env('MAIL_SCHEME', 'smtp'),
 
             'url' => env('MAIL_URL'),
 
