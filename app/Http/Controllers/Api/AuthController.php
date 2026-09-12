@@ -13,6 +13,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 use App\Services\BrevoMailService;
+use App\Services\BrevoApiMailService;
 use App\Models\EmailVerification;
 use App\Models\PasswordReset;
 use App\Models\User;
@@ -126,20 +127,38 @@ class AuthController extends Controller
 
         $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
 
-        $mailService = new BrevoMailService();
-        $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+        $mailService = new BrevoApiMailService();
+        $htmlContent = '
+            <div style="font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 40px 0; direction: rtl;">
+                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <h2 style="color: #333; text-align: center;">منصة Code Shell</h2>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="color: #555; font-size: 16px;">مرحباً <strong>' . $user->name . '</strong>،</p>
+                    <p style="color: #555; font-size: 16px;">شكراً لتسجيلك معنا. لإتمام تفعيل حسابك والبدء في استخدام المنصة، يرجى النقر على الزر أدناه:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="' . $activationUrl . '" style="background-color: #28a745; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">تأكيد البريد الإلكتروني</a>
+                    </div>
+                    <p style="color: #777; font-size: 14px;">إذا لم يعمل الزر معك، يمكنك نسخ الرابط التالي ولصقه في متصفحك:</p>
+                    <p style="word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; font-size: 12px; color: #007bff;"><a href="' . $activationUrl . '">' . $activationUrl . '</a></p>
+                    <p style="color: #d9534f; font-size: 13px; margin-top: 20px;">تنبيه: هذا الرابط صالح لمدة 24 ساعة فقط ويستخدم لمرة واحدة.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="color: #999; font-size: 12px; text-align: center;">إذا لم تقم بطلب هذا الحساب، يمكنك تجاهل هذه الرسالة تماماً. | فريق دعم Code Shell</p>
+                </div>
+            </div>
+        ';
+
+        $mailResult = $mailService->sendEmail($user->email, $user->name, 'تفعيل حسابك الشخصي في Code Shell', $htmlContent);
 
         // التحقق من نتيجة الإرسال الفعلية قبل إخبار المستخدم
         if (!$mailResult['success']) {
-            Log::error("Resend verification email FAILED for: {$user->email} — {$mailResult['message']}");
+            Log::error("Resend verification email FAILED via API for: {$user->email} — {$mailResult['message']}");
             return response()->json([
                 'success' => false,
                 'message' => 'فشل إرسال بريد التفعيل. تأكد من صحة بريدك الإلكتروني وحاول مرة أخرى.',
-                'error_detail' => $mailResult['message'],
             ], 500);
         }
 
-        Log::info("Verification email re-sent to: {$user->email}");
+        Log::info("Verification email re-sent via API to: {$user->email}");
 
         return response()->json([
             'success' => true,
@@ -251,18 +270,38 @@ class AuthController extends Controller
 
         $resetUrl = "https://code-shell-server-production.up.railway.app/reset-password/{$token}";
 
-        $mailService = new BrevoMailService();
-        $mailResult = $mailService->sendPasswordResetEmail($user->email, $user->name, $resetUrl);
+        $mailService = new BrevoApiMailService();
+        $htmlContent = '
+            <div style="font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 40px 0; direction: rtl;">
+                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <h2 style="color: #333; text-align: center;">منصة Code Shell</h2>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="color: #555; font-size: 16px;">مرحباً <strong>' . $user->name . '</strong>،</p>
+                    <p style="color: #555; font-size: 16px;">تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك. انقر على الزر أدناه لإنشاء كلمة مرور جديدة:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="' . $resetUrl . '" style="background-color: #6366f1; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">إعادة تعيين كلمة المرور</a>
+                    </div>
+                    <p style="color: #777; font-size: 14px;">إذا لم يعمل الزر،انسخ الرابط التالي وألصقه في متصفحك:</p>
+                    <p style="word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; font-size: 12px; color: #6366f1;"><a href="' . $resetUrl . '">' . $resetUrl . '</a></p>
+                    <p style="color: #d9534f; font-size: 13px; margin-top: 20px;">⏱ تنبيه: هذا الرابط صالح لمدة 5 دقائق فقط ويُستخدم لمرة واحدة.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="color: #888; font-size: 13px;">إذا لم تطلب إعادة تعيين كلمة المرور، تجاهل هذه الرسالة وحسابك بأمان.</p>
+                    <p style="color: #999; font-size: 12px; text-align: center;">فريق دعم Code Shell</p>
+                </div>
+            </div>
+        ';
+
+        $mailResult = $mailService->sendEmail($user->email, $user->name, '🔐 إعادة تعيين كلمة المرور - Code Shell', $htmlContent);
 
         if (!$mailResult['success']) {
-            Log::error("Password reset email FAILED for: {$user->email} — {$mailResult['message']}");
+            Log::error("Password reset email FAILED via API for: {$user->email} — {$mailResult['message']}");
             return response()->json([
                 'success' => false,
                 'message' => 'فشل إرسال رابط إعادة تعيين كلمة المرور. حاول مرة أخرى أو تواصل مع الدعم.',
             ], 500);
         }
 
-        Log::info("Password reset email sent to: {$user->email}");
+        Log::info("Password reset email sent via API to: {$user->email}");
 
         return response()->json([
             'success' => true,
