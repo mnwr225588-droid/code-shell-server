@@ -62,6 +62,10 @@ class PaymentController extends Controller
             ->latest()
             ->first();
 
+        // Check if pending transaction exists
+        // (group_id validation removed since it's auto-assigned later)
+        // No need to cancel pending transaction based on group_id difference
+
         if ($pending && $pending->gateway_transaction_id) {
             $url = $pending->payload['payment_url'] ?? null;
             if ($url) {
@@ -87,6 +91,9 @@ class PaymentController extends Controller
             'currency_code' => $currency,
             'payment_gateway' => $gateway->name(),
             'status' => Transaction::STATUS_PENDING,
+            'payload' => [
+                'auto_assign_group' => true,
+            ],
         ]);
         $transaction->save();
 
@@ -102,7 +109,7 @@ class PaymentController extends Controller
 
         $transaction->update([
             'gateway_transaction_id' => $created['gateway_transaction_id'],
-            'payload' => $created['payload'],
+            'payload' => array_merge($transaction->payload ?? [], $created['payload'] ?? []),
         ]);
 
         return response()->json([
@@ -166,14 +173,25 @@ class PaymentController extends Controller
                 return;
             }
 
+            $oldPayload = $locked->payload ?? [];
             $locked->update([
                 'status' => $result['status'],
-                'payload' => $result['raw_payload'],
+                'payload' => array_merge($oldPayload, $result['raw_payload'] ?? []),
             ]);
 
             if ($result['status'] === Transaction::STATUS_COMPLETED) {
-                // تفعيل الاشتراك بشكل دائم وفوري.
-                $locked->user->subscribedCourses()->syncWithoutDetaching([$locked->course_id]);
+                // تفعيل الاشتراك وربط المستخدم بأحدث مجموعة مفتوحة
+                \App\Services\CourseGroupService::assignStudentToOpenGroup($locked->user, $locked->course_id);
+                
+                // إذا لم توجد مجموعة، الدالة ستعيد null وسوف نقوم بإضافته بدون مجموعة لضمان اشتراكه
+                $subscription = DB::table('course_subscriptions')
+                    ->where('user_id', $locked->user_id)
+                    ->where('course_id', $locked->course_id)
+                    ->first();
+                    
+                if (!$subscription) {
+                    $locked->user->subscribedCourses()->syncWithoutDetaching([$locked->course_id]);
+                }
             }
         });
 

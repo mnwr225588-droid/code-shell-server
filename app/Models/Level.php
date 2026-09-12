@@ -20,4 +20,9 @@ class Level extends Model
     {
         return $this->hasMany(Lesson::class)->orderBy('order_num', 'asc');
     }
+
+    public function onlineLectures()
+    {
+        return $this->hasMany(OnlineLecture::class);
+    }
 }

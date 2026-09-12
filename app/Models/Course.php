@@ -2,6 +2,15 @@
 
 namespace App\Models;
 
+/// مودل الـ Course (الكورس)
+/// ده المودل الأساسي للمحتوى في المنصة.
+/// بيربط بين:
+/// 1. Category (القسم اللي بينتمي ليه)
+/// 2. Levels (المستويات الخاصة بالكورس)
+/// 3. Users (من خلال علاقات الحجز والاشتراك)
+/// ⚠️ مهم: المودل بيعمل Appends لخصائص كتير مش موجودة في الداتا بيز (زي price, currency, is_subscribed) 
+/// علشان يوفر بيانات جاهزة للـ API من غير ما يضطر الـ Controller يحسبها لكل كورس.
+
 use App\Services\PricingService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -238,5 +247,15 @@ class Course extends Model
             return $this->subscribedUsers->count();
         }
         return $this->subscribedUsers()->count();
+    }
+
+    public function groups()
+    {
+        return $this->hasMany(CourseGroup::class);
+    }
+
+    public function onlineLectures()
+    {
+        return $this->hasMany(OnlineLecture::class);
     }
 }

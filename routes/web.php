@@ -1,5 +1,10 @@
 <?php
 
+/// ملف `routes/web.php`
+/// الملف ده مخصص لمسارات الـ Web اللي بترجع صفحات HTML بدل JSON.
+/// في المشروع ده، بيُستخدم أساساً لعمليات التأكيد (زي تفعيل الإيميل وإعادة تعيين كلمة المرور)
+/// لأن الـ User بيفتح الروابط دي من بريد إلكتروني، فبيحتاج يشوف صفحة Web مش استجابة API.
+
 use Illuminate\Support\Facades\Route;
 use App\Models\EmailVerification;
 use App\Models\PasswordReset;
@@ -14,6 +19,12 @@ Route::get('/', function () {
 });
 
 Route::get('/verify-email/{token}', function ($token) {
+    /// الهدف: تفعيل البريد الإلكتروني لما المستخدم يضغط على الرابط اللي جاله في رسالة التفعيل.
+    /// الخطوات:
+    /// 1. بنتدور على الـ Token في الداتا بيز.
+    /// 2. لو الـ Token منتهي الصلاحية أو مستخدم، بنرجع صفحة خطأ للمستخدم.
+    /// 3. لو سليم، بنحدّث حالة الحساب ونضيف وقت التفعيل (email_verified_at) وبعدين نمسح الـ Token.
+    
     // 1. البحث عن الـ Token في الجدول المستقل
     $verification = EmailVerification::where('token', $token)->first();
 
@@ -63,6 +74,8 @@ Route::get('/verify-email/{token}', function ($token) {
 })->name('verification.verify');
 
 // ── صفحة إعادة تعيين كلمة المرور (GET: عرض النموذج) ──
+/// الهدف: عرض صفحة (Form) للمستخدم عشان يدخل فيها الباسورد الجديد.
+/// المستخدم بيفتحها من الرابط اللي جاله في الإيميل (Forgot Password).
 Route::get('/reset-password/{token}', function ($token) {
     $reset = PasswordReset::where('token', $token)->first();
 
@@ -79,6 +92,8 @@ Route::get('/reset-password/{token}', function ($token) {
 })->name('password.reset');
 
 // ── صفحة إعادة تعيين كلمة المرور (POST: تطبيق التغيير) ──
+/// الهدف: استقبال الباسورد الجديد من الـ Form اللي معروض للمستخدم وتحديثه في الداتا بيز.
+/// ⚠️ بيعمل Validation الأول علشان يتأكد إن الباسورد مش أقل من 8 حروف وإنه متطابق مع الـ Confirmation.
 Route::post('/reset-password/{token}', function (Request $request, $token) {
     $request->validate([
         'password'              => 'required|min:8|confirmed',

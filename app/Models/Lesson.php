@@ -2,6 +2,13 @@
 
 namespace App\Models;
 
+/// مودل الـ Lesson (الدرس)
+/// بيمثل درس واحد جوه مستوى معين (Level).
+/// الدرس ممكن يكون فيه فيديو (video_url) وصورة مصغرة (thumbnail).
+/// كمان ممكن يكون مربوط بمجموعة أسئلة (Quiz) عن طريق علاقة questions.
+/// ⚠️ مهم: المودل بيحسب الرابط الكامل للفيديو والصورة تلقائياً عن طريق Accessors
+/// بحيث يعرض رابط Cloudflare R2 لو الملف مرفوع هناك.
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

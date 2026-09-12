@@ -4,6 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+/// مودل الـ User
+/// بيمثل المستخدمين في النظام (سواء طالب أو أدمن، بنفرق بينهم عن طريق حقل is_admin).
+/// المودل ده مربوط بجداول كتير:
+/// - course_reservations (الحجوزات)
+/// - course_subscriptions (الاشتراكات)
+/// بيستخدم Laravel Sanctum للـ API Tokens (HasApiTokens).
+
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -86,6 +94,8 @@ class User extends Authenticatable
      */
     public function subscribedCourses()
     {
-        return $this->belongsToMany(Course::class, 'course_subscriptions', 'user_id', 'course_id')->withTimestamps();
+        return $this->belongsToMany(Course::class, 'course_subscriptions', 'user_id', 'course_id')
+            ->withPivot('group_id')
+            ->withTimestamps();
     }
 }

@@ -1,5 +1,11 @@
 <?php
 
+/// ملف `routes/api.php`
+/// الملف ده هو نقطة الدخول (Entry Point) لكل الـ API Requests الجاية من الـ Flutter App (سواء الطالب أو الأدمن).
+/// وظيفته يحدد كل رابط (Endpoint) بيروح لأي Controller وأي Function.
+/// لو عايز تضيف ميزة جديدة للتطبيق بتحتاج بيانات من السيرفر، لازم تبدأ بإضافة الـ Route هنا الأول.
+/// الملف مقسم لمسارات عامة (Public) ومسارات محمية (Protected بتطلب تسجيل دخول).
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
@@ -26,12 +32,21 @@ use Illuminate\Support\Facades\Schema;
 | Public Routes (المسارات العامة)
 |--------------------------------------------------------------------------
 */
+/// المسارات دي متاحة لأي حد (Public)، ومش بتحتاج Token أو تسجيل دخول.
+/// بتشمل عمليات زي التسجيل، تسجيل الدخول، واستعادة كلمة المرور.
 
 Route::post('/register', [AuthController::class, 'register']);
+
+/// API: POST /api/login
+/// الهدف: تسجيل دخول الطالب وإرجاع Token (Sanctum Token).
+/// التطبيق بيستخدم الـ Token ده في كل الطلبات الجاية.
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
 // Admin Login Route
+/// API: POST /api/admin/login
+/// الهدف: تسجيل دخول تطبيق الإدارة. 
+/// مفصول عن تسجيل دخول الطالب علشان نقدر نطبق Business Logic أو شروط مختلفة للأدمن.
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
 // مسار الـ Webhook الخاص ببوت التلجرام
@@ -122,6 +137,9 @@ Route::get('/create-admin-fix', function () {
 | Admin Routes (إضافة لغات، كورسات، مستويات، دروس بالفيديو، والمستخدمين)
 |--------------------------------------------------------------------------
 */
+/// المسارات دي محمية بـ auth:sanctum، ومخصصة لتطبيق الإدارة (code_shell_admin).
+/// أي تعديل في الروابط دي لازم تسمّع في الـ Services بتاعة تطبيق الأدمن.
+/// الجروب ده بيسمح للأدمن يضيف، يعدل، أو يحذف محتوى المنصة.
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/courses', [AdminContentController::class, 'getCourses']);
     Route::post('/categories', [AdminContentController::class, 'storeCategory']);
@@ -132,6 +150,14 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/users', [AdminContentController::class, 'getUsers']);
     Route::get('/users/{id}', [AdminContentController::class, 'showUser']);
     Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);
+    
+    // Groups & Online Lectures
+    Route::get('/courses/{courseId}/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'index']);
+    Route::post('/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'store']);
+    Route::put('/groups/{id}', [\App\Http\Controllers\Api\AdminGroupController::class, 'update']);
+    Route::post('/groups/{id}/activate', [\App\Http\Controllers\Api\AdminGroupController::class, 'activate']);
+    Route::post('/online-lectures', [\App\Http\Controllers\Api\AdminOnlineLectureController::class, 'store']);
+    Route::put('/online-lectures/{id}', [\App\Http\Controllers\Api\AdminOnlineLectureController::class, 'update']);
     
     Route::get('/reservations', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCoursesWithReservationCounts']);
     Route::get('/reservations/{course_id}', [\App\Http\Controllers\Api\AdminReservationController::class, 'getCourseReservations']);
@@ -170,81 +196,26 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 | Public / Student Routes (مسارات المستويات والكورسات العامة)
 |--------------------------------------------------------------------------
 */
-// جلب الدروس الخاصة بمستوى معين
-Route::get('/levels/{id}/lessons', function ($id) {
-    $level = \App\Models\Level::with(['lessons' => function($q) {
-        $q->orderBy('order_num', 'asc')->with('questions.options');
-    }])->findOrFail($id);
+/// هنا بنجيب تفاصيل المستويات والدروس.
+/// ⚠️ مهم: الـ Logic الداخلي (زي ما هنشوف تحت) بيتحكم في مين يشوف إيه، وهل الدرس مقفول ولا مفتوح
+/// بناءً على التقدم (Progress) بتاع الطالب وحالة تسجيل الدخوله.
 
-    return response()->json([
-        'status' => true,
-        'data'   => $level->lessons
-    ]);
-});
+// جلب المستويات، الدروس، والمحاضرات للكورس
+Route::get('/levels/{course_id}', [CourseController::class, 'getLevels']);
 
-Route::get('/levels/{course_id}', function ($course_id) {
-    $levels = Level::where('course_id', $course_id)
-        ->orderBy('order_num', 'asc')
-        ->with(['lessons' => function($q) {
-            $q->orderBy('order_num', 'asc')->with('questions.options');
-        }])
-        ->get();
-
-    $userId = auth('sanctum')->id();
-    $completedLessonIds = [];
-    $isAdmin = auth('sanctum')->user()?->isAdmin() ?? false;
-    
-    if ($userId) {
-        $completedLessonIds = \App\Models\LessonCompletion::where('user_id', $userId)
-            ->pluck('lesson_id')
-            ->toArray();
-    }
-
-    $isNextUnlocked = true; // First lesson is always unlocked
-
-    foreach ($levels as $level) {
-        $levelLocked = true;
-        foreach ($level->lessons as $lesson) {
-            // حساب الأدمن: كل الدروس مفتوحة دائماً دون قيود.
-            $lesson->is_locked = $isAdmin ? false : !$isNextUnlocked;
-            
-            if (!$lesson->is_locked) {
-                $levelLocked = false;
-            }
-
-            // Check if this lesson is completed, which unlocks the next one
-            if (in_array($lesson->id, $completedLessonIds)) {
-                $lesson->is_completed = true;
-                $isNextUnlocked = true;
-            } else {
-                $lesson->is_completed = false;
-                if (!$lesson->is_optional) {
-                    $isNextUnlocked = false;
-                } else {
-                    $isNextUnlocked = true;
-                }
-            }
-        }
-        
-        // If the entire level is optional, it should not block the next level
-        if ($level->is_optional) {
-            $isNextUnlocked = true;
-        }
-        
-        $level->is_locked = $isAdmin ? false : $levelLocked;
-    }
-
-    return response()->json([
-        'status' => true,
-        'data'   => $levels
-    ]);
-});
+// جلب المجموعات המتاحة لكورس معين
+Route::get('/courses/{id}/groups', [CourseController::class, 'getGroups']);
 
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (تتطلب تسجيل الدخول وتوكن Sanctum)
 |--------------------------------------------------------------------------
 */
+/// كل الروابط اللي تحت الجروب ده بتطلب إن الـ Request يكون فيه Bearer Token في الـ Header.
+/// الـ Token ده بيتم توليده وقت الـ Login عن طريق Sanctum.
+/// التطبيق (Flutter) بيبعته مع كل طلب عن طريق Dio Interceptors.
+/// لو غيرت طريقة الـ Authentication، الجروب ده كله هيتأثر.
+
 // مسار مؤقت لقراءة أخطاء السيرفر (Logs)
 Route::get('/server-logs', function () {
     $logFile = storage_path('logs/laravel.log');
@@ -252,7 +223,6 @@ Route::get('/server-logs', function () {
         return "No log file found at: $logFile";
     }
     
-    // قراءة آخر 100 سطر لتجنب انهيار المتصفح
     $lines = file($logFile);
     $lastLines = array_slice($lines, -100);
     
@@ -261,6 +231,8 @@ Route::get('/server-logs', function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/online-lectures/{id}/join', [\App\Http\Controllers\Api\OnlineLectureController::class, 'join']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']); // مسار تغيير كلمة المرور

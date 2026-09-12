@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 Artisan::command('videos:faststart', function () {
     $this->call(\App\Console\Commands\VideosFastStart::class);
 })->purpose('Fix all R2 lesson videos to Fast-Start (streaming)');
+
+// جدولة أمر فحص انتهاء مدة المجموعات وإغلاقها تلقائياً (يعمل كل ساعة)
+\Illuminate\Support\Facades\Schedule::command('groups:check-expiry')->hourly();

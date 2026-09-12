@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+/// الـ AuthController
+/// مسؤول عن كل عمليات المصادقة (Authentication) الخاصة بالطالب في التطبيق.
+/// بيشمل: التسجيل، تسجيل الدخول، استعادة كلمة المرور، إعادة إرسال التأكيد، وتسجيل الخروج.
+/// ⚠️ مهم: أي تعديل في الـ Response هنا هيأثر مباشرة على الـ AuthProvider في تطبيق Flutter.
+/// الـ Controller ده بيعتمد على AuthService علشان ينفذ الـ Business Logic بعيد عن الـ HTTP Layer.
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
@@ -25,6 +31,12 @@ class AuthController extends Controller
     /**
      * Register New User
      */
+    /// دالة إنشاء حساب جديد (الطالب).
+    /// بتستقبل البيانات وتعملها Validation عن طريق RegisterRequest.
+    /// الخطوات:
+    /// 1. بتنشئ الحساب عن طريق الـ AuthService.
+    /// 2. بتعمل Token فريد لرسالة التأكيد وتخزنه في الداتا بيز.
+    /// 3. بتبعت رسالة التفعيل باستخدام BrevoMailService.
     public function register(RegisterRequest $request): JsonResponse
     {
         $result = $this->authService->register($request->validated());
@@ -61,6 +73,9 @@ class AuthController extends Controller
     /**
      * Login User
      */
+    /// دالة تسجيل الدخول.
+    /// بتاخد الإيميل والباسورد وتعملهم Validation عن طريق LoginRequest.
+    /// بترجع Token (Sanctum) اللي التطبيق بيحفظه وبيستخدمه عشان يكلم أي Protected Route.
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authService->login($request->validated());

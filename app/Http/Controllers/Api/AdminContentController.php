@@ -2,6 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+/// الـ AdminContentController
+/// ده العصب الرئيسي لتطبيق الإدارة (code_shell_admin).
+/// مسؤول عن إضافة/تعديل/حذف: الأقسام، الكورسات، المستويات، والدروس.
+/// وكمان بيعرض بيانات المستخدمين والحجوزات.
+/// ⚠️ مهم: كل الـ Routes اللي بتشاور على الـ Controller ده محمية بـ auth:sanctum في routes/api.php
+/// وأي تعديل هنا هيسمّع في الـ Providers والـ Services في تطبيق الأدمن (Flutter).
+
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Course;
@@ -175,6 +182,15 @@ class AdminContentController extends Controller
     }
 
     // 4️⃣ إضافة درس + فيديو + أسئلة الاختبار التابع له
+    /// ⚠️ Flow الرفع (Upload Flow) للفيديوهات:
+    /// الدرس ممكن يستقبل رابط (URL) أو ملف فيديو حقيقي.
+    /// لو ملف:
+    /// 1. بيرفع الملف على Cloudflare R2 (Storage: disk('r2')).
+    /// 2. بيستخدم `VideoProcessor` علشان يعمل Fast-Start (ينقل الـ moov atom لأول الملف)
+    ///    ده بيخلي تطبيق الطالب يقدر يعمل Stream للفيديو فوراً من غير ما يستنى تحميله بالكامل.
+    /// 3. بيسجل الأسئلة (Quiz) التابعة للدرس في نفس الـ Request علشان يقلل الـ API calls.
+    /// 4. بيبعت Firebase Notification صامت (Silent Push) علشان يخلي أجهزة الطلاب
+    ///    تعمل Refresh للمحتوى تلقائياً بدون ما اليوزر يعمل Pull to refresh.
     public function storeLessonWithQuiz(Request $request)
     {
         $request->validate([

@@ -34,8 +34,13 @@ class CourseSubscriptionController extends Controller
         $course = Course::findOrFail($courseId);
         $user = $request->user();
 
-        // ربط المستخدم بالكورس في جدول الاشتراكات دون تكرار
-        $user->subscribedCourses()->syncWithoutDetaching([$courseId]);
+        // ربط المستخدم بأحدث مجموعة مفتوحة، والتحقق من اكتمال العدد
+        $assignedGroup = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $courseId);
+
+        if (!$assignedGroup) {
+            // إذا لم يكن هناك مجموعة، يشترك بدون مجموعة
+            $user->subscribedCourses()->syncWithoutDetaching([$courseId]);
+        }
 
         return response()->json([
             'status'        => true,
