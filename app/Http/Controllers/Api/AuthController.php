@@ -252,7 +252,15 @@ class AuthController extends Controller
         $resetUrl = "https://code-shell-server-production.up.railway.app/reset-password/{$token}";
 
         $mailService = new BrevoMailService();
-        $mailService->sendPasswordResetEmail($user->email, $user->name, $resetUrl);
+        $mailResult = $mailService->sendPasswordResetEmail($user->email, $user->name, $resetUrl);
+
+        if (!$mailResult['success']) {
+            Log::error("Password reset email FAILED for: {$user->email} — {$mailResult['message']}");
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل إرسال رابط إعادة تعيين كلمة المرور. حاول مرة أخرى أو تواصل مع الدعم.',
+            ], 500);
+        }
 
         Log::info("Password reset email sent to: {$user->email}");
 

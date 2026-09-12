@@ -2,56 +2,56 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Mail\Message;
 use Exception;
+
+/// خدمة إرسال البريد الإلكتروني عبر Brevo.
+/// 
+/// الخدمة دي مسؤولة عن إرسال جميع رسائل البريد الإلكتروني في التطبيق:
+/// 1. رسالة تأكيد البريد الإلكتروني عند التسجيل.
+/// 2. رسالة إعادة تعيين كلمة المرور.
+///
+/// ⚠️ تم التحويل من Brevo HTTP API إلى SMTP لأن:
+/// - Brevo API تتطلب تسجيل IP السيرفر في القائمة البيضاء.
+/// - SMTP لا تحتاج تسجيل IP، تعمل بالبيانات الموجودة في .env مباشرة.
+/// - بيانات SMTP موجودة بالفعل في .env (MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD).
 
 class BrevoMailService
 {
     /**
-     * إرسال رسالة عامة عبر Brevo API
+     * إرسال رسالة عامة عبر SMTP (Brevo relay).
+     * 
+     * @param string $toEmail البريد الإلكتروني للمستلم
+     * @param string|null $toName اسم المستلم
+     * @param string $subject عنوان الرسالة
+     * @param string $htmlContent محتوى الرسالة بصيغة HTML
+     * @return array ['success' => bool, 'message' => string]
      */
     public function sendEmail($toEmail, $toName, $subject, $htmlContent)
     {
-        $apiKey = env('BREVO_API_KEY');
-        $senderEmail = env('BREVO_SENDER_EMAIL');
-        $senderName = env('BREVO_SENDER_NAME');
-
         try {
-            $response = Http::withHeaders([
-                'accept' => 'application/json',
-                'api-key' => $apiKey,
-                'content-type' => 'application/json',
-            ])->post('https://api.brevo.com/v3/smtp/email', [
-                'sender' => [
-                    'name' => $senderName,
-                    'email' => $senderEmail,
-                ],
-                'to' => [
-                    [
-                        'email' => $toEmail,
-                        'name' => $toName ?? 'مستخدم',
-                    ]
-                ],
-                'subject' => $subject,
-                'htmlContent' => $htmlContent,
-            ]);
+            Mail::html($htmlContent, function (Message $message) use ($toEmail, $toName, $subject) {
+                $message->to($toEmail, $toName ?? 'مستخدم')
+                        ->subject($subject);
+            });
 
-            if ($response->successful()) {
-                Log::info("Brevo API: Email sent successfully to {$toEmail}");
-                return ['success' => true, 'message' => 'تم إرسال البريد بنجاح'];
-            } else {
-                Log::error("Brevo API Failed for {$toEmail}: " . $response->body());
-                return ['success' => false, 'message' => 'فشل الإرسال: ' . $response->body()];
-            }
+            Log::info("SMTP Mail: Email sent successfully to {$toEmail}");
+            return ['success' => true, 'message' => 'تم إرسال البريد بنجاح'];
         } catch (Exception $e) {
-            Log::error("Brevo API Exception for {$toEmail}: " . $e->getMessage());
-            return ['success' => false, 'message' => 'خطأ في الاتصال: ' . $e->getMessage()];
+            Log::error("SMTP Mail FAILED for {$toEmail}: " . $e->getMessage());
+            return ['success' => false, 'message' => 'خطأ في إرسال البريد: ' . $e->getMessage()];
         }
     }
 
     /**
-     * إرسال رسالة تفعيل الحساب الاحترافية
+     * إرسال رسالة تفعيل الحساب الاحترافية.
+     * يُستدعى من AuthController عند التسجيل وعند إعادة إرسال التأكيد.
+     *
+     * @param string $toEmail بريد المستخدم
+     * @param string $toName اسم المستخدم
+     * @param string $activationUrl رابط التفعيل (يحتوي على التوكن)
      */
     public function sendVerificationEmail($toEmail, $toName, $activationUrl)
     {
@@ -78,7 +78,12 @@ class BrevoMailService
     }
 
     /**
-     * إرسال رسالة إعادة تعيين كلمة المرور
+     * إرسال رسالة إعادة تعيين كلمة المرور.
+     * يُستدعى من AuthController عند طلب نسيان كلمة المرور.
+     *
+     * @param string $toEmail بريد المستخدم
+     * @param string $toName اسم المستخدم
+     * @param string $resetUrl رابط إعادة التعيين (يحتوي على التوكن)
      */
     public function sendPasswordResetEmail($toEmail, $toName, $resetUrl)
     {
