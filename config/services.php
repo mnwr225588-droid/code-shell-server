@@ -40,9 +40,12 @@ return [
     | Telegram Security Bot Service
     |--------------------------------------------------------------------------
     */
-    'telegram' => [
+'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'secret_token' => env('TELEGRAM_BOT_SECRET', 'CodeShellSecretKey123'),
     ],
 
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
 ];

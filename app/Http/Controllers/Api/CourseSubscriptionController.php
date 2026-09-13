@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -27,12 +28,34 @@ class CourseSubscriptionController extends Controller
     }
 
     /**
-     * تسجيل اشتراك المستخدم الحالي في كورس معين
+     * تسجيل اشتراك المستخدم الحالي في كورس معين.
+     *
+     * أمان: الكورسات المدفوعة لا يمكن الاشتراك فيها مباشرة —
+     * يجب أن تكون هناك معاملة دفع مكتملة (أُنشئت فقط عبر Webhook
+     * بعد تحقق السيرفر المستقل من البوابة). الكورسات المجانية فقط
+     * يُسمح لها بالاشتراك المباشر من هذا المسار.
      */
     public function subscribe(Request $request, $courseId): JsonResponse
     {
         $course = Course::findOrFail($courseId);
         $user = $request->user();
+
+        // ══════════════════════════════════════════════════════
+        // 🔒 حماية: منع الاشتراك المباشر في الكورسات المدفوعة
+        // ══════════════════════════════════════════════════════
+        if (!$course->is_free) {
+            $hasCompletedPayment = Transaction::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->where('status', Transaction::STATUS_COMPLETED)
+                ->exists();
+
+            if (!$hasCompletedPayment) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'يجب إتمام الدفع أولاً للاشتراك في هذا الكورس.',
+                ], 403);
+            }
+        }
 
         // ربط المستخدم بأحدث مجموعة مفتوحة، والتحقق من اكتمال العدد
         $assignedGroup = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $courseId);
@@ -51,12 +74,23 @@ class CourseSubscriptionController extends Controller
     }
 
     /**
-     * إلغاء اشتراك المستخدم الحالي في كورس معين
+     * إلغاء اشتراك المستخدم الحالي في كورس معين.
+     *
+     * أمان: الكورسات المدفوعة لا يمكن إلغاء اشتراكها عبر API مباشرة
+     * لمنع إساءة الاستخدام (إلغاء ثم إعادة الاشتراك مجاناً).
      */
     public function cancel(Request $request, $courseId): JsonResponse
     {
         $course = Course::findOrFail($courseId);
         $user = $request->user();
+
+        // 🔒 منع إلغاء اشتراك كورس مدفوع عبر API
+        if (!$course->is_free) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'لا يمكن إلغاء اشتراك كورس مدفوع. تواصل مع الدعم.',
+            ], 403);
+        }
 
         // إزالة ربط المستخدم بالكورس من جدول الاشتراكات
         $user->subscribedCourses()->detach($courseId);

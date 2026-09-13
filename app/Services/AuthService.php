@@ -54,10 +54,18 @@ class AuthService
 
             $token = $user->createToken('CodeShell')->plainTextToken;
 
+            // determination of user type: admin if is_admin=1, teacher if hasTeacher relationship, else student
+            $userType = 'student';
+            if ($user->is_admin) {
+                $userType = 'admin';
+            } elseif ($user->teacher !== null) {
+                $userType = 'teacher';
+            }
+
             return [
                 'user' => $user,
                 'token' => $token,
-                'user_type' => 'student',
+                'user_type' => $userType,
             ];
         }
 

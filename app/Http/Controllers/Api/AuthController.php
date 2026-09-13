@@ -13,7 +13,6 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 use App\Services\BrevoMailService;
-use App\Services\BrevoMailService;
 use App\Models\EmailVerification;
 use App\Models\PasswordReset;
 use App\Models\User;

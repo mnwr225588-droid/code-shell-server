@@ -13,9 +13,20 @@ class ProfileController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $userType = 'student';
+        if (method_exists($user, 'getTable') && $user->getTable() === 'teachers') {
+            $userType = 'teacher';
+        } elseif ($user->is_admin ?? false) {
+            $userType = 'admin';
+        } elseif ($user->teacher !== null) {
+            $userType = 'teacher';
+        }
+
         return response()->json([
             'success' => true,
-            'user' => $request->user(),
+            'user' => $user,
+            'user_type' => $userType,
         ]);
     }
 
