@@ -11,6 +11,7 @@ class AdminGroupController extends Controller
     public function index($courseId)
     {
         $groups = CourseGroup::where('course_id', $courseId)
+            ->with(['teacher'])
             ->withCount('students')
             ->get();
 
@@ -30,6 +31,8 @@ class AdminGroupController extends Controller
             'status' => 'required|in:open_for_registration,waiting_for_students,ready_to_start,active,completed',
             'duration_days' => 'nullable|integer|min:0',
             'is_auto_create' => 'nullable|boolean',
+            'teacher_id' => 'nullable|exists:teachers,id',
+            'teacher_name' => 'nullable|string',
         ]);
 
         $data = $request->all();
@@ -37,12 +40,19 @@ class AdminGroupController extends Controller
             $data['registration_deadline'] = now()->addDays($data['duration_days']);
         }
 
+        if (!empty($data['teacher_id']) && empty($data['teacher_name'])) {
+            $teacher = \App\Models\Teacher::find($data['teacher_id']);
+            if ($teacher) {
+                $data['teacher_name'] = $teacher->name;
+            }
+        }
+
         $group = CourseGroup::create($data);
 
         return response()->json([
             'status' => true,
             'message' => 'تم إضافة المجموعة بنجاح',
-            'data' => $group
+            'data' => $group->load('teacher')
         ]);
     }
 

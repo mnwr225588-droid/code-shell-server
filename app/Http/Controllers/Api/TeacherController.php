@@ -57,6 +57,25 @@ class TeacherController extends Controller
     }
 
     /**
+     * جلب المحاضرات الأونلاين الخاصة بمجموعة معينة للمدرس.
+     */
+    public function groupLectures(Request $request, $groupId)
+    {
+        $teacher = $request->user();
+
+        $lectures = OnlineLecture::where('group_id', $groupId)
+            ->where('teacher_id', $teacher->id)
+            ->with(['course:id,title'])
+            ->orderBy('start_date_time', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $lectures,
+        ]);
+    }
+
+    /**
      * جلب الجلسات الأونلاين الخاصة بالمدرس.
      */
     public function mySessions(Request $request)

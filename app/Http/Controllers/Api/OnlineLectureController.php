@@ -18,7 +18,9 @@ class OnlineLectureController extends Controller
         $lecture = OnlineLecture::with('teacher')->findOrFail($id);
 
         // 1. Verify user's group subscription (students only)
-        $isTeacher = $userId == $lecture->teacher_id;
+        $isTeacher = ($user && method_exists($user, 'getTable') && $user->getTable() === 'teachers') 
+            || ($user && isset($user->teacher) && $user->teacher !== null) 
+            || ($userId == $lecture->teacher_id);
         
         if (!$isTeacher && !$isAdmin) {
             $subscription = \DB::table('course_subscriptions')

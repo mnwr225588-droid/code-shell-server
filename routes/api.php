@@ -296,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('teacher')->group(function () {
         Route::get('/my-groups', [\App\Http\Controllers\Api\TeacherController::class, 'myGroups']);
         Route::get('/groups/{groupId}/students', [\App\Http\Controllers\Api\TeacherController::class, 'groupStudents']);
+        Route::get('/groups/{groupId}/lectures', [\App\Http\Controllers\Api\TeacherController::class, 'groupLectures']);
         Route::get('/my-sessions', [\App\Http\Controllers\Api\TeacherController::class, 'mySessions']);
         Route::get('/sessions/{id}', [\App\Http\Controllers\Api\TeacherController::class, 'sessionDetails']);
         Route::post('/start-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'startLecture']);

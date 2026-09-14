@@ -28,4 +28,9 @@ class CourseGroup extends Model
     {
         return $this->belongsToMany(User::class, 'course_subscriptions', 'group_id', 'user_id')->withTimestamps();
     }
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id');
+    }
 }
