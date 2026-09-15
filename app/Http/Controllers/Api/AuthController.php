@@ -52,26 +52,10 @@ class AuthController extends Controller
             'expires_at' => now()->addHours(24),
         ]);
 
-        // 3. بناء رابط التفعيل الآمن عبر HTTPS
-        $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
-
-        // 4. إرسال بريد التفعيل عبر خدمة Brevo — مع فحص النتيجة الفعلية
-        $mailService = new BrevoMailService();
-        $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
-
-        if (!$mailResult['success']) {
-            // تسجيل الخطأ — الحساب أُنشئ لكن الرسالة لم تُرسل
-            Log::error("User registered but verification email FAILED for: {$user->email} — {$mailResult['message']}");
-        } else {
-            Log::info("New user registered and verification email sent to: {$user->email}");
-        }
-
         return response()->json([
             'success' => true,
-            'message' => $mailResult['success']
-                ? 'تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.'
-                : 'تم إنشاء الحساب لكن فشل إرسال بريد التفعيل. يرجى المحاولة لاحقاً من الإعدادات.',
-            'email_sent' => $mailResult['success'],
+            'message' => 'تم إنشاء الحساب بنجاح. يرجى إرسال رسالة التفعيل لتأكيد بريدك الإلكتروني.',
+            'email_sent' => false,
             'token' => $result['token'],
             'user' => $result['user'],
         ], 201);

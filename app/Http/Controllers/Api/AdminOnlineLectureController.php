@@ -33,10 +33,10 @@ class AdminOnlineLectureController extends Controller
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
-        // Resolve teacher_id safely
+        // Resolve teacher_id safely against teachers table
         $teacherId = $request->teacher_id;
-        if (!$teacherId || (!\App\Models\User::where('id', $teacherId)->exists() && !\App\Models\Teacher::where('id', $teacherId)->exists())) {
-            $teacherId = $request->user()?->id ?? \App\Models\User::first()?->id ?? 1;
+        if (!$teacherId || !\App\Models\Teacher::where('id', $teacherId)->exists()) {
+            $teacherId = \App\Models\Teacher::first()?->id ?? 1;
         }
 
         $timezone = $request->timezone ?: 'Africa/Cairo';
