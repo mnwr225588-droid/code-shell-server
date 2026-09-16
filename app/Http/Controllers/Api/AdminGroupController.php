@@ -31,11 +31,15 @@ class AdminGroupController extends Controller
             'status' => 'required|in:open_for_registration,waiting_for_students,ready_to_start,active,completed',
             'duration_days' => 'nullable|integer|min:0',
             'is_auto_create' => 'nullable|boolean',
-            'teacher_id' => 'nullable|exists:teachers,id',
+            'teacher_id' => 'nullable',
             'teacher_name' => 'nullable|string',
         ]);
 
         $data = $request->all();
+        if (empty($data['teacher_id']) || !\App\Models\Teacher::where('id', $data['teacher_id'])->exists()) {
+            $data['teacher_id'] = null;
+        }
+
         if (!empty($data['duration_days']) && $data['duration_days'] > 0) {
             $data['registration_deadline'] = now()->addDays($data['duration_days']);
         }
@@ -51,7 +55,7 @@ class AdminGroupController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'تم إضافة المجموعة بنجاح',
+            'message' => 'تم إضافة والمجموعة بنجاح',
             'data' => $group->load('teacher')
         ]);
     }

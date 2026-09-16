@@ -33,10 +33,20 @@ class AdminOnlineLectureController extends Controller
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
+        // Ensure at least one teacher exists in database
+        $defaultTeacher = \App\Models\Teacher::first();
+        if (!$defaultTeacher) {
+            $defaultTeacher = \App\Models\Teacher::create([
+                'name' => 'مدرس افتراضي',
+                'email' => 'teacher@codeshell.app',
+                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+            ]);
+        }
+
         // Resolve teacher_id safely against teachers table
         $teacherId = $request->teacher_id;
         if (!$teacherId || !\App\Models\Teacher::where('id', $teacherId)->exists()) {
-            $teacherId = \App\Models\Teacher::first()?->id ?? 1;
+            $teacherId = $defaultTeacher->id;
         }
 
         $timezone = $request->timezone ?: 'Africa/Cairo';
