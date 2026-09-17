@@ -134,4 +134,21 @@ class AdminOnlineLectureController extends Controller
             'data' => $lecture
         ]);
     }
+
+    public function destroy($id)
+    {
+        $lecture = OnlineLecture::findOrFail($id);
+        if ($lecture->status !== 'scheduled') {
+            return response()->json([
+                'status' => false,
+                'message' => 'لا يمكن حذف محاضرة غير مجدولة.',
+            ], 422);
+        }
+        $lecture->delete();
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حذف المحاضرة بنجاح',
+        ]);
+    }
+}
 }

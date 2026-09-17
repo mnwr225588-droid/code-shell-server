@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\AdminGroupController;
+use App\Http\Controllers\Api\AdminOnlineLectureController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReservationController;
@@ -181,6 +183,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/levels/{id}', [AdminContentController::class, 'deleteLevel']);
     Route::delete('/lessons/{id}', [AdminContentController::class, 'deleteLesson']);
     Route::delete('/users/{id}', [AdminContentController::class, 'deleteUser']);
+    // Delete group (only when empty) and online lecture
+    Route::delete('/groups/{id}', [AdminGroupController::class, 'destroy']);
+    Route::delete('/online-lectures/{id}', [AdminOnlineLectureController::class, 'destroy']);
     
     // Dashboard Stats
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
