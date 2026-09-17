@@ -307,5 +307,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/start-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'startLecture']);
         Route::post('/postpone', [\App\Http\Controllers\Api\TeacherController::class, 'requestPostponement']);
         Route::post('/break', [\App\Http\Controllers\Api\TeacherController::class, 'startBreak']);
+    Route::post('/debug-fcm', [NotificationController::class, 'debugFCM']);
     });
 });
