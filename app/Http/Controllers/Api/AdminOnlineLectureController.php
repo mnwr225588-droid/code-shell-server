@@ -44,9 +44,20 @@ class AdminOnlineLectureController extends Controller
         }
 
         // Resolve teacher_id safely against teachers table
+        // أولاً نستخدم المعرف المرسل إذا كان صالحاً
         $teacherId = $request->teacher_id;
+        // إذا كان المعرف غير موجود أو غير صالح نحاول أخذ المعلم من المجموعة المحددة
+        if (!$teacherId && $request->group_id) {
+            $group = \App\Models\CourseGroup::find($request->group_id);
+            if ($group && $group->teacher_id) {
+                $teacherId = $group->teacher_id;
+                Log::info('Teacher ID taken from group: ' . $teacherId);
+            }
+        }
+        // إذا لا يزال غير موجود نحصل على مدرس افتراضي
         if (!$teacherId || !\App\Models\Teacher::where('id', $teacherId)->exists()) {
             $teacherId = $defaultTeacher->id;
+            Log::info('Using default teacher ID: ' . $teacherId);
         }
 
         $timezone = $request->timezone ?: 'Africa/Cairo';
@@ -76,6 +87,14 @@ class AdminOnlineLectureController extends Controller
         $zoomJoinUrl = $zoomMeeting['join_url'] ?? ("https://zoom.us/j/" . $zoomMeetingId);
         $zoomStartUrl = $zoomMeeting['start_url'] ?? $zoomJoinUrl;
 
+        // تأكيد وجود المجموعة قبل الإنشاء لتجنب رسالة "selected group id is invalid"
+        $group = \App\Models\CourseGroup::find($request->group_id);
+        if (!$group) {
+            return response()->json([
+                'status' => false,
+                'message' => 'المجموعة المحددة غير موجودة',
+            ], 422);
+        }
         $lecture = OnlineLecture::create([
             'course_id' => $request->course_id,
             'level_id' => $request->level_id,
