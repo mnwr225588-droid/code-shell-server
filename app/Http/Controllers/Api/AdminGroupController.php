@@ -102,19 +102,4 @@ class AdminGroupController extends Controller
             'data' => $group
         ]);
     }
-    public function destroy($id)
-    {
-        $group = CourseGroup::findOrFail($id);
-        if ($group->students_count > 0) {
-            return response()->json([
-                'status' => false,
-                'message' => 'لا يمكن حذف مجموعة تحتوي على طلاب.',
-            ], 422);
-        }
-        $group->delete();
-        return response()->json([
-            'status' => true,
-            'message' => 'تم حذف المجموعة بنجاح',
-        ]);
-    }
 }
