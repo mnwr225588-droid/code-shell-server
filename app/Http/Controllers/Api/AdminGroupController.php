@@ -35,20 +35,14 @@ class AdminGroupController extends Controller
             'teacher_name' => 'nullable|string',
         ]);
 
-        $data = $request->all();
+        $data = $request->only(['course_id', 'name', 'capacity', 'registration_deadline', 'status', 'duration_days', 'is_auto_create', 'teacher_id']);
+
         if (empty($data['teacher_id']) || !\App\Models\Teacher::where('id', $data['teacher_id'])->exists()) {
             $data['teacher_id'] = null;
         }
 
         if (!empty($data['duration_days']) && $data['duration_days'] > 0) {
             $data['registration_deadline'] = now()->addDays($data['duration_days']);
-        }
-
-        if (!empty($data['teacher_id']) && empty($data['teacher_name'])) {
-            $teacher = \App\Models\Teacher::find($data['teacher_id']);
-            if ($teacher) {
-                $data['teacher_name'] = $teacher->name;
-            }
         }
 
         $group = CourseGroup::create($data);
