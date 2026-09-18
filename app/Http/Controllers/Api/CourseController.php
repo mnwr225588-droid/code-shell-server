@@ -82,17 +82,18 @@ class CourseController extends Controller
             }
         }
 
-        // قفل المحتوى: لو طالب عادي والمجموعة مش Active، نرجع حالة انتظار
-        if (!$isAdmin && $userId && $groupId && $groupStatus !== 'active') {
+        // إذا كان اليوزر مسجل في مجموعة غير مفعلة بعد من الأدمن (ليست active)
+        if ($userId && !$isAdmin && $groupStatus && $groupStatus !== 'active') {
             return response()->json([
-                'status' => true,
-                'data' => [],
+                'status'       => true,
+                'data'         => [],
+                'is_waiting'   => true,
                 'group_status' => $groupStatus,
-                'is_waiting' => true,
-                'message' => 'المحتوى غير متاح بعد، في انتظار تفعيل المجموعة.'
+                'message'      => 'المجموعة قيد الانتظار، وسيتم فتح المحتوى والدروس فور تفعيل المجموعة من قبل الأدمن.',
             ]);
         }
 
+        // إتاحة الوصول للمستويات والدروس عند تفعيل المجموعة
         $levels = \App\Models\Level::where('course_id', $course_id)
             ->orderBy('order_num', 'asc')
             ->with(['lessons' => function($q) {
