@@ -60,6 +60,15 @@ Route::post('/payment/webhook', [PaymentController::class, 'webhook']);
 // مسار فحص التحديثات (متاح لجميع المستخدمين للتأكد من وجود إصدار جديد للتطبيق)
 Route::get('/check-version', [AppUpdateController::class, 'checkVersion']);
 
+// مسار تجريبي للتأكد من نجاح تحديث السيرفر
+Route::get('/test-deployment', function () {
+    return response()->json([
+        'status' => 'success',
+        'message' => 'التعديلات الجديدة تعمل بنجاح!',
+        'timestamp' => now()->toDateTimeString(),
+    ]);
+});
+
 // App info for the public website
 Route::get('/app-info', [AppUpdateController::class, 'appInfo']);
 
