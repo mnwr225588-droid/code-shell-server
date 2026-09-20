@@ -1,12 +1,22 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+/**
+ * ====================================================
+ * اسم الملف: AuthController.php
+ * المسار: app/Http/Controllers/Api/AuthController.php
+ * 
+ * الوصف والمهمة الرئيسية:
+ * هذا الملف هو العصب الأساسي لإدارة حسابات الطلاب والمدرسين والمصادقة الأسرية (Authentication API).
+ * يتعامل مع عمليات التسجيل، تسجيل الدخول، استعادة كلمة المرور، تأكيد البريد الإلكتروني، وتغيير كلمة المرور.
+ * 
+ * ارتباطه بالمشروع:
+ * - يستقبل الطلبات من موقع الويب (code_shell_web) وتطبيق الطالب والمدرس (code_shell_app / admin).
+ * - يعتمد على Sanctum للرموز المحمية (Bearer Tokens).
+ * - يعتمد على BrevoMailService لإرسال الرسائل الفورية عبر HTTP REST API.
+ * ====================================================
+ */
 
-/// الـ AuthController
-/// مسؤول عن كل عمليات المصادقة (Authentication) الخاصة بالطالب في التطبيق.
-/// بيشمل: التسجيل، تسجيل الدخول، استعادة كلمة المرور، إعادة إرسال التأكيد، وتسجيل الخروج.
-/// ⚠️ مهم: أي تعديل في الـ Response هنا هيأثر مباشرة على الـ AuthProvider في تطبيق Flutter.
-/// الـ Controller ده بيعتمد على AuthService علشان ينفذ الـ Business Logic بعيد عن الـ HTTP Layer.
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -24,66 +34,71 @@ use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
+    /**
+     * حقن خدمة AuthService المسؤولة عن منطق الأعمال البنيوي.
+     */
     public function __construct(
         private AuthService $authService
     ) {}
 
     /**
-     * Register New User
+     * ====================================================
+     * 1. دالة إنشاء حساب جديد للطالب (Register)
+     * ====================================================
      */
-    /// دالة إنشاء حساب جديد (الطالب).
-    /// بتستقبل البيانات وتعملها Validation عن طريق RegisterRequest.
-    /// الخطوات:
-    /// 1. بتنشئ الحساب عن طريق الـ AuthService.
-    /// 2. بتعمل Token فريد لرسالة التأكيد وتخزنه في الداتا بيز.
-    /// 3. بتبعت رسالة التفعيل باستخدام BrevoMailService.
     public function register(RegisterRequest $request): JsonResponse
     {
+        // إنشاء المستخدم وتأمين التوكن عبر AuthService
         $result = $this->authService->register($request->validated());
         $user = $result['user'];
 
-        // 1. توليد Token عشوائي طويل وآمن
+        // توليد رمز تفعيل فريد وآمن
         $token = Str::random(64);
 
-        // 2. تخزين الـ Token في الجدول المستقل بصلاحية 24 ساعة
         EmailVerification::create([
             'user_id' => $user->id,
             'token' => $token,
             'expires_at' => now()->addHours(24),
         ]);
 
+        // محاولة إرسال بريد التفعيل عبر Brevo HTTP API
+        try {
+            $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
+            $mailService = new BrevoMailService();
+            $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+        } catch (\Exception $e) {
+            Log::warning("Register Mail Notice for {$user->email}: " . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'تم إنشاء الحساب بنجاح. يرجى إرسال رسالة التفعيل لتأكيد بريدك الإلكتروني.',
-            'email_sent' => false,
+            'message' => 'تم إنشاء الحساب بنجاح! يرجى مراجعة بريدك الإلكتروني لتأكيد الحساب.',
             'token' => $result['token'],
             'user' => $result['user'],
         ], 201);
     }
 
     /**
-     * Login User
+     * ====================================================
+     * 2. دالة تسجيل الدخول (Login)
+     * ====================================================
      */
-    /// دالة تسجيل الدخول.
-    /// بتاخد الإيميل والباسورد وتعملهم Validation عن طريق LoginRequest.
-    /// بترجع Token (Sanctum) اللي التطبيق بيحفظه وبيستخدمه عشان يكلم أي Protected Route.
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authService->login($request->validated());
-        $user = $result['user'];
 
-        // تم السماح بتسجيل الدخول لجميع الحسابات لإظهار نافذة تفعيل البريد في التطبيق
         return response()->json([
             'success' => true,
-            'message' => 'تم تسجيل الدخول بنجاح.',
+            'message' => 'تم تسجيل الدخول بنجاح',
             'token' => $result['token'],
             'user' => $result['user'],
-            'user_type' => $result['user_type'],
         ], 200);
     }
 
     /**
-     * Resend Verification Email
+     * ====================================================
+     * 3. دالة إعادة إرسال بريد التفعيل (Resend Verification Email)
+     * ====================================================
      */
     public function resendVerification(Request $request): JsonResponse
     {
@@ -92,16 +107,15 @@ class AuthController extends Controller
         if ($user->email_verified_at) {
             return response()->json([
                 'success' => false,
-                'message' => 'الحساب مؤكد بالفعل.',
+                'message' => 'حسابك مؤكد بالفعل.',
             ], 400);
         }
 
-        // حذف أي رموز تفعيل قديمة لنفس المستخدم
+        // حذف رموز التفعيل القديمة
         EmailVerification::where('user_id', $user->id)->delete();
 
-        // توليد Token جديد
+        // إنشاء رمز جديد
         $token = Str::random(64);
-
         EmailVerification::create([
             'user_id' => $user->id,
             'token' => $token,
@@ -111,98 +125,76 @@ class AuthController extends Controller
         $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
 
         $mailService = new BrevoMailService();
-        $htmlContent = '
-            <div style="font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 40px 0; direction: rtl;">
-                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                    <h2 style="color: #333; text-align: center;">منصة Code Shell</h2>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="color: #555; font-size: 16px;">مرحباً <strong>' . $user->name . '</strong>،</p>
-                    <p style="color: #555; font-size: 16px;">شكراً لتسجيلك معنا. لإتمام تفعيل حسابك والبدء في استخدام المنصة، يرجى النقر على الزر أدناه:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="' . $activationUrl . '" style="background-color: #28a745; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">تأكيد البريد الإلكتروني</a>
-                    </div>
-                    <p style="color: #777; font-size: 14px;">إذا لم يعمل الزر معك، يمكنك نسخ الرابط التالي ولصقه في متصفحك:</p>
-                    <p style="word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; font-size: 12px; color: #007bff;"><a href="' . $activationUrl . '">' . $activationUrl . '</a></p>
-                    <p style="color: #d9534f; font-size: 13px; margin-top: 20px;">تنبيه: هذا الرابط صالح لمدة 24 ساعة فقط ويستخدم لمرة واحدة.</p>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="color: #999; font-size: 12px; text-align: center;">إذا لم تقم بطلب هذا الحساب، يمكنك تجاهل هذه الرسالة تماماً. | فريق دعم Code Shell</p>
-                </div>
-            </div>
-        ';
+        $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
 
-        $mailResult = $mailService->sendEmail($user->email, $user->name, 'تفعيل حسابك الشخصي في Code Shell', $htmlContent);
-
-        // التحقق من نتيجة الإرسال الفعلية قبل إخبار المستخدم
         if (!$mailResult['success']) {
-            Log::error("Resend verification email FAILED via API for: {$user->email} — {$mailResult['message']}");
-            return response()->json([
-                'success' => false,
-                'message' => 'فشل إرسال بريد التفعيل. تأكد من صحة بريدك الإلكتروني وحاول مرة أخرى.',
-            ], 500);
+            Log::warning("Resend verification warning for: {$user->email} — {$mailResult['message']}");
         }
-
-        Log::info("Verification email re-sent via API to: {$user->email}");
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إعادة إرسال بريد التفعيل بنجاح.',
+            'message' => 'تم إرسال بريد التفعيل بنجاح. يرجى فحص صندوق الوارد (Inbox) ومجلد الرسائل غير المرغوب فيها (Spam).',
         ], 200);
     }
 
     /**
-     * Logout User
+     * ====================================================
+     * 4. دالة نسيت كلمة المرور (Forgot Password)
+     * ====================================================
      */
-    public function logout(): JsonResponse
-    {
-        $user = auth()->user();
-
-        // مسح FCM Token لمنع وصول إشعارات لحساب تم تسجيل الخروج منه
-        if ($user) {
-            $user->fcm_token = null;
-            $user->save();
-        }
-
-        $user->currentAccessToken()->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم تسجيل الخروج بنجاح.',
-        ]);
-    }
-
-    /**
-     * حفظ توكن جهاز الطالب (FCM Token) لاستقبال الإشعارات.
-     * يُرسل من تطبيق الطالب عند تسجيل الدخول/التسجيل وعند تجديد التوكن.
-     */
-    public function updateFcmToken(Request $request): JsonResponse
+    public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'fcm_token' => 'required|string',
+            'email' => 'required|email',
         ]);
 
-        $user = $request->user();
-        $user->fcm_token = $request->fcm_token;
-        $user->save();
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => true,
+                'message' => 'إذا كان البريد الإلكتروني مسجلاً لدينا، فستصلك رسالة تحتوي على رابط إعادة التعيين.',
+            ], 200);
+        }
+
+        PasswordReset::where('email', $user->email)->delete();
+
+        $token = Str::random(64);
+        PasswordReset::create([
+            'email' => $user->email,
+            'token' => $token,
+            'expires_at' => now()->addMinutes(15),
+        ]);
+
+        $resetUrl = "https://code-shell-server-production.up.railway.app/reset-password/{$token}";
+
+        $mailService = new BrevoMailService();
+        $mailResult = $mailService->sendPasswordResetEmail($user->email, $user->name, $resetUrl);
+
+        if (!$mailResult['success']) {
+            Log::warning("Forgot password mail notice for {$user->email}: " . $mailResult['message']);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Token updated successfully',
-        ]);
+            'message' => 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني بنجاح (يرجى فحص مجلد Spam).',
+        ], 200);
     }
 
     /**
-     * Change Password
+     * ====================================================
+     * 5. دالة تغيير كلمة المرور من الإعدادات (Change Password)
+     * ====================================================
      */
     public function changePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'current_password' => 'required',
-            'new_password'     => 'required|min:8|confirmed',
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
         ]);
 
         $user = $request->user();
 
-        // التحقق من صحة كلمة المرور الحالية
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
                 'success' => false,
@@ -210,7 +202,6 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // تحديث كلمة المرور الجديدة
         $user->password = Hash::make($request->new_password);
         $user->save();
 
@@ -221,93 +212,35 @@ class AuthController extends Controller
     }
 
     /**
-     * Forgot Password - إرسال رابط إعادة تعيين كلمة المرور
+     * ====================================================
+     * 6. دالة تسجيل الخروج (Logout)
+     * ====================================================
      */
-    public function forgotPassword(Request $request): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        // لأسباب أمنية نرد بنجاح حتى لو لم يوجد المستخدم
-        if (!$user) {
-            return response()->json([
-                'success' => true,
-                'message' => 'إذا كان البريد مسجلاً، ستصلك رسالة خلال دقيقة.',
-            ]);
-        }
-
-        // حذف طلبات إعادة التعيين السابقة لنفس المستخدم
-        PasswordReset::where('email', $user->email)->delete();
-
-        // توليد Token فريد وآمن
-        $token = Str::random(64);
-
-        PasswordReset::create([
-            'email'      => $user->email,
-            'token'      => $token,
-            'expires_at' => now()->addMinutes(5),
-        ]);
-
-        $resetUrl = "https://code-shell-server-production.up.railway.app/reset-password/{$token}";
-
-        $mailService = new BrevoMailService();
-        $htmlContent = '
-            <div style="font-family: Tahoma, sans-serif; background-color: #f4f4f9; padding: 40px 0; direction: rtl;">
-                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                    <h2 style="color: #333; text-align: center;">منصة Code Shell</h2>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="color: #555; font-size: 16px;">مرحباً <strong>' . $user->name . '</strong>،</p>
-                    <p style="color: #555; font-size: 16px;">تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك. انقر على الزر أدناه لإنشاء كلمة مرور جديدة:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="' . $resetUrl . '" style="background-color: #6366f1; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">إعادة تعيين كلمة المرور</a>
-                    </div>
-                    <p style="color: #777; font-size: 14px;">إذا لم يعمل الزر،انسخ الرابط التالي وألصقه في متصفحك:</p>
-                    <p style="word-break: break-all; background: #f9f9f9; padding: 10px; border-radius: 5px; font-size: 12px; color: #6366f1;"><a href="' . $resetUrl . '">' . $resetUrl . '</a></p>
-                    <p style="color: #d9534f; font-size: 13px; margin-top: 20px;">⏱ تنبيه: هذا الرابط صالح لمدة 5 دقائق فقط ويُستخدم لمرة واحدة.</p>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="color: #888; font-size: 13px;">إذا لم تطلب إعادة تعيين كلمة المرور، تجاهل هذه الرسالة وحسابك بأمان.</p>
-                    <p style="color: #999; font-size: 12px; text-align: center;">فريق دعم Code Shell</p>
-                </div>
-            </div>
-        ';
-
-        $mailResult = $mailService->sendEmail($user->email, $user->name, '🔐 إعادة تعيين كلمة المرور - Code Shell', $htmlContent);
-
-        if (!$mailResult['success']) {
-            Log::error("Password reset email FAILED via API for: {$user->email} — {$mailResult['message']}");
-            return response()->json([
-                'success' => false,
-                'message' => 'فشل إرسال رابط إعادة تعيين كلمة المرور. حاول مرة أخرى أو تواصل مع الدعم.',
-            ], 500);
-        }
-
-        Log::info("Password reset email sent via API to: {$user->email}");
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.',
-        ]);
+            'message' => 'تم تسجيل الخروج بنجاح.',
+        ], 200);
     }
 
     /**
-     * حذف الحساب نهائياً — يتطلب كلمة المرور الحالية.
-     * يُحذف المستخدم وكل بياناته المرتبطة (التقدم، الإشعارات، الاشتراكات،
-     * الحجوزات، المعاملات...) عبر الـ cascade في قاعدة البيانات.
+     * ====================================================
+     * 7. دالة حذف الحساب نهائياً مع كلمة المرور (Delete Account)
+     * ====================================================
      */
     public function deleteAccount(Request $request): JsonResponse
     {
         $request->validate([
-            'password'    => 'required',
-            'reason'      => 'nullable|string|max:255',
+            'password' => 'required|string',
+            'reason' => 'nullable|string|max:255',
             'reason_text' => 'nullable|string|max:1000',
         ]);
 
         $user = $request->user();
 
-        // التحقق من صحة كلمة المرور قبل الحذف
         if (!Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
@@ -315,18 +248,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // تسجيل سبب الحذف في الـ Logs للتحليل
-        Log::info('Account deletion requested', [
-            'user_id' => $user->id,
-            'email'   => $user->email,
-            'reason'  => $request->reason,
-            'reason_text' => $request->reason_text,
-        ]);
+        Log::info("User account deleted: {$user->email}");
 
-        // حذف كل التوكنات (Sanctum) قبل حذف الحساب
         $user->tokens()->delete();
-
-        // الحذف النهائي — البيانات المرتبطة تُحذف تلقائياً عبر cascade
         $user->delete();
 
         return response()->json([
