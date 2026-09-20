@@ -32,14 +32,21 @@ Route::get('/', function () {
 // مسار محدد لعرض ملفات واجهة الويب مباشرة من public/web
 Route::get('/web/{any?}', function ($any = 'index.html') {
     $file = $any ?: 'index.html';
-    $path = public_path('web/' . $file);
+    // استخدام base_path بدلاً من public_path لضمان المسار الصحيح على السيرفر
+    $path = base_path('public/web/' . $file);
+    
     if (file_exists($path) && !is_dir($path)) {
+        Log::info("Serving web file: {$path}");
         return response()->file($path);
     }
-    $indexPath = public_path('web/index.html');
+    
+    $indexPath = base_path('public/web/index.html');
     if (file_exists($indexPath)) {
+        Log::info("Fallback to index.html: {$indexPath}");
         return response()->file($indexPath);
     }
+    
+    Log::error("Web file not found at: {$path}, base_path: " . base_path() . ", dir: " . __DIR__);
     abort(404);
 })->where('any', '.*');
 
