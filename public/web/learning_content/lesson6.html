@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>💻 الذاكرة والتخزين - الدرس السادس</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 18px;
+            object-fit: cover;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon {
+            font-size: 1.8rem;
+        }
+        .lesson-info h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1D4ED8;
+        }
+        .lesson-badge {
+            background: #F59E0B;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .level-badge {
+            background: #2563EB;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .progress-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 40px;
+            overflow: hidden;
+            min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #2563EB;
+            border-radius: 40px;
+            transition: width 0.5s ease;
+        }
+        .progress-percent {
+            font-weight: 700;
+            color: #2563EB;
+            font-size: 0.8rem;
+        }
+        .btn-back {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-back:hover {
+            background: #cbd5e1;
+        }
+
+        /* ===== TABS ===== */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF;
+            border: 2px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+        }
+        .tab-btn.disabled {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .tab-btn.disabled:hover::after {
+            content: " ⚠️ أكمل قراءة الدرس أولاً.";
+            font-size: 0.7rem;
+            color: #DC2626;
+            display: block;
+        }
+        .tab-btn.enabled {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+            cursor: pointer;
+            opacity: 1;
+        }
+        .tab-btn.enabled:hover {
+            background: #1D4ED8;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: #FFFFFF;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 20px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .hero-content {
+            flex: 1 1 100%;
+        }
+        .hero-content h2 {
+            font-size: 1.8rem;
+            color: #1D4ED8;
+            font-weight: 700;
+        }
+        .hero-sub {
+            font-size: 1rem;
+            color: #2563EB;
+            font-weight: 700;
+            margin: 4px 0 6px;
+        }
+        .hero-level {
+            background: #F59E0B;
+            color: #fff;
+            display: inline-block;
+            padding: 2px 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin: 6px 0 10px;
+        }
+        .hero-desc {
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        /* ===== GOAL CARD ===== */
+        .goal-card {
+            background: #dbeafe;
+            border-radius: 18px;
+            padding: 20px 18px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            border-right: 6px solid #2563EB;
+        }
+        .goal-icon {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+        .goal-card h3 {
+            font-size: 1.4rem;
+            color: #1D4ED8;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .goal-card>p {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .goal-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px 0;
+        }
+        .goal-list li {
+            font-size: 0.95rem;
+            color: #1e293b;
+            padding: 4px 0;
+        }
+
+        /* ===== LESSON CONTENT ===== */
+        .lesson-content {
+            transition: all 0.5s ease;
+        }
+        .lesson-content.hidden {
+            display: none;
+        }
+
+        .lesson-section {
+            margin-bottom: 45px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563EB;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #2563EB;
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+        .section-sub {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-right: 8px;
+        }
+        .section-image {
+            margin: 14px 0;
+        }
+        .section-image img {
+            width: 100%;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+        .center-image img {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .section-text p {
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+            color: #1e293b;
+        }
+
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            border-radius: 18px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            border-right: 6px solid;
+        }
+        .info-box h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .info-box p {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .info-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .info-box ul li {
+            font-size: 0.95rem;
+            padding: 2px 0;
+        }
+        .info-box ul li::before {
+            content: "• ";
+        }
+        .info-box.blue {
+            background: #eff6ff;
+            border-color: #2563EB;
+        }
+        .info-box.blue h4 {
+            color: #1D4ED8;
+        }
+        .info-box.green {
+            background: #f0fdf4;
+            border-color: #16A34A;
+        }
+        .info-box.green h4 {
+            color: #16A34A;
+        }
+        .info-box.yellow {
+            background: #fefce8;
+            border-color: #F59E0B;
+        }
+        .info-box.yellow h4 {
+            color: #F59E0B;
+        }
+        .info-box.red {
+            background: #fef2f2;
+            border-color: #DC2626;
+        }
+        .info-box.red h4 {
+            color: #DC2626;
+        }
+        .info-box.purple {
+            background: #f3e8ff;
+            border-color: #8B5CF6;
+        }
+        .info-box.purple h4 {
+            color: #8B5CF6;
+        }
+
+        /* ===== TABLES ===== */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .info-table th {
+            background: #2563EB;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .info-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+        .info-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== FLOWCHART ===== */
+        .flowchart {
+            background: #FFFFFF;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin: 16px 0;
+            text-align: center;
+        }
+        .flowchart .step {
+            display: inline-block;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 700;
+            margin: 4px 0;
+            min-width: 120px;
+        }
+        .flowchart .step.blue {
+            background: #dbeafe;
+            color: #1D4ED8;
+            border: 2px solid #2563EB;
+        }
+        .flowchart .step.green {
+            background: #dcfce7;
+            color: #16A34A;
+            border: 2px solid #16A34A;
+        }
+        .flowchart .step.yellow {
+            background: #fefce8;
+            color: #F59E0B;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.purple {
+            background: #f3e8ff;
+            color: #8B5CF6;
+            border: 2px solid #8B5CF6;
+        }
+        .flowchart .arrow {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin: 2px 0;
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary-box {
+            background: #f0f9ff;
+            border-right: 6px solid #2563EB;
+            padding: 20px 22px;
+            border-radius: 18px;
+            margin: 24px 0;
+        }
+        .summary-box h4 {
+            color: #1D4ED8;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .summary-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .summary-box ul li {
+            font-size: 0.95rem;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-box ul li:last-child {
+            border-bottom: none;
+        }
+        .summary-box ul li::before {
+            content: "✅ ";
+            color: #16A34A;
+        }
+
+        /* ===== COMPLETE BUTTON ===== */
+        .complete-wrapper {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .btn-complete {
+            background: #16A34A;
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-complete:hover {
+            background: #15803d;
+            transform: scale(1.02);
+        }
+        .btn-complete:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-complete.completed {
+            background: #16A34A;
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* ===== QUIZ SECTION ===== */
+        .quiz-section {
+            display: none;
+            margin: 20px 0 30px;
+            padding: 16px 14px;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+        .quiz-section.active {
+            display: block;
+        }
+        .quiz-question {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px 16px;
+            margin-bottom: 18px;
+            border-right: 4px solid #2563EB;
+        }
+        .quiz-question h4 {
+            font-size: 1.05rem;
+            color: #1D4ED8;
+            margin-bottom: 10px;
+        }
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .quiz-options label {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .quiz-options label:hover {
+            border-color: #2563EB;
+            background: #f0f9ff;
+        }
+        .quiz-options input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563EB;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .quiz-options label.correct {
+            border-color: #16A34A;
+            background: #dcfce7;
+        }
+        .quiz-options label.wrong {
+            border-color: #DC2626;
+            background: #fef2f2;
+        }
+        .quiz-options label.disabled {
+            cursor: default;
+            opacity: 0.9;
+        }
+        .quiz-options label.disabled:hover {
+            border-color: #e2e8f0;
+            background: #fff;
+        }
+        .quiz-options label.correct.disabled:hover {
+            border-color: #16A34A;
+            background: #dcfce7;
+        }
+        .quiz-options label.wrong.disabled:hover {
+            border-color: #DC2626;
+            background: #fef2f2;
+        }
+        .quiz-feedback {
+            margin-top: 10px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        .quiz-feedback.correct {
+            color: #16A34A;
+            background: #dcfce7;
+        }
+        .quiz-feedback.wrong {
+            color: #DC2626;
+            background: #fef2f2;
+        }
+        .quiz-result {
+            background: #f0f9ff;
+            border-radius: 18px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 16px;
+            border: 2px solid #2563EB;
+        }
+        .quiz-result h3 {
+            color: #1D4ED8;
+            font-size: 1.3rem;
+        }
+        .quiz-result .score {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2563EB;
+        }
+        .quiz-result .next-message {
+            margin-top: 12px;
+            font-size: 1rem;
+            color: #1e293b;
+            background: #fefce8;
+            border-radius: 12px;
+            padding: 12px;
+            border-right: 4px solid #F59E0B;
+        }
+        .btn-final-exam {
+            background: #2563EB;
+            color: #fff;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .btn-final-exam:hover {
+            background: #1D4ED8;
+            transform: scale(1.02);
+        }
+
+        /* ===== FOOTER ===== */
+        .lesson-footer {
+            margin-top: 24px;
+            padding: 16px;
+            text-align: center;
+            color: #94a3b8;
+            border-top: 2px dashed #e2e8f0;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            .lesson-info h1 {
+                font-size: 1rem;
+            }
+            .lesson-icon {
+                font-size: 1.5rem;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-back {
+                align-self: flex-start;
+                font-size: 0.75rem;
+                padding: 4px 12px;
+            }
+            .hero {
+                padding: 14px 14px;
+                gap: 14px;
+            }
+            .hero-content h2 {
+                font-size: 1.5rem;
+            }
+            .section-title {
+                font-size: 1.3rem;
+            }
+            .goal-card {
+                padding: 16px 14px;
+            }
+            .quiz-question {
+                padding: 12px 12px;
+            }
+            .quiz-options label {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            .btn-complete {
+                font-size: 1rem;
+                padding: 12px 20px;
+            }
+            .info-table th,
+            .info-table td {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .section-text p {
+                font-size: 0.92rem;
+            }
+            .hero-desc {
+                font-size: 0.9rem;
+            }
+            .info-box {
+                padding: 12px 14px;
+            }
+            .flowchart .step {
+                min-width: 80px;
+                font-size: 0.9rem;
+                padding: 6px 12px;
+            }
+            .btn-final-exam {
+                font-size: 1rem;
+                padding: 10px 20px;
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hero-content h2 {
+                font-size: 1.3rem;
+            }
+            .tab-btn {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+            .progress-label {
+                font-size: 0.7rem;
+            }
+            .progress-percent {
+                font-size: 0.7rem;
+            }
+        }
+
+        .section-image img,
+        .hero-image img,
+        .center-image img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">💻</span>
+            <div class="lesson-info">
+                <h1>الذاكرة والتخزين <span class="lesson-badge">الدرس السادس</span></h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+            <div class="progress-wrapper">
+                <span class="progress-label">التقدم</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== TABS ===== -->
+    <div class="tabs-container">
+        <button class="tab-btn active" id="readingTab">📖 مادة القراءة</button>
+        <button class="tab-btn disabled" id="quizTab" disabled title="أكمل قراءة الدرس أولاً.">📝 الاختبار</button>
+    </div>
+
+    <!-- ===== محتوى الدرس ===== -->
+    <div class="lesson-content" id="lessonContent">
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>💻 الذاكرة والتخزين في الحاسوب</h2>
+                <p class="hero-sub">Computer Memory &amp; Storage</p>
+                <p class="hero-level">المستوى الأول</p>
+                <p class="hero-desc">تعرف على الفرق بين الذاكرة والتخزين، وأنواع الذاكرة، ووحدات التخزين، وكيف تنتقل البيانات بينها.</p>
+            </div>
+        </section>
+
+        <!-- GOAL -->
+        <section class="goal-card">
+            <div class="goal-icon">🎯</div>
+            <h3>أهداف الدرس</h3>
+            <p>بعد الانتهاء من هذا الدرس، ستكون قادرًا على:</p>
+            <ul class="goal-list">
+                <li>✔ فهم الفرق بين الذاكرة (Memory) والتخزين (Storage).</li>
+                <li>✔ التعرف على أنواع الذاكرة الأساسية داخل الحاسوب.</li>
+                <li>✔ معرفة وظيفة كل نوع من أنواع الذاكرة.</li>
+                <li>✔ فهم الفرق بين وحدات التخزين HDD وSSD.</li>
+                <li>✔ معرفة كيف ينتقل البرنامج من التخزين إلى الذاكرة عند تشغيله.</li>
+            </ul>
+        </section>
+
+        <!-- ===== مقدمة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مقدمة <span class="section-sub">Introduction</span></h2>
+            <div class="section-text">
+                <p>يستخدم الحاسوب البيانات باستمرار أثناء تشغيل البرامج والألعاب والتطبيقات المختلفة. لكن هل تساءلت يومًا:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>• أين تُحفظ هذه البيانات؟</li>
+                    <li>• وهل تُخزن جميعها في المكان نفسه؟</li>
+                    <li>• ولماذا يفتح البرنامج بسرعة بعد تشغيله؟</li>
+                    <li>• ولماذا تختفي بعض البيانات عند إيقاف تشغيل الحاسوب بينما تبقى ملفاتك محفوظة؟</li>
+                </ul>
+                <p>الإجابة تكمن في وجود جزأين مهمين داخل الحاسوب، لكل منهما وظيفة مختلفة:</p>
+                <p style="font-weight:700; color:#1D4ED8;">🧠 الذاكرة (Memory) و 💽 التخزين (Storage)</p>
+                <p>ورغم أن الكثير من الناس يخلطون بينهما، فإن لكلٍ منهما دورًا مختلفًا تمامًا في عمل الحاسوب.</p>
+                <div class="section-image center-image">
+                    <img src="images/memory_vs_storage.png" alt="Memory vs Storage" />
+                    <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                        (Image: Illustration showing RAM and SSD inside a computer, with arrows indicating data transfer from storage to memory.)
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== ما المقصود بالذاكرة؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ما المقصود بالذاكرة؟ <span class="section-sub">Memory</span></h2>
+            <div class="section-text">
+                <p>الذاكرة هي المكان الذي يحتفظ فيه الحاسوب بالبيانات التي يحتاج إليها أثناء العمل.</p>
+                <p>فعندما تفتح برنامجًا أو لعبة أو مستندًا، لا يعمل مباشرةً من وحدة التخزين، بل يتم أولًا نقل البيانات الضرورية إلى الذاكرة حتى يتمكن الحاسوب من الوصول إليها بسرعة كبيرة.</p>
+                <p>لذلك تُعد الذاكرة مساحة عمل مؤقتة يستخدمها الحاسوب أثناء تشغيله.</p>
+            </div>
+            <div class="info-box blue">
+                <h4>🔵 تعريف مهم</h4>
+                <p><strong>الذاكرة (Memory):</strong> هي مساحة مؤقتة يستخدمها الحاسوب لتخزين البيانات والتعليمات التي يحتاج إليها أثناء تشغيل البرامج.</p>
+            </div>
+            <div class="info-box green">
+                <h4>🟢 مثال من الحياة</h4>
+                <p>تخيل أنك تذاكر من كتاب. الكتاب الموجود على رف المكتبة يشبه وحدة التخزين. أما الصفحات التي تضعها أمامك على المكتب أثناء المذاكرة فهي تشبه الذاكرة (RAM). فأنت لا تدرس من المكتبة مباشرة، بل تنقل الكتاب إلى مكان قريب منك ليسهل استخدامه.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/library_desk_analogy.png" alt="Library desk analogy" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: A library representing Storage and a study desk representing RAM.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== ما المقصود بالتخزين؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ما المقصود بالتخزين؟ <span class="section-sub">Storage</span></h2>
+            <div class="section-text">
+                <p>التخزين هو المكان الذي تُحفظ فيه الملفات والبرامج والصور والفيديوهات لفترات طويلة.</p>
+                <p>حتى إذا أغلقت الحاسوب، تبقى جميع الملفات محفوظة داخل وحدة التخزين. ولهذا يُسمى التخزين <strong>تخزين دائم (Permanent Storage)</strong>.</p>
+            </div>
+            <div class="info-box blue">
+                <h4>🔵 تعريف مهم</h4>
+                <p><strong>التخزين (Storage):</strong> هو المكان الذي يحتفظ بالبيانات والملفات والبرامج حتى بعد إيقاف تشغيل الجهاز.</p>
+            </div>
+            <div class="info-box yellow">
+                <h4>🟡 ماذا يُخزن داخل وحدة التخزين؟</h4>
+                <ul>
+                    <li>نظام التشغيل.</li>
+                    <li>البرامج.</li>
+                    <li>الألعاب.</li>
+                    <li>الصور.</li>
+                    <li>الفيديوهات.</li>
+                    <li>المستندات.</li>
+                    <li>الملفات الشخصية.</li>
+                </ul>
+                <p>كلها تبقى محفوظة حتى بعد إيقاف تشغيل الحاسوب.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/storage_content.png" alt="Storage content" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: SSD containing icons of images, videos, documents, games, and OS.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== الفرق بين الذاكرة والتخزين ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">الفرق بين الذاكرة والتخزين</h2>
+            <p>قد يبدوان متشابهين، لكنهما يؤديان وظيفتين مختلفتين تمامًا.</p>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>المقارنة</th>
+                        <th>الذاكرة (Memory)</th>
+                        <th>التخزين (Storage)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>الاستخدام</strong></td><td>أثناء تشغيل البرامج</td><td>حفظ الملفات</td></tr>
+                    <tr><td><strong>السرعة</strong></td><td>سريعة جدًا</td><td>أبطأ من الذاكرة</td></tr>
+                    <tr><td><strong>حفظ البيانات</strong></td><td>مؤقت</td><td>دائم</td></tr>
+                    <tr><td><strong>عند إيقاف التشغيل</strong></td><td>تُفقد البيانات</td><td>تبقى البيانات</td></tr>
+                    <tr><td><strong>السعة</strong></td><td>أصغر</td><td>أكبر</td></tr>
+                </tbody>
+            </table>
+            <div class="info-box red">
+                <h4>🔴 💡 تذكر</h4>
+                <p>إذا أغلقت الحاسوب دون حفظ الملف، فسيختفي ما كان موجودًا في الذاكرة. أما إذا حفظته، فسينتقل إلى وحدة التخزين ويبقى موجودًا.</p>
+            </div>
+        </section>
+
+        <!-- ===== أنواع الذاكرة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">أنواع الذاكرة</h2>
+
+            <!-- RAM -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:18px;">🧠 أولًا: ذاكرة الوصول العشوائي (RAM)</h3>
+            <p><strong>Random Access Memory</strong></p>
+            <p>تُعد RAM أشهر أنواع الذاكرة داخل الحاسوب. وهي الذاكرة التي يستخدمها الجهاز أثناء تشغيل البرامج. كل برنامج تفتحه ينتقل جزء منه إلى RAM. وكلما زاد عدد البرامج المفتوحة، احتاج الحاسوب إلى مساحة أكبر داخل RAM.</p>
+            <div class="section-image center-image">
+                <img src="images/ram_ssd_transfer.png" alt="RAM SSD transfer" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Diagram showing a program moving from SSD to RAM when launched.)
+                </p>
+            </div>
+            <div class="info-box yellow">
+                <h4>🟡 ماذا يحدث عند فتح برنامج؟</h4>
+                <ol style="padding-right:20px;">
+                    <li>البرنامج محفوظ داخل وحدة التخزين.</li>
+                    <li>يقرأ الحاسوب ملفات البرنامج.</li>
+                    <li>ينقل الملفات المطلوبة إلى RAM.</li>
+                    <li>يبدأ البرنامج بالعمل بسرعة.</li>
+                </ol>
+                <p>ولهذا السبب لا يعمل البرنامج مباشرةً من HDD أو SSD.</p>
+            </div>
+            <div class="info-box green">
+                <h4>🟢 لماذا RAM سريعة؟</h4>
+                <p>صُممت RAM بحيث يستطيع المعالج الوصول إليها خلال وقت قصير جدًا. ولهذا يستطيع الحاسوب فتح البرامج والتنقل بينها بسرعة.</p>
+            </div>
+            <div class="info-box red">
+                <h4>🔴 ماذا يحدث عند امتلاء RAM؟</h4>
+                <ul>
+                    <li>يصبح الجهاز أبطأ.</li>
+                    <li>تتأخر البرامج في الاستجابة.</li>
+                    <li>قد تتوقف بعض البرامج عن العمل.</li>
+                    <li>قد يضطر نظام التشغيل إلى استخدام جزء من وحدة التخزين كذاكرة مؤقتة، وهو أبطأ من RAM.</li>
+                </ul>
+            </div>
+            <div class="info-box blue">
+                <h4>🔵 أهم خصائص RAM</h4>
+                <ul>
+                    <li>✅ سريعة جدًا.</li>
+                    <li>✅ مؤقتة.</li>
+                    <li>✅ تُستخدم أثناء تشغيل البرامج.</li>
+                    <li>✅ تُفرغ عند إيقاف تشغيل الجهاز.</li>
+                </ul>
+            </div>
+
+            <!-- ROM -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:30px;">📀 ثانيًا: ذاكرة القراءة فقط (ROM)</h3>
+            <p><strong>Read-Only Memory</strong></p>
+            <p>ROM هي ذاكرة مختلفة عن RAM. فهي لا تُستخدم لتشغيل البرامج اليومية. بل تحتوي على التعليمات الأساسية التي يحتاج إليها الحاسوب عند بدء التشغيل. بدون هذه التعليمات لن يعرف الجهاز كيف يبدأ تشغيل نفسه.</p>
+            <div class="section-image center-image">
+                <img src="images/rom_boot.png" alt="ROM boot process" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Diagram showing ROM working first when the power button is pressed.)
+                </p>
+            </div>
+            <div class="info-box blue">
+                <h4>🔵 أهم خصائص ROM</h4>
+                <ul>
+                    <li>✅ تحتفظ ببياناتها حتى بعد انقطاع الكهرباء.</li>
+                    <li>✅ تحتوي على تعليمات بدء التشغيل.</li>
+                    <li>✅ لا تُستخدم لتخزين ملفات المستخدم.</li>
+                </ul>
+            </div>
+
+            <!-- Cache -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:30px;">⚡ ثالثًا: ذاكرة الكاش (Cache)</h3>
+            <p>تُعد ذاكرة الكاش أسرع أنواع الذاكرة الموجودة داخل الحاسوب. لكنها أيضًا أصغرها حجمًا. وظيفتها هي الاحتفاظ بالبيانات التي يستخدمها المعالج باستمرار حتى لا يضطر إلى طلبها من RAM في كل مرة.</p>
+            <p>كلما وجد المعالج البيانات داخل Cache، استطاع تنفيذ العمليات بسرعة أكبر.</p>
+            <div class="section-image center-image">
+                <img src="images/cache_cpu.png" alt="Cache memory diagram" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: CPU in the center, with Cache closest, then RAM, then Storage.)
+                </p>
+            </div>
+            <div class="info-box blue">
+                <h4>🔵 أهم خصائص Cache</h4>
+                <ul>
+                    <li>✅ أسرع من RAM.</li>
+                    <li>✅ أصغر حجمًا.</li>
+                    <li>✅ توجد بالقرب من المعالج.</li>
+                    <li>✅ تُسرع تنفيذ العمليات المتكررة.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ===== كيف تعمل الذاكرة معًا؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">كيف تعمل الذاكرة معًا؟</h2>
+            <div class="flowchart">
+                <p style="font-weight:700; margin-bottom:8px;">عند تشغيل برنامج:</p>
+                <div class="step blue">💾 التخزين (Storage)</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">🧠 RAM</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">⚡ Cache</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">⚙️ CPU</div>
+            </div>
+            <p>البرنامج يكون محفوظًا داخل وحدة التخزين ← يُنقل إلى RAM ← إذا احتاج المعالج جزءًا من البيانات كثيرًا، تُحفظ مؤقتًا داخل Cache ← ينفذ المعالج العمليات بسرعة.</p>
+        </section>
+
+        <!-- ===== التخزين (Storage) ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">التخزين <span class="section-sub">Storage</span></h2>
+            <p>بعد أن تعرفنا على أنواع الذاكرة، ننتقل إلى المكان الذي تُحفظ فيه الملفات بشكل دائم. هناك نوعان رئيسيان من وحدات التخزين.</p>
+
+            <!-- HDD -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:18px;">💾 القرص الصلب HDD</h3>
+            <p>يعتمد HDD على أقراص تدور بسرعة داخل الجهاز. ويقرأ البيانات ويكتبها باستخدام أجزاء ميكانيكية متحركة.</p>
+            <div class="section-image center-image">
+                <img src="images/hdd_open.png" alt="HDD open" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Opened HDD showing spinning disks and read/write head.)
+                </p>
+            </div>
+            <div class="info-box green">
+                <h4>🟢 مميزات HDD</h4>
+                <ul>
+                    <li>✅ سعة كبيرة.</li>
+                    <li>✅ سعر أقل.</li>
+                </ul>
+            </div>
+            <div class="info-box red">
+                <h4>🔴 عيوب HDD</h4>
+                <ul>
+                    <li>⚠️ أبطأ.</li>
+                    <li>⚠️ أكثر عرضة للتلف عند الصدمات.</li>
+                    <li>⚠️ يصدر صوتًا أثناء العمل.</li>
+                </ul>
+            </div>
+
+            <!-- SSD -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:28px;">⚡ وحدة التخزين SSD</h3>
+            <p>تعتمد SSD على شرائح إلكترونية. ولا تحتوي على أجزاء متحركة. ولهذا فهي أسرع وأكثر هدوءًا.</p>
+            <div class="section-image center-image">
+                <img src="images/ssd_chips.png" alt="SSD chips" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: SSD with electronic memory chips visible.)
+                </p>
+            </div>
+            <div class="info-box green">
+                <h4>🟢 مميزات SSD</h4>
+                <ul>
+                    <li>✅ سرعة عالية جدًا.</li>
+                    <li>✅ تشغيل النظام بسرعة.</li>
+                    <li>✅ فتح البرامج بسرعة.</li>
+                    <li>✅ مقاومة أفضل للصدمات.</li>
+                    <li>✅ لا تصدر ضوضاء.</li>
+                </ul>
+            </div>
+            <div class="info-box red">
+                <h4>🔴 عيوب SSD</h4>
+                <ul>
+                    <li>⚠️ أعلى سعرًا مقارنةً بـ HDD عند السعة نفسها.</li>
+                </ul>
+            </div>
+
+            <!-- مقارنة -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:28px;">مقارنة بين HDD وSSD</h3>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>المقارنة</th>
+                        <th>HDD</th>
+                        <th>SSD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>السرعة</strong></td><td>أبطأ</td><td>أسرع</td></tr>
+                    <tr><td><strong>الأجزاء المتحركة</strong></td><td>نعم</td><td>لا</td></tr>
+                    <tr><td><strong>الضوضاء</strong></td><td>يصدر صوتًا</td><td>صامت</td></tr>
+                    <tr><td><strong>مقاومة الصدمات</strong></td><td>أقل</td><td>أعلى</td></tr>
+                    <tr><td><strong>السعر</strong></td><td>أقل</td><td>أعلى</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ===== وسائل التخزين المحمولة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">وسائل التخزين المحمولة</h2>
+            <p>لا تُستخدم وحدات التخزين داخل الحاسوب فقط، بل توجد وسائل تخزين يمكن حملها بسهولة. مثل:</p>
+            <ul style="list-style:none; display:flex; flex-wrap:wrap; gap:16px; padding:6px 0;">
+                <li>🔌 USB Flash Drive</li>
+                <li>📱 Memory Card</li>
+            </ul>
+            <p>وتستخدم لحفظ الملفات أو نقلها بين الأجهزة.</p>
+            <div class="section-image center-image">
+                <img src="images/usb_sd.png" alt="USB and SD card" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: USB Flash Drive and Memory Card next to a computer.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== مثال عملي ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مثال عملي</h2>
+            <p>لنفترض أنك تريد تشغيل لعبة. تحدث الخطوات التالية:</p>
+            <div class="flowchart">
+                <div class="step blue">💾 SSD</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">🧠 RAM</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">⚡ Cache</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">⚙️ CPU</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">🎮 Game</div>
+            </div>
+            <ol style="padding-right:20px;">
+                <li>اللعبة محفوظة داخل SSD.</li>
+                <li>عند تشغيلها، تُنقل الملفات المهمة إلى RAM.</li>
+                <li>إذا احتاج المعالج بعض البيانات باستمرار، تُحفظ مؤقتًا داخل Cache.</li>
+                <li>تبدأ اللعبة بالعمل بسرعة.</li>
+                <li>عند حفظ تقدمك داخل اللعبة، يُكتب هذا التقدم مرة أخرى في وحدة التخزين.</li>
+            </ol>
+        </section>
+
+        <!-- ===== ملخص الدرس ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📌 ملخص الدرس</h2>
+            <div class="summary-box">
+                <ul>
+                    <li>الذاكرة (Memory) تُستخدم أثناء تشغيل الحاسوب.</li>
+                    <li>التخزين (Storage) يُستخدم لحفظ الملفات بشكل دائم.</li>
+                    <li>RAM ذاكرة مؤقتة وسريعة.</li>
+                    <li>ROM تحتوي على تعليمات بدء التشغيل.</li>
+                    <li>Cache أسرع ذاكرة وتساعد المعالج.</li>
+                    <li>HDD يعتمد على أقراص ميكانيكية.</li>
+                    <li>SSD يعتمد على شرائح إلكترونية وهو أسرع.</li>
+                    <li>عند تشغيل أي برنامج، تنتقل بياناته من وحدة التخزين إلى RAM، ثم تُستخدم Cache لتسريع الوصول إلى البيانات المتكررة.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- زر إكتملت القراءة -->
+        <div class="complete-wrapper">
+            <button class="btn-complete" id="completeReadingBtn">✅ إكتملت القراءة</button>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:6px;">بعد الضغط على هذا الزر سيتم التوجيه إلى الاختبار.</p>
+        </div>
+
+    </div> <!-- نهاية lesson-content -->
+
+    <!-- ===== QUIZ SECTION ===== -->
+    <section class="quiz-section" id="quizSection">
+        <h2 style="color:#1D4ED8; font-size:1.5rem; margin-bottom:16px;">📝 اختبار الدرس السادس</h2>
+        <p style="margin-bottom:18px; font-size:0.95rem;">أجب عن الأسئلة التالية. كل سؤال له إجابة واحدة صحيحة.</p>
+
+        <!-- السؤال الأول (سهل) -->
+        <div class="quiz-question" data-question="1">
+            <h4>السؤال الأول: ما الوظيفة الأساسية لذاكرة الوصول العشوائي (RAM)؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q1" value="a"> أ) حفظ الملفات بشكل دائم.</label>
+                <label><input type="radio" name="q1" value="b"> ب) تخزين البيانات والبرامج مؤقتًا أثناء تشغيلها.</label>
+                <label><input type="radio" name="q1" value="c"> ج) تشغيل الشاشة.</label>
+                <label><input type="radio" name="q1" value="d"> د) حفظ إعدادات الجهاز بعد إغلاقه.</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <!-- السؤال الثاني (متوسط) -->
+        <div class="quiz-question" data-question="2">
+            <h4>السؤال الثاني: أي عبارة توضح الفرق الصحيح بين ذاكرة RAM ووحدة التخزين (Storage)؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q2" value="a"> أ) RAM تُستخدم أثناء تشغيل البرامج، أما Storage فتُستخدم لحفظ الملفات بشكل دائم.</label>
+                <label><input type="radio" name="q2" value="b"> ب) كلاهما يفقد البيانات عند إغلاق الجهاز.</label>
+                <label><input type="radio" name="q2" value="c"> ج) لا يوجد فرق بينهما.</label>
+                <label><input type="radio" name="q2" value="d"> د) Storage أسرع دائمًا من RAM.</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <!-- السؤال الثالث (صعب) -->
+        <div class="quiz-question" data-question="3">
+            <h4>السؤال الثالث: أي نوع من الذاكرة يحتفظ بالتعليمات الأساسية اللازمة لبدء تشغيل الحاسوب حتى بعد انقطاع الكهرباء؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q3" value="a"> أ) Cache</label>
+                <label><input type="radio" name="q3" value="b"> ب) SSD</label>
+                <label><input type="radio" name="q3" value="c"> ج) RAM</label>
+                <label><input type="radio" name="q3" value="d"> د) ROM</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <!-- السؤال الرابع (متوسط) -->
+        <div class="quiz-question" data-question="4">
+            <h4>السؤال الرابع: لماذا تُعد وحدة التخزين SSD أسرع من HDD؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q4" value="a"> أ) لأنها تعتمد على شرائح إلكترونية ولا تحتوي على أجزاء ميكانيكية متحركة.</label>
+                <label><input type="radio" name="q4" value="b"> ب) لأنها تمتلك سعة تخزين أكبر دائمًا.</label>
+                <label><input type="radio" name="q4" value="c"> ج) لأنها تستخدم ذاكرة RAM.</label>
+                <label><input type="radio" name="q4" value="d"> د) لأنها تحتوي على أقراص تدور بسرعة أكبر.</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <!-- السؤال الخامس (صعب) -->
+        <div class="quiz-question" data-question="5">
+            <h4>السؤال الخامس: عند تشغيل لعبة محفوظة على وحدة SSD، ما التسلسل الصحيح لانتقال البيانات حتى يبدأ تشغيل اللعبة؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q5" value="a"> أ) CPU → RAM → SSD</label>
+                <label><input type="radio" name="q5" value="b"> ب) RAM → SSD → Cache → CPU</label>
+                <label><input type="radio" name="q5" value="c"> ج) SSD → RAM → Cache → CPU</label>
+                <label><input type="radio" name="q5" value="d"> د) Cache → HDD → RAM → CPU</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-result" id="quizResult" style="display:none;">
+            <h3>🏆 نتيجة الاختبار</h3>
+            <p class="score" id="finalScore">0%</p>
+            <p id="resultMessage"></p>
+            <!-- الرسالة الجديدة مع زر الاختبار التراكمي -->
+            <div class="next-message" style="background:#f0f9ff; border-right-color:#2563EB;">
+                <p style="font-weight:700; color:#1D4ED8; font-size:1.1rem;"></p>
+                <p style="margin-top:6px;">حان الآن وقت <strong>الاختبار التراكمي الشامل</strong> الذي يغطي جميع الدروس من 1 إلى 6.</p>
+                <p style="margin-top:6px; color:#475569;">اختبر فهمك الكامل للمفاهيم الأساسية للحاسوب في اختبار واحد.</p>
+                <button class="btn-final-exam" id="finalExamBtn">📘 اذهب إلى الاختبار التراكمي</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="lesson-footer">
+        <p>🚀 تم إنجاز الدرس السادس. حظاً موفقاً في الاختبار التراكمي!</p>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const readingTab = document.getElementById('readingTab');
+            const quizTab = document.getElementById('quizTab');
+            const completeBtn = document.getElementById('completeReadingBtn');
+            const lessonContent = document.getElementById('lessonContent');
+            const quizSection = document.getElementById('quizSection');
+            const backBtn = document.getElementById('backBtn');
+            const finalExamBtn = document.getElementById('finalExamBtn');
+
+            let readingCompleted = false;
+            let quizFinished = false;
+            let answeredQuestions = {};
+            const totalQuestions = 5;
+            const correctAnswers = {
+                q1: 'b',
+                q2: 'a',
+                q3: 'd',
+                q4: 'a',
+                q5: 'c'
+            };
+
+            // ===== زر الرجوع =====
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'lesson5.html';
+                }
+            });
+
+            // ===== زر الاختبار التراكمي =====
+            finalExamBtn.addEventListener('click', function() {
+                window.location.href = 'final-exam.html'; // ضع هنا الرابط الصحيح للاختبار التراكمي
+            });
+
+            // ===== دوال التقدم =====
+            function updateOverallProgress(readingDone, quizScore) {
+                let total = 0;
+                if (readingDone) total += 70;
+                if (quizScore !== undefined && quizScore !== null) {
+                    total += quizScore;
+                }
+                total = Math.min(100, Math.round(total));
+                progressFill.style.width = total + '%';
+                progressPercent.textContent = total + '%';
+                return total;
+            }
+
+            function updateScrollProgress() {
+                if (readingCompleted) return;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const docHeight = Math.max(
+                    document.documentElement.scrollHeight,
+                    document.body.scrollHeight
+                ) - window.innerHeight;
+                let progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                let rounded = Math.min(100, Math.round(progress));
+                let displayProgress = Math.min(70, Math.round(progress * 0.7));
+                progressFill.style.width = displayProgress + '%';
+                progressPercent.textContent = displayProgress + '%';
+            }
+
+            window.addEventListener('scroll', updateScrollProgress);
+            window.addEventListener('resize', updateScrollProgress);
+            window.addEventListener('load', updateScrollProgress);
+
+            // ===== زر "إكتملت القراءة" =====
+            completeBtn.addEventListener('click', function() {
+                if (readingCompleted) return;
+                readingCompleted = true;
+                completeBtn.textContent = '✅ تم ✓';
+                completeBtn.classList.add('completed');
+                completeBtn.disabled = true;
+
+                lessonContent.classList.add('hidden');
+
+                quizTab.disabled = false;
+                quizTab.classList.remove('disabled');
+                quizTab.classList.add('enabled');
+                quizTab.title = 'الاختبار متاح';
+
+                updateOverallProgress(true, null);
+
+                window.removeEventListener('scroll', updateScrollProgress);
+                window.removeEventListener('resize', updateScrollProgress);
+
+                quizSection.classList.add('active');
+                quizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                readingTab.classList.remove('active');
+                quizTab.classList.add('active');
+                readingTab.style.pointerEvents = 'none';
+                readingTab.style.opacity = '0.6';
+
+                const wrapper = document.querySelector('.complete-wrapper');
+                const msg = document.createElement('p');
+                msg.style.color = '#16A34A';
+                msg.style.fontWeight = '700';
+                msg.style.marginTop = '8px';
+                msg.textContent = '🎉 تم التوجيه إلى الاختبار!';
+                wrapper.appendChild(msg);
+            });
+
+            // ===== زر الاختبار =====
+            quizTab.addEventListener('click', function() {
+                if (this.disabled) return;
+                if (!quizSection.classList.contains('active')) {
+                    quizSection.classList.add('active');
+                    quizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                readingTab.classList.remove('active');
+                this.classList.add('active');
+                readingTab.style.pointerEvents = 'none';
+                readingTab.style.opacity = '0.6';
+            });
+
+            // ===== معالجة الاختبار =====
+            const questions = document.querySelectorAll('.quiz-question');
+
+            questions.forEach((q) => {
+                const options = q.querySelectorAll('input[type="radio"]');
+                const feedback = q.querySelector('.quiz-feedback');
+
+                options.forEach(opt => {
+                    opt.addEventListener('change', function() {
+                        if (quizFinished) return;
+
+                        const qName = this.name;
+                        const selectedValue = this.value;
+                        const correct = correctAnswers[qName];
+
+                        const allLabels = q.querySelectorAll('.quiz-options label');
+                        allLabels.forEach(label => {
+                            label.classList.add('disabled');
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (radio) radio.disabled = true;
+                        });
+
+                        let isCorrect = false;
+                        allLabels.forEach(label => {
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (!radio) return;
+                            if (radio.value === correct) {
+                                label.classList.add('correct');
+                            }
+                            if (radio.checked && radio.value !== correct) {
+                                label.classList.add('wrong');
+                            }
+                            if (radio.checked && radio.value === correct) {
+                                isCorrect = true;
+                            }
+                        });
+
+                        if (isCorrect) {
+                            feedback.textContent = '✅ إجابة صحيحة!';
+                            feedback.className = 'quiz-feedback correct';
+                        } else {
+                            feedback.textContent = '❌ إجابة خاطئة.';
+                            feedback.className = 'quiz-feedback wrong';
+                        }
+
+                        answeredQuestions[qName] = isCorrect;
+
+                        let correctCount = 0;
+                        for (let key in correctAnswers) {
+                            if (answeredQuestions[key] === true) correctCount++;
+                        }
+                        let quizScore = Math.round((correctCount / totalQuestions) * 30);
+                        updateOverallProgress(true, quizScore);
+
+                        if (Object.keys(answeredQuestions).length === totalQuestions) {
+                            quizFinished = true;
+                            const finalPercent = Math.round((correctCount / totalQuestions) * 100);
+                            document.getElementById('finalScore').textContent = finalPercent + '%';
+                            const resultDiv = document.getElementById('quizResult');
+                            resultDiv.style.display = 'block';
+                            const msg = document.getElementById('resultMessage');
+                            if (finalPercent === 100) {
+                                msg.textContent = '🎉 ممتاز! أجبته جميعاً بشكل صحيح.';
+                                msg.style.color = '#16A34A';
+                            } else if (finalPercent >= 60) {
+                                msg.textContent = '👍 جيد، لكن راجع بعض النقاط.';
+                                msg.style.color = '#F59E0B';
+                            } else {
+                                msg.textContent = '📖 ننصحك بإعادة قراءة الدرس مرة أخرى.';
+                                msg.style.color = '#DC2626';
+                            }
+                            document.querySelectorAll('.quiz-options input[type="radio"]').forEach(r => r.disabled = true);
+                            quizTab.disabled = true;
+                            quizTab.classList.remove('enabled');
+                            quizTab.classList.add('disabled');
+                            quizTab.title = 'تم الانتهاء من الاختبار';
+
+                            // إظهار زر الاختبار التراكمي (موجود مسبقاً)
+                            finalExamBtn.style.display = 'inline-flex';
+                        }
+                    });
+                });
+            });
+
+            // إخفاء زر الاختبار التراكمي مبدئياً حتى الانتهاء من الأسئلة
+            finalExamBtn.style.display = 'none';
+
+        })();
+    </script>
+</body>
+</html>

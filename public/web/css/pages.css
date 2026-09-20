@@ -1,0 +1,1197 @@
+/* ====================================================
+   pages.css — ستايلات الصفحات المختلفة
+   كل صفحة ليها ستايلات خاصة بيها هنا
+   ==================================================== */
+
+/* ====================================================
+   الصفحة الرئيسية (Home Page)
+   فيها الـ Header + شبكة كروت اللغات
+   ==================================================== */
+
+/* --- هيدر الصفحة (ترحيب + أزرار) --- */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-header-right {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-greeting {
+  font-size: 15px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+/* --- أزرار الهيدر (بحث + إشعارات) --- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-action-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+.header-action-btn:hover {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-md);
+}
+
+/* --- بادج الإشعارات (الرقم الأحمر) --- */
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  min-width: 18px;
+  height: 18px;
+  background: var(--danger);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-card);
+}
+
+/* --- عنوان السكشن (اللغات البرمجية) --- */
+.section-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+/* ====================================================
+   شبكة كروت اللغات البرمجية — المطابقة للتطبيق تماماً
+   كل كورس بيظهر ككارت ملون بـ gradient مع الدوائر والـ Badges
+   ==================================================== */
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 20px;
+}
+
+/* --- كارت اللغة الواحدة --- */
+.language-card {
+  position: relative;
+  border-radius: 24px;
+  padding: 24px 18px 18px;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  user-select: none;
+}
+.language-card:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+.language-card:active {
+  transform: scale(0.96);
+}
+
+/* --- دواير الـ decoration الزجاجية في الخلفية --- */
+.language-card-circle-1 {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+.language-card-circle-2 {
+  position: absolute;
+  bottom: -20px;
+  left: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+/* --- أيقونة اللغة (داخل دائرة زجاجية) --- */
+.language-card-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.language-card-icon img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.language-card-icon-text {
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* --- محتوى الكارت --- */
+.language-card-body {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.language-card-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-align: center;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.language-card-desc {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- بادج الحالة (متاح/مشترك/قريباً) --- */
+.language-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+.badge-available {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+.badge-subscribed {
+  background: rgba(16, 185, 129, 0.3);
+  color: #FFFFFF;
+}
+.badge-coming {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ====================================================
+   الواجهات المنبثقة (Modals / Dialogs) المطابقة للتطبيق
+   ==================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInOverlay 0.25s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.app-modal-dialog {
+  background: var(--bg-card);
+  border-radius: 28px;
+  padding: 32px 28px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22), 0 0 0 1px var(--border-light);
+  position: relative;
+  animation: modalPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-icon-container {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  background: rgba(37, 99, 235, 0.08);
+  font-size: 38px;
+  color: var(--primary);
+  animation: iconPulse 0.5s ease-out;
+}
+
+@keyframes iconPulse {
+  0% { transform: scale(0.5); }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.modal-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.modal-pill-badge.success-badge {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.modal-subtitle {
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.modal-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+.modal-features-list {
+  background: var(--bg-hover);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modal-feature-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-btn-primary {
+  width: 100%;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+  transition: all var(--transition-fast);
+}
+
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.4);
+}
+
+.modal-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.modal-btn-secondary {
+  width: 100%;
+  height: 44px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  transition: all var(--transition-fast);
+}
+
+.modal-btn-secondary:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* Spinner داخل الزرار */
+.btn-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ====================================================
+   Featured Course Card — كارت الكورس المميز
+   بيظهر فوق شبكة الكورسات
+   ==================================================== */
+.featured-card {
+  background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  margin-bottom: 24px;
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.featured-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.3);
+}
+
+/* ====================================================
+   شريط البحث
+   ==================================================== */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1.5px solid rgba(37, 99, 235, 0.3);
+  border-radius: var(--radius-input);
+  padding: 0 16px;
+  height: 50px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  margin-bottom: 20px;
+  transition: all var(--transition-fast);
+}
+.search-bar:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+}
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px 0;
+}
+.search-bar input::placeholder {
+  color: var(--text-muted);
+}
+.search-bar-icon {
+  color: var(--primary);
+  font-size: 18px;
+  margin-left: 12px;
+}
+
+/* ====================================================
+   Responsive — التوافق مع الشاشات
+   ==================================================== */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 20px;
+  }
+  .courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .language-card {
+    min-height: 170px;
+    padding: 18px 14px;
+  }
+}
+@media (max-width: 480px) {
+  .courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+/* ====================================================
+   Dashboard (Home Page) Styles
+   ==================================================== */
+
+.dashboard-top-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.dash-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: flex-start;
+  min-height: 140px;
+}
+.dash-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dash-card-content {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  flex-direction: row-reverse; /* RTL match */
+}
+
+.dash-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-card-info {
+  text-align: right;
+}
+
+.dash-card-number {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+.dash-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.dash-card-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+/* --- Progress Card --- */
+.progress-card {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.progress-circle-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 20px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: 800;
+  color: #00C48C;
+  font-family: 'Inter', sans-serif;
+}
+
+.progress-title {
+  color: #00C48C;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.progress-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.continue-btn {
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.lesson-link {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ====================================================
+   الصفحة الرئيسية الجديدة (Dashboard Layout & Mobile Responsiveness)
+   ==================================================== */
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.dashboard-stat-card {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-blue { color: #0284C7; }
+.card-green { color: #16A34A; }
+.card-brand-blue { color: #2563EB; }
+
+.stat-card-watermark {
+  position: absolute;
+  right: -15px;
+  bottom: -15px;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.stat-card-content {
+  z-index: 1;
+}
+
+.stat-card-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: currentColor;
+  margin-bottom: 4px;
+}
+
+.stat-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: currentColor;
+  margin-bottom: 4px;
+}
+
+.stat-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 1;
+}
+
+.card-blue .stat-card-icon { background: rgba(2, 132, 199, 0.08); border-color: rgba(2, 132, 199, 0.2); }
+.card-green .stat-card-icon { background: rgba(22, 163, 74, 0.08); border-color: rgba(22, 163, 74, 0.2); }
+.card-brand-blue .stat-card-icon { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.2); }
+
+.check-box-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+}
+
+/* السطر السكندري */
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dashboard-progress-card {
+  background: var(--bg-card);
+  border-radius: 24px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  justify-content: space-between;
+}
+
+.progress-circle-outer {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(#0D9488 0deg, #E5E7EB 0deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.progress-circle-inner {
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0D9488;
+}
+
+.progress-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0D9488;
+  margin-bottom: 8px;
+}
+
+.progress-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.progress-btn {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+  height: 48px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.progress-link {
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: #2563EB;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dashboard-chart-card {
+  background: var(--bg-card);
+  border-radius: 24px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-item.current-week { color: #16A34A; }
+.legend-item.last-week { color: #2563EB; }
+
+.legend-item .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chart-container {
+  position: relative;
+  height: 230px;
+  width: 100%;
+}
+
+.chart-note {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* ====================================================
+   كارت الكورسات قيد الدراسة (My Courses Pro Card) - تصميم احترافي
+   ==================================================== */
+.my-course-pro-card {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 28px;
+  padding: 28px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.my-course-pro-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #2563EB, #0D9488);
+  border-radius: 0 28px 28px 0;
+  transition: width 0.4s ease;
+}
+
+.my-course-pro-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.my-course-pro-card:hover::before {
+  width: 8px;
+}
+
+.pro-card-content {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.pro-card-icon-wrapper {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(13, 148, 136, 0.1));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pro-card-icon {
+  font-size: 34px;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.3));
+}
+
+.pro-card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(37, 99, 235, 0.4), transparent 70%);
+  opacity: 0.5;
+  filter: blur(10px);
+  z-index: 1;
+  transition: opacity 0.3s ease;
+}
+
+.my-course-pro-card:hover .pro-card-glow {
+  opacity: 0.8;
+}
+
+.pro-card-info {
+  flex: 1;
+}
+
+.pro-card-level {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #2563EB;
+  background: rgba(37, 99, 235, 0.08);
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+html[data-theme="dark"] .pro-card-level {
+  color: #60A5FA;
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.pro-card-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+}
+
+.pro-card-progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 380px;
+}
+
+.pro-card-progress-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 12px;
+  background: var(--border-light);
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.pro-card-progress-bar {
+  height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #2563EB, #0D9488, #3B82F6);
+  background-size: 200% 100%;
+  animation: shimmerProgress 3s infinite linear;
+  position: relative;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes shimmerProgress {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.pro-card-progress-glow {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: rgba(255, 255, 255, 0.4);
+  filter: blur(4px);
+}
+
+.pro-card-progress-text {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0D9488;
+}
+
+html[data-theme="dark"] .pro-card-progress-text {
+  color: #2DD4BF;
+}
+
+.pro-card-actions {
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+  justify-content: flex-end;
+}
+
+.pro-card-btn {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  padding: 14px 28px;
+  border-radius: 18px;
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.pro-card-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: skewX(-25deg);
+  transition: all 0.5s ease;
+}
+
+.pro-card-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+.pro-card-btn:hover::before {
+  left: 150%;
+}
+
+@media (max-width: 768px) {
+  .my-course-pro-card {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    padding: 24px 20px;
+    border-radius: 24px;
+    gap: 24px;
+  }
+  .pro-card-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  .pro-card-icon-wrapper {
+    margin: 0 auto;
+    width: 64px;
+    height: 64px;
+  }
+  .pro-card-progress-wrapper {
+    justify-content: center;
+    margin: 0 auto;
+  }
+  .pro-card-actions {
+    justify-content: center;
+  }
+  .pro-card-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .my-course-pro-card::before {
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: auto;
+    height: 4px;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+  }
+  .my-course-pro-card:hover::before {
+    width: 100%;
+    height: 6px;
+  }
+}
+
+/* ====================================================
+   Media Queries — التجاوب مع الهواتف والتابلت
+   ==================================================== */
+@media (max-width: 1024px) {
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .dashboard-stat-card {
+    padding: 18px 20px;
+  }
+
+  .stat-card-val {
+    font-size: 24px;
+  }
+
+  .stat-card-title {
+    font-size: 15px;
+  }
+
+  .dashboard-progress-card,
+  .dashboard-chart-card {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .chart-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-navbar {
+    padding: 10px 12px;
+  }
+  
+  .top-nav-right {
+    margin-right: 40px;
+  }
+
+  .dashboard-stat-card {
+    border-radius: 16px;
+  }
+}
+

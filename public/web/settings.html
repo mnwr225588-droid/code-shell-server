@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <!-- إعدادات التجاوب مع شاشات الهواتف الذكية والأجهزة المحمولة -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Code Shell — الإعدادات" />
+  <meta name="theme-color" content="#2563EB" />
+  <title>Code Shell — الإعدادات</title>
+  <link rel="icon" type="image/png" href="assets/images/logo.png" />
+  
+  <!-- استدعاء ملفات التنسيقات (CSS) -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <link rel="stylesheet" href="css/settings.css" />
+</head>
+<body>
+
+  <!-- خلفية مظلمة شفافة تظهر عند فتح القائمة الجانبية في الهاتف -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- الهيكل العام للتطبيق -->
+  <div class="app-layout">
+    
+    <!-- ====================================================
+         القائمة الجانبية (Sidebar Navigation)
+         ==================================================== -->
+    <aside class="sidebar" id="sidebar">
+      
+      <!-- شعار المنصة واسم التطبيق في أعلى القائمة -->
+      <div class="sidebar-header">
+        <img src="assets/images/logo.png" alt="Code Shell Logo" class="sidebar-logo" />
+        <span class="sidebar-brand">Code Shell</span>
+      </div>
+
+      <!-- زر تصغير / طي النافذة الجانبية -->
+      <div class="sidebar-toggle" id="sidebar-toggle">
+        <div class="sidebar-toggle-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+        <span>تصغير النافذة</span>
+      </div>
+
+      <!-- روابط التصفح الأساسية في القائمة الجانبية -->
+      <nav class="sidebar-nav">
+        
+        <!-- رابط الصفحة الرئيسية -->
+        <a class="nav-item" href="index.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">الرئيسية</span>
+        </a>
+
+        <!-- رابط صفحة الكورسات -->
+        <a class="nav-item" href="courses.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">الكورسات</span>
+        </a>
+
+        <!-- رابط صفحة كورساتي الحالية -->
+        <a class="nav-item" href="my-courses.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">كورساتي الحالية</span>
+        </a>
+
+        <!-- خط فاصل -->
+        <div class="sidebar-divider"></div>
+
+        <!-- رابط صفحة المنتدى -->
+        <a class="nav-item" href="community.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">المنتدى</span>
+        </a>
+
+        <!-- رابط صفحة البث المباشر -->
+        <a class="nav-item" href="live.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M16.24 7.76a6 6 0 0 1 0 8.49"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M7.76 16.24a6 6 0 0 1 0-8.49"/>
+              <path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">اللايفات المباشرة</span>
+        </a>
+
+        <!-- خط فاصل -->
+        <div class="sidebar-divider"></div>
+
+        <!-- رابط صفحة حسابي -->
+        <a class="nav-item" href="profile.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">حسابي</span>
+        </a>
+
+        <!-- رابط صفحة الإعدادات (الصفحة النشطة) -->
+        <a class="nav-item active" href="settings.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">الإعدادات</span>
+        </a>
+
+        <!-- زر تسجيل الخروج -->
+        <a class="nav-item nav-item-logout" href="javascript:void(0)" onclick="logout()">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">تسجيل الخروج</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- ====================================================
+         المحتوى الرئيسي لصفحة الإعدادات
+         ==================================================== -->
+    <main class="main-content" id="main-content">
+      
+      <!-- الهيدر العلوي الثابت (Sticky Top Navbar) -->
+      <header class="top-navbar">
+        
+        <!-- الجزء الأيمن: زر الهامبرغر + عنوان الصفحة -->
+        <div class="top-nav-right">
+          <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="فتح القائمة">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <h2 class="top-nav-title">الإعدادات</h2>
+        </div>
+
+        <!-- الجزء الأيسر: أيقونات المظهر والأفاتار -->
+        <div class="top-nav-left">
+          <!-- زر تبديل الوضع الداكن/الفاتح -->
+          <button class="theme-single-btn" onclick="toggleTheme()" title="تبديل المظهر">
+            <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+
+          <!-- رابط صورة الحساب الشخصي -->
+          <a href="profile.html" class="top-nav-avatar" title="حسابي">
+            <div class="avatar-circle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+          </a>
+        </div>
+      </header>
+
+      <!-- ====================================================
+           محتوى صفحة الإعدادات — نسخة طبق الأصل من التطبيق
+           ==================================================== -->
+      <div id="main-page-container">
+        <div class="settings-container">
+
+          <!-- عنوان صفحة الإعدادات مع زر الرجوع -->
+          <div class="settings-page-header">
+            <a href="profile.html" class="settings-back-btn" title="رجوع">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </a>
+            <h1 class="settings-page-title">الإعدادات</h1>
+          </div>
+
+          <!-- ══════════════════════════════════════════════════
+               القسم الأول: عام (General)
+               ══════════════════════════════════════════════════ -->
+          <div class="settings-section-header settings-animate-group">عام</div>
+          <div class="settings-card-group settings-animate-group">
+
+            <!-- اللغة -->
+            <div class="settings-tile" id="settings-language-tile" onclick="openSettingsModal('language')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">اللغة</span>
+              <span class="settings-tile-value" id="settings-lang-value">العربية</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- المظهر (الثيم) -->
+            <div class="settings-tile" id="settings-theme-tile" onclick="openSettingsModal('theme')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">المظهر</span>
+              <span class="settings-tile-value" id="settings-theme-value">فاتح</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- الإشعارات -->
+            <div class="settings-tile" style="cursor: default;">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">الإشعارات</span>
+              <button class="settings-toggle active" id="settings-notif-toggle" onclick="this.classList.toggle('active')"></button>
+            </div>
+
+          </div>
+
+          <!-- ══════════════════════════════════════════════════
+               القسم الثاني: الحساب (Account)
+               ══════════════════════════════════════════════════ -->
+          <div class="settings-section-header settings-animate-group">الحساب</div>
+          <div class="settings-card-group settings-animate-group">
+
+            <!-- تعديل الملف الشخصي -->
+            <div class="settings-tile" onclick="alert('ستتم إضافة هذه الخاصية قريباً')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                  <path d="M17 3l4 4"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">تعديل الملف الشخصي</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- تغيير كلمة المرور -->
+            <div class="settings-tile" onclick="openSettingsModal('password')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">تغيير كلمة المرور</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- حذف الحساب -->
+            <div class="settings-tile" onclick="alert('ستتم إضافة هذه الخاصية قريباً')">
+              <div class="settings-tile-icon danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text danger">حذف الحساب</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+          </div>
+
+          <!-- ══════════════════════════════════════════════════
+               القسم الثالث: التطبيق (Application)
+               ══════════════════════════════════════════════════ -->
+          <div class="settings-section-header settings-animate-group">التطبيق</div>
+          <div class="settings-card-group settings-animate-group">
+
+            <!-- سياسة الخصوصية -->
+            <a href="privacy-policy.html" class="settings-tile">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">سياسة الخصوصية</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </a>
+
+            <div class="settings-divider"></div>
+
+            <!-- الشروط والأحكام -->
+            <a href="terms-conditions.html" class="settings-tile">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">الشروط والأحكام</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </a>
+
+            <div class="settings-divider"></div>
+
+            <!-- تواصل معنا -->
+            <div class="settings-tile" onclick="window.open('https://wa.me/201XXXXXXXXX', '_blank')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">تواصل معنا</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- تقييم التطبيق -->
+            <div class="settings-tile" onclick="alert('ستتم إضافة هذه الخاصية قريباً')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">تقييم التطبيق</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- مشاركة التطبيق -->
+            <div class="settings-tile" onclick="if(navigator.share){navigator.share({title:'Code Shell',url:'https://codeshell.gt.tc/'})}else{navigator.clipboard.writeText('https://codeshell.gt.tc/');alert('تم نسخ الرابط!')}">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">مشاركة التطبيق</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+          </div>
+
+          <!-- ══════════════════════════════════════════════════
+               القسم الرابع: حول (About)
+               ══════════════════════════════════════════════════ -->
+          <div class="settings-section-header settings-animate-group">حول</div>
+          <div class="settings-card-group settings-animate-group">
+
+            <!-- حول Code Shell -->
+            <div class="settings-tile" onclick="alert('Code Shell — منصة تعليمية لتعلم البرمجة بالعربية')">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">حول Code Shell</span>
+              <span class="settings-tile-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- إصدار التطبيق -->
+            <div class="settings-tile" style="cursor: default;">
+              <div class="settings-tile-icon primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="6" y1="3" x2="6" y2="15"/>
+                  <circle cx="18" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <path d="M18 9a9 9 0 0 1-9 9"/>
+                </svg>
+              </div>
+              <span class="settings-tile-text">إصدار التطبيق</span>
+              <span class="settings-tile-value">1.0.0 (Web)</span>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ====================================================
+       نوافذ الاختيار المنبثقة (Modals) — اللغة والثيم
+       ==================================================== -->
+
+  <!-- نافذة اختيار اللغة -->
+  <div class="settings-modal-overlay" id="settings-modal-language" onclick="if(event.target===this)closeSettingsModal('language')">
+    <div class="settings-modal-sheet">
+      <div class="settings-modal-handle"></div>
+      <div class="settings-modal-title">اختر اللغة</div>
+      <div class="settings-modal-option" onclick="selectLanguage('ar')">
+        <span class="settings-modal-option-icon">🇸🇦</span>
+        <span class="settings-modal-option-text">العربية</span>
+        <span class="settings-modal-option-check" id="lang-check-ar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </span>
+      </div>
+      <div class="settings-modal-option" onclick="selectLanguage('en')">
+        <span class="settings-modal-option-icon">🇺🇸</span>
+        <span class="settings-modal-option-text">English</span>
+        <span class="settings-modal-option-check hidden" id="lang-check-en">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة اختيار الثيم -->
+  <div class="settings-modal-overlay" id="settings-modal-theme" onclick="if(event.target===this)closeSettingsModal('theme')">
+    <div class="settings-modal-sheet">
+      <div class="settings-modal-handle"></div>
+      <div class="settings-modal-title">اختر المظهر</div>
+      <div class="settings-modal-option" onclick="selectThemeFromSettings('light')">
+        <span class="settings-modal-option-icon">☀️</span>
+        <span class="settings-modal-option-text">فاتح</span>
+        <span class="settings-modal-option-check" id="theme-check-light">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </span>
+      </div>
+      <div class="settings-modal-option" onclick="selectThemeFromSettings('dark')">
+        <span class="settings-modal-option-icon">🌙</span>
+        <span class="settings-modal-option-text">داكن</span>
+        <span class="settings-modal-option-check hidden" id="theme-check-dark">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة تغيير كلمة المرور المنبثقة -->
+  <div class="settings-modal-overlay" id="settings-modal-password" onclick="if(event.target===this)closeSettingsModal('password')">
+    <div class="settings-modal-sheet" style="padding: 24px;">
+      <div class="settings-modal-handle"></div>
+      <div class="settings-modal-title">🔑 تغيير كلمة المرور</div>
+
+      <div id="change-pass-error" style="display:none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 16px; line-height: 1.5;"></div>
+      <div id="change-pass-success" style="display:none; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #10B981; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 16px; line-height: 1.5;"></div>
+
+      <form id="change-password-form" onsubmit="handleChangePassword(event)">
+        <div style="margin-bottom: 14px; text-align: right;">
+          <label style="display: block; font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">كلمة المرور الحالية</label>
+          <input type="password" id="current-pass-input" style="width: 100%; height: 46px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 0 14px; font-size: 14px; color: var(--text-primary); outline: none;" required placeholder="••••••••" />
+        </div>
+
+        <div style="margin-bottom: 14px; text-align: right;">
+          <label style="display: block; font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">كلمة المرور الجديدة</label>
+          <input type="password" id="new-pass-input" style="width: 100%; height: 46px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 0 14px; font-size: 14px; color: var(--text-primary); outline: none;" required placeholder="أدخل 6 أحرف على الأقل" />
+        </div>
+
+        <div style="margin-bottom: 20px; text-align: right;">
+          <label style="display: block; font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">تأكيد كلمة المرور الجديدة</label>
+          <input type="password" id="confirm-new-pass-input" style="width: 100%; height: 46px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 0 14px; font-size: 14px; color: var(--text-primary); outline: none;" required placeholder="أعد كتابة كلمة المرور الجديدة" />
+        </div>
+
+        <button type="submit" id="change-pass-submit-btn" style="width: 100%; height: 48px; background: var(--primary); color: #FFFFFF; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s ease;">تحديث كلمة المرور</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- استدعاء ApiClient وملف الـ JavaScript الرئيسي -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- ====================================================
+       JavaScript خاص بصفحة الإعدادات فقط
+       ==================================================== -->
+  <script>
+    /* --- فتح وإغلاق النوافذ المنبثقة --- */
+    function openSettingsModal(type) {
+      const modal = document.getElementById('settings-modal-' + type);
+      if (modal) {
+        if (type === 'password') {
+          document.getElementById('change-pass-error').style.display = 'none';
+          document.getElementById('change-pass-success').style.display = 'none';
+        }
+        modal.classList.add('show');
+      }
+    }
+
+    function closeSettingsModal(type) {
+      const modal = document.getElementById('settings-modal-' + type);
+      if (modal) modal.classList.remove('show');
+    }
+
+    /* --- اختيار اللغة --- */
+    function selectLanguage(lang) {
+      document.getElementById('lang-check-ar').classList.toggle('hidden', lang !== 'ar');
+      document.getElementById('lang-check-en').classList.toggle('hidden', lang !== 'en');
+      document.getElementById('settings-lang-value').textContent = lang === 'ar' ? 'العربية' : 'English';
+      localStorage.setItem('cs_language', lang);
+      closeSettingsModal('language');
+    }
+
+    /* --- اختيار الثيم من الإعدادات --- */
+    function selectThemeFromSettings(theme) {
+      document.getElementById('theme-check-light').classList.toggle('hidden', theme !== 'light');
+      document.getElementById('theme-check-dark').classList.toggle('hidden', theme !== 'dark');
+      document.getElementById('settings-theme-value').textContent = theme === 'light' ? 'فاتح' : 'داكن';
+      // تطبيق الثيم فعلياً
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('cs_theme', theme);
+      closeSettingsModal('theme');
+    }
+
+    /* --- تغيير كلمة المرور --- */
+    async function handleChangePassword(e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById('current-pass-input').value.trim();
+      const newPassword = document.getElementById('new-pass-input').value.trim();
+      const confirmPassword = document.getElementById('confirm-new-pass-input').value.trim();
+      
+      const errorDiv = document.getElementById('change-pass-error');
+      const successDiv = document.getElementById('change-pass-success');
+      const submitBtn = document.getElementById('change-pass-submit-btn');
+
+      errorDiv.style.display = 'none';
+      successDiv.style.display = 'none';
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        errorDiv.textContent = 'يرجى تعبئة جميع الحقول المطلوب.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        errorDiv.textContent = 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        errorDiv.textContent = 'كلمة المرور الجديدة غير متطابقة مع التأكيد.';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'جاري التحديث... ⏳';
+
+        await ApiClient.changePassword(currentPassword, newPassword, confirmPassword);
+
+        successDiv.textContent = '✅ تم تغيير كلمة المرور بنجاح!';
+        successDiv.style.display = 'block';
+
+        document.getElementById('current-pass-input').value = '';
+        document.getElementById('new-pass-input').value = '';
+        document.getElementById('confirm-new-pass-input').value = '';
+
+        setTimeout(() => {
+          closeSettingsModal('password');
+        }, 1800);
+
+      } catch (err) {
+        console.error('[Change Password Error]:', err);
+        errorDiv.textContent = err.message || 'فشل تغيير كلمة المرور، يرجى التأكد من كلمة المرور الحالية والمحاولة مرة أخرى.';
+        errorDiv.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'تحديث كلمة المرور';
+      }
+    }
+
+    /* --- تهيئة الحالة الأولية عند تحميل الصفحة --- */
+    document.addEventListener('DOMContentLoaded', function() {
+      // تحميل اللغة المحفوظة
+      const savedLang = localStorage.getItem('cs_language') || 'ar';
+      document.getElementById('lang-check-ar').classList.toggle('hidden', savedLang !== 'ar');
+      document.getElementById('lang-check-en').classList.toggle('hidden', savedLang !== 'en');
+      document.getElementById('settings-lang-value').textContent = savedLang === 'ar' ? 'العربية' : 'English';
+
+      // تحميل الثيم المحفوظ
+      const savedTheme = localStorage.getItem('cs_theme') || 'light';
+      document.getElementById('theme-check-light').classList.toggle('hidden', savedTheme !== 'light');
+      document.getElementById('theme-check-dark').classList.toggle('hidden', savedTheme !== 'dark');
+      document.getElementById('settings-theme-value').textContent = savedTheme === 'light' ? 'فاتح' : 'داكن';
+    });
+  </script>
+</body>
+</html>

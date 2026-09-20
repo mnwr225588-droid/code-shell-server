@@ -1,0 +1,226 @@
+/* ====================================================
+   base.css — الأساسيات والـ Reset والخطوط والأنيميشن
+   ده الملف اللي بيعمل Reset للمتصفح وبيحدد الخطوط
+   وفيه الـ utility classes والأنيميشنز
+   ==================================================== */
+
+/* --- استيراد خط Cairo للعربي و Inter للإنجليزي --- */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* --- Reset — بنشيل أي ستايل default من المتصفح --- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* --- الـ HTML و Body — الإعدادات الأساسية للصفحة --- */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  width: 100%;
+}
+
+body {
+  font-family: 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  direction: rtl; /* التطبيق عربي — اتجاه من اليمين لليسار */
+  text-align: right;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  position: relative;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* --- اللينكات — شكلها الموحد في الموقع كله --- */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* --- الصور — عشان ماتفيضش عن الحاوية --- */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --- القوائم — شيل البوليتات --- */
+ul, ol {
+  list-style: none;
+}
+
+/* --- الأزرار — Reset أساسي --- */
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+}
+
+/* --- الـ Input — Reset أساسي --- */
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+  border: none;
+}
+
+/* --- Scrollbar مخصص — شكله أحلى من الـ default --- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ====================================================
+   الأنيميشنز — حركات الدخول والخروج
+   ==================================================== */
+
+/* --- fadeIn — ظهور تدريجي --- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- fadeInRight — ظهور من اليمين (للـ RTL) --- */
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- fadeInLeft — ظهور من الشمال --- */
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- scaleIn — ظهور مع تكبير --- */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- slideDown — نزول من فوق --- */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- pulse — نبضة بسيطة للعناصر المهمة --- */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* --- spin — دوران (للـ loading) --- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- كلاسات الأنيميشن الجاهزة --- */
+.animate-fadeIn { animation: fadeIn 0.5s ease forwards; }
+.animate-fadeInRight { animation: fadeInRight 0.5s ease forwards; }
+.animate-fadeInLeft { animation: fadeInLeft 0.5s ease forwards; }
+.animate-scaleIn { animation: scaleIn 0.4s ease forwards; }
+.animate-slideDown { animation: slideDown 0.3s ease forwards; }
+
+/* --- تأخيرات الأنيميشن (بنستخدمها عشان العناصر تظهر ورا بعض) --- */
+.delay-1 { animation-delay: 0.1s; opacity: 0; }
+.delay-2 { animation-delay: 0.2s; opacity: 0; }
+.delay-3 { animation-delay: 0.3s; opacity: 0; }
+.delay-4 { animation-delay: 0.4s; opacity: 0; }
+.delay-5 { animation-delay: 0.5s; opacity: 0; }
+.delay-6 { animation-delay: 0.6s; opacity: 0; }
+
+/* ====================================================
+   Utility Classes — كلاسات مساعدة عامة
+   ==================================================== */
+.text-center { text-align: center; }
+.text-primary { color: var(--primary); }
+.text-muted { color: var(--text-muted); }
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+.font-bold { font-weight: 700; }
+.font-extra-bold { font-weight: 800; }
+
+/* --- إخفاء/إظهار --- */
+.hidden { display: none !important; }
+.invisible { visibility: hidden; }
+
+/* --- Flexbox helpers --- */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-sm { gap: 8px; }
+.gap-md { gap: 16px; }
+.gap-lg { gap: 24px; }
+
+/* ====================================================
+   Responsive — التوافق مع الشاشات الصغيرة
+   ======================================================
+   الستايلات الأساسية للـ Responsive موجودة في components.css
+   هنا فقط أي overrides إضافية للـ base
+   ==================================================== */
+
+/* --- الزر ده مخفي في الديسكتوب ومظهور في الموبايل فقط --- */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  background: var(--primary);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 20px;
+  z-index: 1001;
+  box-shadow: var(--shadow-primary);
+  cursor: pointer;
+}
+
+/* --- الخلفية الشفافة لما القائمة تتفتح في الموبايل --- */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+.sidebar-overlay.active {
+  display: block;
+}
+

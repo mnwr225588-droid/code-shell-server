@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\PaymentController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/web/index.html');
 });
 
 Route::get('/verify-email/{token}', function ($token) {

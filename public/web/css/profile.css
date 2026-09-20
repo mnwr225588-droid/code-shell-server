@@ -1,0 +1,262 @@
+/* ====================================================
+   صفحة الملف الشخصي (Profile Page) — نسخة طبق الأصل من التطبيق
+   ==================================================== */
+
+/* --- الحاوية الرئيسية لمحتوى الملف الشخصي --- */
+.profile-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* --- عنوان الصفحة والأزرار العلوية --- */
+.profile-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.profile-page-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.profile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* --- أزرار الإعدادات والإشعارات الدائرية --- */
+.profile-action-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-decoration: none;
+  color: var(--text-primary);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+
+.profile-action-icon:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* --- بطاقة الأفاتار والاسم والإحصائيات --- */
+.profile-hero-card {
+  background: var(--bg-card);
+  border-radius: 24px;
+  padding: 28px 24px;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+  text-align: center;
+  margin-bottom: 24px;
+  animation: profileFadeIn 0.6s ease both;
+  animation-delay: 0.2s;
+}
+
+@keyframes profileFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- الأفاتار الدائري مع الحرف الأول --- */
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.1);
+  border: 2px solid rgba(37, 99, 235, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.profile-avatar-letter {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+}
+
+/* --- اسم المستخدم الكامل --- */
+.profile-user-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+/* --- صف الإحصائيات الثلاثية (كورسات، شهادات، مشاريع) --- */
+.profile-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+.profile-stat-col {
+  text-align: center;
+}
+
+.profile-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.profile-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.profile-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border-light);
+}
+
+/* --- بطاقة بيانات المستخدم التفصيلية --- */
+.profile-info-card {
+  background: var(--bg-card);
+  border-radius: 24px;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  margin-bottom: 24px;
+  animation: profileFadeIn 0.6s ease both;
+  animation-delay: 0.3s;
+}
+
+/* --- صف بيان واحد (أيقونة + تسمية + قيمة) --- */
+.profile-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.profile-info-row-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.profile-info-row-content {
+  flex: 1;
+}
+
+.profile-info-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.profile-info-value {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* --- شارة الدولة الصغيرة بجوار رقم الهاتف --- */
+.profile-country-badge {
+  display: inline-block;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+html[data-theme="dark"] .profile-country-badge {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60A5FA;
+}
+
+/* --- الخط الفاصل بين صفوف البيانات --- */
+.profile-info-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 0 0 0 56px;
+}
+
+/* --- أزرار الإجراءات (تعديل الملف الشخصي، تسجيل الخروج) --- */
+.profile-btn-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 56px;
+  background: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  margin-bottom: 16px;
+  animation: profileFadeIn 0.6s ease both;
+  animation-delay: 0.4s;
+}
+
+.profile-btn-edit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  color: #FFFFFF;
+}
+
+.profile-btn-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 56px;
+  background: transparent;
+  color: #EF4444;
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  animation: profileFadeIn 0.6s ease both;
+  animation-delay: 0.5s;
+}
+
+.profile-btn-logout:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #EF4444;
+}
+
+/* --- التجاوب مع الهواتف --- */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 16px;
+  }
+  .profile-hero-card {
+    padding: 24px 16px;
+  }
+  .profile-page-title {
+    font-size: 20px;
+  }
+}

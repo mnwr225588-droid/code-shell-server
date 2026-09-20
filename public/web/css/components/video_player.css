@@ -1,0 +1,404 @@
+/* ====================================================
+   video_player.css — مشغل الفيديو الاحترافي لمنصة Code Shell
+   مكون كاستم بالكامل: متجاوب، اختصارات لوحة المفاتيح، اللمس، الاستكمال
+   ==================================================== */
+
+.cs-player-wrapper {
+  position: relative;
+  width: 100%;
+  background: #090D16;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  direction: ltr; /* لضبط الاتجاه الأفقي للمشغل بشكل صحيح */
+}
+
+.cs-player-wrapper video {
+  width: 100%;
+  height: auto;
+  max-height: 75vh;
+  display: block;
+  object-fit: contain;
+  background: #000;
+  outline: none;
+}
+
+/* --- طبقة التراكب وعناصر التحكم --- */
+.cs-player-controls-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to top, rgba(9, 13, 22, 0.95) 0%, rgba(9, 13, 22, 0.2) 40%, rgba(9, 13, 22, 0.5) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+}
+
+.cs-player-wrapper:hover .cs-player-controls-overlay,
+.cs-player-wrapper.controls-visible .cs-player-controls-overlay,
+.cs-player-wrapper.paused .cs-player-controls-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --- الهيدر العلوي في المشغل --- */
+.cs-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #FFFFFF;
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+}
+
+.cs-player-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #F8FAFC;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+/* --- زر التشغيل في المنتصف --- */
+.cs-player-center-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(29, 78, 216, 0.9));
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5);
+  backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+  z-index: 12;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cs-player-wrapper.paused .cs-player-center-btn,
+.cs-player-wrapper:hover .cs-player-center-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.cs-player-center-btn:hover {
+  transform: translate(-50%, -50%) scale(1.1) !important;
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  box-shadow: 0 15px 40px rgba(37, 99, 235, 0.7);
+}
+
+/* --- مناطق اللمس المزدوج للهاتف (Double Tap Touch Zones) --- */
+.cs-touch-zone {
+  position: absolute;
+  top: 0;
+  bottom: 80px;
+  width: 40%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cs-touch-zone-left {
+  left: 0;
+}
+
+.cs-touch-zone-right {
+  right: 0;
+}
+
+/* انيميشن نبضة اللمس (Double Tap Ripple) */
+.cs-touch-ripple {
+  position: absolute;
+  background: rgba(59, 130, 246, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Cairo', sans-serif;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  direction: rtl;
+}
+
+.cs-touch-ripple.active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* --- مؤشر التحميل (Loading Spinner Overlay) --- */
+.cs-player-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: csSpin 0.9s linear infinite;
+  z-index: 15;
+  display: none;
+}
+
+@keyframes csSpin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* --- الشريط السفلي لعناصر التحكم (Bottom Control Bar) --- */
+.cs-player-bottom-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* شريط التقديم والتقدم الزمني (Seek Bar Container) */
+.cs-progress-container {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: height 0.2s ease;
+}
+
+.cs-progress-container:hover {
+  height: 10px;
+}
+
+.cs-progress-buffer {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  width: 0%;
+}
+
+.cs-progress-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, #3B82F6, #60A5FA);
+  border-radius: 10px;
+  width: 0%;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+}
+
+.cs-progress-handle {
+  position: absolute;
+  top: 50%;
+  right: -7px;
+  transform: translateY(-50%) scale(0);
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 0.2s ease;
+}
+
+.cs-progress-container:hover .cs-progress-handle {
+  transform: translateY(-50%) scale(1);
+}
+
+/* أزرار التحكم والوقت (Controls Row) */
+.cs-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #FFFFFF;
+  font-family: 'Cairo', sans-serif;
+}
+
+.cs-controls-left, .cs-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cs-btn-icon {
+  background: none;
+  border: none;
+  color: #E2E8F0;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.cs-btn-icon:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.cs-time-display {
+  font-size: 13px;
+  font-weight: 700;
+  color: #CBD5E1;
+  letter-spacing: 0.5px;
+  direction: ltr;
+}
+
+/* شريط التحكم في الصوت */
+.cs-volume-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.cs-volume-slider {
+  width: 0;
+  opacity: 0;
+  transition: all 0.3s ease;
+  accent-color: #3B82F6;
+  cursor: pointer;
+  height: 4px;
+}
+
+.cs-volume-wrapper:hover .cs-volume-slider {
+  width: 70px;
+  opacity: 1;
+}
+
+/* قائمة خيارات السرعة والجودة */
+.cs-menu-dropdown {
+  position: relative;
+}
+
+.cs-menu-popup {
+  position: absolute;
+  bottom: 45px;
+  right: 0;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: all 0.25s ease;
+  z-index: 20;
+  min-width: 110px;
+  direction: rtl;
+}
+
+.cs-menu-dropdown.active .cs-menu-popup {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.cs-menu-item {
+  background: none;
+  border: none;
+  color: #CBD5E1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cs-menu-item:hover, .cs-menu-item.selected {
+  background: rgba(59, 130, 246, 0.25);
+  color: #60A5FA;
+}
+
+/* --- توست استكمال المشاهدة (Resume Watch Banner) --- */
+.cs-resume-toast {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 16px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+  backdrop-filter: blur(12px);
+  z-index: 25;
+  animation: csToastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  direction: rtl;
+  font-family: 'Cairo', sans-serif;
+}
+
+@keyframes csToastIn {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cs-resume-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.cs-resume-btn {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cs-resume-btn:hover {
+  background: #3B82F6;
+}
+
+.cs-resume-close {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  font-size: 14px;
+  cursor: pointer;
+}

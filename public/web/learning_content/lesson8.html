@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>💻 نظام التشغيل - الدرس الثامن</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 18px;
+            object-fit: cover;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon {
+            font-size: 1.8rem;
+        }
+        .lesson-info h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1D4ED8;
+        }
+        .lesson-badge {
+            background: #F59E0B;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .level-badge {
+            background: #2563EB;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .progress-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 40px;
+            overflow: hidden;
+            min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #2563EB;
+            border-radius: 40px;
+            transition: width 0.5s ease;
+        }
+        .progress-percent {
+            font-weight: 700;
+            color: #2563EB;
+            font-size: 0.8rem;
+        }
+        .btn-back {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-back:hover {
+            background: #cbd5e1;
+        }
+
+        /* ===== TABS ===== */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF;
+            border: 2px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: default;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: #FFFFFF;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 20px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .hero-content {
+            flex: 1 1 100%;
+        }
+        .hero-content h2 {
+            font-size: 1.8rem;
+            color: #1D4ED8;
+            font-weight: 700;
+        }
+        .hero-sub {
+            font-size: 1rem;
+            color: #2563EB;
+            font-weight: 700;
+            margin: 4px 0 6px;
+        }
+        .hero-level {
+            background: #F59E0B;
+            color: #fff;
+            display: inline-block;
+            padding: 2px 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin: 6px 0 10px;
+        }
+        .hero-desc {
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        /* ===== GOAL CARD ===== */
+        .goal-card {
+            background: #dbeafe;
+            border-radius: 18px;
+            padding: 20px 18px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            border-right: 6px solid #2563EB;
+        }
+        .goal-icon {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+        .goal-card h3 {
+            font-size: 1.4rem;
+            color: #1D4ED8;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .goal-card>p {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .goal-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px 0;
+        }
+        .goal-list li {
+            font-size: 0.95rem;
+            color: #1e293b;
+            padding: 4px 0;
+        }
+
+        /* ===== LESSON CONTENT ===== */
+        .lesson-content {
+            transition: all 0.5s ease;
+        }
+        .lesson-content.hidden {
+            display: none;
+        }
+
+        .lesson-section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563EB;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #2563EB;
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+        .section-sub {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-right: 8px;
+        }
+        .section-image {
+            margin: 14px 0;
+        }
+        .section-image img {
+            width: 100%;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+        .center-image img {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .section-text p {
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+            color: #1e293b;
+        }
+        .section-text .highlight-box {
+            background: #f0f9ff;
+            border-radius: 18px;
+            padding: 16px 18px;
+            border-right: 4px solid #2563EB;
+            margin: 16px 0;
+        }
+        .section-text .highlight-box h4 {
+            color: #1D4ED8;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .section-text .highlight-box.purple {
+            background: #f3e8ff;
+            border-right-color: #8B5CF6;
+        }
+        .section-text .highlight-box.gold {
+            background: #fefce8;
+            border-right-color: #F59E0B;
+        }
+
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            border-radius: 18px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            border-right: 6px solid;
+        }
+        .info-box h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .info-box p {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .info-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .info-box ul li {
+            font-size: 0.95rem;
+            padding: 2px 0;
+        }
+        .info-box ul li::before {
+            content: "• ";
+        }
+        .info-box.blue {
+            background: #eff6ff;
+            border-color: #2563EB;
+        }
+        .info-box.blue h4 {
+            color: #1D4ED8;
+        }
+        .info-box.green {
+            background: #f0fdf4;
+            border-color: #16A34A;
+        }
+        .info-box.green h4 {
+            color: #16A34A;
+        }
+        .info-box.yellow {
+            background: #fefce8;
+            border-color: #F59E0B;
+        }
+        .info-box.yellow h4 {
+            color: #F59E0B;
+        }
+        .info-box.red {
+            background: #fef2f2;
+            border-color: #DC2626;
+        }
+        .info-box.red h4 {
+            color: #DC2626;
+        }
+        .info-box.purple {
+            background: #f3e8ff;
+            border-color: #8B5CF6;
+        }
+        .info-box.purple h4 {
+            color: #8B5CF6;
+        }
+
+        /* ===== TABLES ===== */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .info-table th {
+            background: #2563EB;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .info-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+        .info-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== FLOWCHART ===== */
+        .flowchart {
+            background: #FFFFFF;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin: 16px 0;
+            text-align: center;
+        }
+        .flowchart .step {
+            display: inline-block;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 700;
+            margin: 4px 0;
+            min-width: 120px;
+        }
+        .flowchart .step.blue {
+            background: #dbeafe;
+            color: #1D4ED8;
+            border: 2px solid #2563EB;
+        }
+        .flowchart .step.green {
+            background: #dcfce7;
+            color: #16A34A;
+            border: 2px solid #16A34A;
+        }
+        .flowchart .step.yellow {
+            background: #fefce8;
+            color: #F59E0B;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.purple {
+            background: #f3e8ff;
+            color: #8B5CF6;
+            border: 2px solid #8B5CF6;
+        }
+        .flowchart .step.orange {
+            background: #fef3c7;
+            color: #D97706;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .arrow {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin: 2px 0;
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary-box {
+            background: #f0f9ff;
+            border-right: 6px solid #2563EB;
+            padding: 20px 22px;
+            border-radius: 18px;
+            margin: 24px 0;
+        }
+        .summary-box h4 {
+            color: #1D4ED8;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .summary-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .summary-box ul li {
+            font-size: 0.95rem;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-box ul li:last-child {
+            border-bottom: none;
+        }
+        .summary-box ul li::before {
+            content: "✅ ";
+            color: #16A34A;
+        }
+
+        /* ===== COMPLETE BUTTON ===== */
+        .complete-wrapper {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .btn-complete {
+            background: #16A34A;
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-complete:hover {
+            background: #15803d;
+            transform: scale(1.02);
+        }
+        .btn-complete:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-complete.completed {
+            background: #16A34A;
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* ===== NEXT BUTTON ===== */
+        .next-wrapper {
+            text-align: center;
+            margin: 20px 0 30px;
+            display: none;
+        }
+        .next-wrapper.show {
+            display: block;
+        }
+        .btn-next-lesson {
+            background: #2563EB;
+            color: #fff;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+        }
+        .btn-next-lesson:hover {
+            background: #1D4ED8;
+            transform: scale(1.02);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.4);
+        }
+
+        /* ===== FOOTER ===== */
+        .lesson-footer {
+            margin-top: 24px;
+            padding: 16px;
+            text-align: center;
+            color: #94a3b8;
+            border-top: 2px dashed #e2e8f0;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            .lesson-info h1 {
+                font-size: 1rem;
+            }
+            .lesson-icon {
+                font-size: 1.5rem;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-back {
+                align-self: flex-start;
+                font-size: 0.75rem;
+                padding: 4px 12px;
+            }
+            .hero {
+                padding: 14px 14px;
+                gap: 14px;
+            }
+            .hero-content h2 {
+                font-size: 1.5rem;
+            }
+            .section-title {
+                font-size: 1.3rem;
+            }
+            .goal-card {
+                padding: 16px 14px;
+            }
+            .btn-complete {
+                font-size: 1rem;
+                padding: 12px 20px;
+            }
+            .btn-next-lesson {
+                font-size: 1rem;
+                padding: 12px 24px;
+                width: 100%;
+                justify-content: center;
+            }
+            .info-table th,
+            .info-table td {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .section-text p {
+                font-size: 0.92rem;
+            }
+            .hero-desc {
+                font-size: 0.9rem;
+            }
+            .info-box {
+                padding: 12px 14px;
+            }
+            .flowchart .step {
+                min-width: 80px;
+                font-size: 0.9rem;
+                padding: 6px 12px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hero-content h2 {
+                font-size: 1.3rem;
+            }
+            .progress-label {
+                font-size: 0.7rem;
+            }
+            .progress-percent {
+                font-size: 0.7rem;
+            }
+        }
+
+        .section-image img,
+        .hero-image img,
+        .center-image img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">💻</span>
+            <div class="lesson-info">
+                <h1>نظام التشغيل <span class="lesson-badge">الدرس الثامن</span></h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+            <div class="progress-wrapper">
+                <span class="progress-label">التقدم</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== TABS ===== -->
+    <div class="tabs-container">
+        <button class="tab-btn active">📖 مادة القراءة</button>
+    </div>
+
+    <!-- ===== محتوى الدرس ===== -->
+    <div class="lesson-content" id="lessonContent">
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>💻 نظام التشغيل</h2>
+                <p class="hero-sub">Operating System</p>
+                <p class="hero-level">المستوى الأول</p>
+                <p class="hero-desc">تعرف على نظام التشغيل، أهم برنامج في الحاسوب، ودوره في إدارة المكونات وتشغيل البرامج.</p>
+            </div>
+        </section>
+
+        <!-- GOAL -->
+        <section class="goal-card">
+            <div class="goal-icon">🎯</div>
+            <h3>أهداف الدرس</h3>
+            <p>بعد الانتهاء من هذا الدرس، ستكون قادرًا على:</p>
+            <ul class="goal-list">
+                <li>✔ فهم معنى نظام التشغيل (Operating System).</li>
+                <li>✔ معرفة سبب أهمية نظام التشغيل في الحاسوب.</li>
+                <li>✔ التعرف على دوره في إدارة الأجهزة والبرامج.</li>
+                <li>✔ معرفة أشهر أنظمة التشغيل المستخدمة في الحواسيب والهواتف.</li>
+                <li>✔ فهم سبب عدم قدرة الحاسوب على العمل بدونه.</li>
+            </ul>
+        </section>
+
+        <!-- ===== مقدمة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مقدمة <span class="section-sub">Introduction</span></h2>
+            <div class="section-text">
+                <p>عندما تضغط على أيقونة لعبة أو تفتح متصفح الإنترنت أو تشغل مقطع فيديو، يبدو لك أن كل شيء يحدث فورًا.</p>
+                <p>لكن في الحقيقة، هناك برنامج يعمل في الخلفية ينظم جميع هذه العمليات، ويقرر متى يعمل كل برنامج، وكيف يستخدم المعالج (CPU)، وكمية الذاكرة (RAM) التي يحصل عليها، وكيف يتم الوصول إلى الملفات المخزنة.</p>
+                <p>هذا البرنامج يسمى <strong>نظام التشغيل (Operating System - OS)</strong>، وهو أحد أهم أجزاء أي جهاز إلكتروني.</p>
+                <p>بدون نظام التشغيل، لن يستطيع الحاسوب تشغيل البرامج أو إدارة مكوناته، ولن يتمكن المستخدم من استخدام الجهاز بطريقة طبيعية.</p>
+                <div class="section-image center-image">
+                    <img src="images/os_central.png" alt="Operating System diagram" />
+                    <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                        (Image: Computer showing a layer labeled "Operating System" between the user and internal components, with arrows showing command flow.)
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== ما هو نظام التشغيل؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ما هو نظام التشغيل؟</h2>
+            <div class="section-text">
+                <p>نظام التشغيل (Operating System) هو البرنامج الأساسي الذي يبدأ عمله عند تشغيل الحاسوب، ويستمر في العمل طوال فترة استخدام الجهاز.</p>
+                <p>وتتمثل مهمته في إدارة جميع مكونات الحاسوب وتنظيم عمل البرامج، بحيث تعمل جميعها معًا دون تعارض.</p>
+                <p>وببساطة، يعمل نظام التشغيل كحلقة وصل بين:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>• 👤 المستخدم.</li>
+                    <li>• 💻 البرامج والتطبيقات.</li>
+                    <li>• 🔧 المكونات المادية للحاسوب.</li>
+                </ul>
+            </div>
+            <div class="info-box blue">
+                <h4>🔵 تعريف مهم</h4>
+                <p><strong>نظام التشغيل (Operating System - OS):</strong> هو البرنامج الرئيسي الذي يدير موارد الحاسوب، ويتحكم في عمل الأجهزة والبرامج، ويعمل كوسيط بين المستخدم ومكونات الجهاز.</p>
+            </div>
+            <div class="info-box green">
+                <h4>🟢 ماذا يقصد بكلمة "نظام"؟</h4>
+                <p>يطلق عليه "نظام تشغيل" لأنه ينظم طريقة عمل جميع أجزاء الحاسوب. فهو لا يقوم بمهمة واحدة فقط، بل يشرف على مئات العمليات في الوقت نفسه، مثل:</p>
+                <ul>
+                    <li>تشغيل البرامج.</li>
+                    <li>إدارة الذاكرة.</li>
+                    <li>التحكم في الأجهزة.</li>
+                    <li>تنظيم الملفات.</li>
+                    <li>استقبال أوامر المستخدم.</li>
+                </ul>
+                <p style="margin-top:6px;">ولهذا يُعد أهم برنامج داخل أي جهاز.</p>
+            </div>
+        </section>
+
+        <!-- ===== لماذا نحتاج إلى نظام تشغيل؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">لماذا نحتاج إلى نظام تشغيل؟</h2>
+            <div class="section-text">
+                <p>قد يتساءل البعض: <strong>إذا كان الحاسوب يحتوي على معالج وذاكرة ووحدة تخزين، فلماذا نحتاج إلى نظام تشغيل؟</strong></p>
+                <p>الإجابة بسيطة. المكونات المادية (Hardware) لا تستطيع العمل وحدها، لأنها لا تعرف ماذا يجب أن تفعل. كما أن البرامج لا تستطيع التحكم مباشرة في المعالج أو الذاكرة أو الشاشة.</p>
+                <p>لذلك يأتي دور نظام التشغيل، فيستقبل أوامر البرامج، ثم ينسق بين جميع المكونات لتنفيذها بالطريقة الصحيحة.</p>
+            </div>
+            <div class="info-box yellow">
+                <h4>🟡 مثال بسيط</h4>
+                <p>تخيل أنك ضغطت على برنامج الرسام (Paint). هل يبدأ البرنامج بالعمل مباشرة؟ لا.</p>
+                <p>ما يحدث هو:</p>
+                <ol style="padding-right:20px;">
+                    <li>يضغط المستخدم على أيقونة البرنامج.</li>
+                    <li>يستقبل نظام التشغيل الطلب.</li>
+                    <li>يبحث عن البرنامج داخل وحدة التخزين.</li>
+                    <li>ينقل البيانات اللازمة إلى RAM.</li>
+                    <li>يطلب من CPU تنفيذ التعليمات.</li>
+                    <li>تظهر نافذة البرنامج على الشاشة.</li>
+                </ol>
+                <p style="margin-top:6px;">كل هذه الخطوات تتم خلال أجزاء من الثانية.</p>
+            </div>
+            <div class="flowchart">
+                <p style="font-weight:700; margin-bottom:8px;">عملية تشغيل برنامج</p>
+                <div class="step blue">👤 المستخدم</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">🖥️ نظام التشغيل</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">💾 التخزين</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">🧠 RAM</div>
+                <div class="arrow">⬇️</div>
+                <div class="step orange">⚙️ CPU</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">🖥️ الشاشة</div>
+            </div>
+        </section>
+
+        <!-- ===== نظام التشغيل هو المدير ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">نظام التشغيل هو المدير</h2>
+            <div class="section-text">
+                <p>أفضل طريقة لفهم نظام التشغيل هي تخيله كمدير داخل شركة.</p>
+                <p>في الشركة يوجد: الموظفون، المكاتب، الأجهزة، الملفات. ولو لم يوجد مدير ينظم العمل، سيحدث فوضى، وتعارض بين الموظفين، وضياع الملفات، وتأخر إنجاز الأعمال.</p>
+                <p>وبالمثل، داخل الحاسوب: البرامج تحتاج إلى استخدام المعالج، والبرامج تحتاج إلى RAM، والبرامج تحتاج إلى الملفات، وجميعها تريد العمل في الوقت نفسه. وهنا يتدخل نظام التشغيل لينظم كل شيء.</p>
+            </div>
+            <div class="info-box green">
+                <h4>🟢 تشبيه المعلم</h4>
+                <p>تخيل فصلًا دراسيًا. يوجد ثلاثون طالبًا، وكلهم يريدون التحدث في الوقت نفسه.</p>
+                <p>بدون معلم: سيصبح الفصل فوضويًا، ولن يستطيع أحد الفهم، وسيضيع الوقت.</p>
+                <p>أما إذا كان هناك معلم: يحدد من يتحدث، وينظم الدرس، ويحافظ على النظام.</p>
+                <p style="font-weight:700; margin-top:6px;">وهذا بالضبط ما يفعله نظام التشغيل داخل الحاسوب.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/os_manager.png" alt="OS as manager" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Classroom with a teacher organizing students, next to it a diagram showing OS organizing programs.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== كيف يعمل نظام التشغيل؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">كيف يعمل نظام التشغيل؟</h2>
+            <div class="section-text">
+                <p>لا يسمح نظام التشغيل لأي برنامج بالتحكم المباشر في مكونات الحاسوب. بل يمر كل طلب عبر نظام التشغيل أولًا.</p>
+                <p>تكون العملية كالتالي:</p>
+                <ol style="padding-right:20px;">
+                    <li>يرسل البرنامج طلبًا.</li>
+                    <li>يستقبل نظام التشغيل هذا الطلب.</li>
+                    <li>يحدد الموارد المطلوبة.</li>
+                    <li>يوجه المعالج لتنفيذ المهمة.</li>
+                    <li>يعرض النتيجة للمستخدم.</li>
+                </ol>
+                <p>وهذا يمنع حدوث التعارض بين البرامج المختلفة.</p>
+            </div>
+            <div class="info-box yellow">
+                <h4>🟡 مثال عملي</h4>
+                <p>إذا ضغطت على زر تشغيل فيديو:</p>
+                <ul>
+                    <li>يرسل مشغل الفيديو الطلب إلى نظام التشغيل.</li>
+                    <li>يبحث نظام التشغيل عن ملف الفيديو.</li>
+                    <li>يقرأ الملف من وحدة التخزين.</li>
+                    <li>ينقل البيانات إلى RAM.</li>
+                    <li>يطلب من CPU معالجة الفيديو.</li>
+                    <li>تظهر الصورة على الشاشة ويخرج الصوت من السماعات.</li>
+                </ul>
+            </div>
+            <div class="flowchart">
+                <p style="font-weight:700; margin-bottom:8px;">تشغيل فيديو</p>
+                <div class="step green">📁 ملف فيديو</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">🖥️ نظام التشغيل</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">💾 Storage</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">🧠 RAM</div>
+                <div class="arrow">⬇️</div>
+                <div class="step orange">⚙️ CPU</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">🖥️ الشاشة + 🔊 السماعات</div>
+            </div>
+        </section>
+
+        <!-- ===== ماذا يحدث إذا لم يكن هناك نظام تشغيل؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ماذا يحدث إذا لم يكن هناك نظام تشغيل؟</h2>
+            <div class="section-text">
+                <p>إذا حاولت تشغيل جهاز لا يحتوي على نظام تشغيل، فلن تتمكن من استخدامه بالشكل المعتاد.</p>
+                <p>لن تستطيع:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>❌ فتح التطبيقات.</li>
+                    <li>❌ تشغيل الألعاب.</li>
+                    <li>❌ استخدام الإنترنت.</li>
+                    <li>❌ إدارة الملفات.</li>
+                    <li>❌ تشغيل الشاشة بطريقة صحيحة.</li>
+                    <li>❌ التحكم في لوحة المفاتيح أو الفأرة.</li>
+                </ul>
+                <p>فالمكونات ستكون موجودة، لكنها لن تعرف كيف تعمل معًا.</p>
+                <p style="font-weight:700; color:#DC2626;">ولهذا يُعد نظام التشغيل أهم برنامج في أي جهاز.</p>
+            </div>
+            <div class="info-box red">
+                <h4>🔴 معلومة مهمة</h4>
+                <p>حتى أقوى الحواسيب في العالم لا يمكن استخدامها بدون نظام تشغيل. وجود معالج قوي أو ذاكرة كبيرة لا يكفي إذا لم يكن هناك نظام يدير هذه المكونات.</p>
+            </div>
+        </section>
+
+        <!-- ===== أمثلة على أنظمة التشغيل ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">أمثلة على أنظمة التشغيل</h2>
+            <div class="section-text">
+                <p>تختلف أنظمة التشغيل حسب نوع الجهاز.</p>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:16px;">💻 للحواسيب</h3>
+            <ul style="list-style:none; display:flex; flex-wrap:wrap; gap:12px 20px; padding:6px 0;">
+                <li>🪟 <strong>Windows</strong></li>
+                <li>🐧 <strong>Linux</strong></li>
+                <li>🍎 <strong>macOS</strong></li>
+            </ul>
+            <div class="section-image center-image">
+                <img src="images/os_logos.png" alt="OS logos" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Windows, Linux, and macOS logos next to computer devices.)
+                </p>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">📱 للهواتف الذكية</h3>
+            <ul style="list-style:none; display:flex; flex-wrap:wrap; gap:12px 20px; padding:6px 0;">
+                <li>🤖 <strong>Android</strong></li>
+                <li>🍎 <strong>iOS</strong></li>
+            </ul>
+            <div class="section-image center-image">
+                <img src="images/mobile_os.png" alt="Mobile OS" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Android and iOS phones side by side.)
+                </p>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">📱 للأجهزة اللوحية</h3>
+            <p>تعتمد معظم الأجهزة اللوحية على:</p>
+            <ul style="list-style:none; padding:6px 0;">
+                <li>• Android</li>
+                <li>• iPadOS</li>
+                <li>• Windows (في بعض الأجهزة)</li>
+            </ul>
+        </section>
+
+        <!-- ===== هل يعمل نظام التشغيل طوال الوقت؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">هل يعمل نظام التشغيل طوال الوقت؟</h2>
+            <div class="section-text">
+                <p>نعم. فهو يبدأ العمل بمجرد تشغيل الجهاز، ويظل يعمل في الخلفية حتى تقوم بإيقاف تشغيل الحاسوب.</p>
+                <p>وأثناء استخدامك للجهاز، ينظم:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>• تشغيل البرامج.</li>
+                    <li>• استخدام الذاكرة.</li>
+                    <li>• التعامل مع الملفات.</li>
+                    <li>• التحكم في الأجهزة.</li>
+                    <li>• استقبال أوامر المستخدم.</li>
+                </ul>
+                <p>ولذلك قد لا تراه مباشرة، لكنه يعمل باستمرار.</p>
+            </div>
+            <div class="info-box purple">
+                <h4>🟣 معلومة إضافية</h4>
+                <p>قد يعتقد بعض المستخدمين أن نظام التشغيل هو مجرد واجهة تظهر على الشاشة، مثل سطح المكتب أو قائمة "ابدأ". لكن الحقيقة أن ما تراه هو جزء صغير فقط من نظام التشغيل، أما الجزء الأكبر فيعمل في الخلفية لإدارة جميع العمليات الداخلية دون أن تشعر به.</p>
+            </div>
+        </section>
+
+        <!-- ===== ملخص الدرس ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📌 ملخص الدرس</h2>
+            <div class="summary-box">
+                <ul>
+                    <li>نظام التشغيل (Operating System) هو البرنامج الأساسي الذي يدير الحاسوب.</li>
+                    <li>يعمل كحلقة وصل بين المستخدم والبرامج والمكونات المادية.</li>
+                    <li>يستقبل طلبات البرامج وينظم استخدام المعالج والذاكرة ووحدة التخزين.</li>
+                    <li>يمنع تعارض البرامج عند العمل معًا.</li>
+                    <li>يبدأ العمل عند تشغيل الجهاز ويستمر حتى إيقافه.</li>
+                    <li>لا يمكن استخدام الحاسوب بصورة طبيعية بدون نظام تشغيل.</li>
+                    <li>من أشهر أنظمة التشغيل: <strong>Windows وLinux وmacOS</strong> للحواسيب، و<strong>Android وiOS</strong> للهواتف الذكية.</li>
+                </ul>
+            </div>
+            <div class="info-box yellow" style="margin-top:16px;">
+                <h4>📌 ملاحظة</h4>
+                <p>في الدرس القادم سنتعرف على <strong>الوظائف الأساسية لنظام التشغيل</strong>، مثل إدارة العمليات، وإدارة الذاكرة، وإدارة الملفات، وإدارة الأجهزة، مع أمثلة عملية توضح كيف يحافظ نظام التشغيل على عمل الجهاز بكفاءة.</p>
+            </div>
+        </section>
+
+        <!-- زر إكتملت القراءة -->
+        <div class="complete-wrapper">
+            <button class="btn-complete" id="completeReadingBtn">✅ إكتملت القراءة</button>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:6px;">بعد الضغط على هذا الزر سيظهر زر الانتقال للدرس التالي.</p>
+        </div>
+
+        <!-- زر الدرس التالي (يظهر بعد الضغط على زر الإكمال) -->
+        <div class="next-wrapper" id="nextWrapper">
+            <button class="btn-next-lesson" id="nextLessonBtn">📘 الدرس التالي: وظائف نظام التشغيل</button>
+        </div>
+
+    </div> <!-- نهاية lesson-content -->
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="lesson-footer">
+        <p>🚀 تم إنجاز الدرس الثامن. حظاً موفقاً في الدرس القادم!</p>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const completeBtn = document.getElementById('completeReadingBtn');
+            const lessonContent = document.getElementById('lessonContent');
+            const backBtn = document.getElementById('backBtn');
+            const nextWrapper = document.getElementById('nextWrapper');
+            const nextLessonBtn = document.getElementById('nextLessonBtn');
+
+            let readingCompleted = false;
+
+            // ===== زر الرجوع =====
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'lesson7.html';
+                }
+            });
+
+            // ===== زر الدرس التالي =====
+            nextLessonBtn.addEventListener('click', function() {
+                window.location.href = 'lesson9.html';
+            });
+
+            // ===== تحديث التقدم أثناء التمرير =====
+            function updateScrollProgress() {
+                if (readingCompleted) return;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const docHeight = Math.max(
+                    document.documentElement.scrollHeight,
+                    document.body.scrollHeight
+                ) - window.innerHeight;
+                let progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                let rounded = Math.min(100, Math.round(progress));
+                // نعرض التقدم حتى 100% للقراءة
+                progressFill.style.width = rounded + '%';
+                progressPercent.textContent = rounded + '%';
+            }
+
+            window.addEventListener('scroll', updateScrollProgress);
+            window.addEventListener('resize', updateScrollProgress);
+            window.addEventListener('load', updateScrollProgress);
+
+            // ===== زر "إكتملت القراءة" =====
+            completeBtn.addEventListener('click', function() {
+                if (readingCompleted) return;
+                readingCompleted = true;
+
+                // تغيير مظهر الزر
+                completeBtn.textContent = '✅ تم ✓';
+                completeBtn.classList.add('completed');
+                completeBtn.disabled = true;
+
+                // تحديث شريط التقدم إلى 100%
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                // إزالة مستمع التمرير
+                window.removeEventListener('scroll', updateScrollProgress);
+                window.removeEventListener('resize', updateScrollProgress);
+
+                // إظهار زر الدرس التالي
+                nextWrapper.classList.add('show');
+
+                // التمرير إلى زر الدرس التالي
+                setTimeout(() => {
+                    nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+
+        })();
+    </script>
+</body>
+</html>

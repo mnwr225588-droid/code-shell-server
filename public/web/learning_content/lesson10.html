@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>💻 كيف تعمل المكونات معًا؟ - الدرس العاشر</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 18px;
+            object-fit: cover;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon {
+            font-size: 1.8rem;
+        }
+        .lesson-info h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1D4ED8;
+        }
+        .lesson-badge {
+            background: #F59E0B;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .level-badge {
+            background: #2563EB;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .progress-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 40px;
+            overflow: hidden;
+            min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #2563EB;
+            border-radius: 40px;
+            transition: width 0.5s ease;
+        }
+        .progress-percent {
+            font-weight: 700;
+            color: #2563EB;
+            font-size: 0.8rem;
+        }
+        .btn-back {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-back:hover {
+            background: #cbd5e1;
+        }
+
+        /* ===== TABS ===== */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF;
+            border: 2px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: default;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: #FFFFFF;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 20px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .hero-content {
+            flex: 1 1 100%;
+        }
+        .hero-content h2 {
+            font-size: 1.8rem;
+            color: #1D4ED8;
+            font-weight: 700;
+        }
+        .hero-sub {
+            font-size: 1rem;
+            color: #2563EB;
+            font-weight: 700;
+            margin: 4px 0 6px;
+        }
+        .hero-level {
+            background: #F59E0B;
+            color: #fff;
+            display: inline-block;
+            padding: 2px 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin: 6px 0 10px;
+        }
+        .hero-desc {
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        /* ===== GOAL CARD ===== */
+        .goal-card {
+            background: #dbeafe;
+            border-radius: 18px;
+            padding: 20px 18px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            border-right: 6px solid #2563EB;
+        }
+        .goal-icon {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+        .goal-card h3 {
+            font-size: 1.4rem;
+            color: #1D4ED8;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .goal-card>p {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .goal-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px 0;
+        }
+        .goal-list li {
+            font-size: 0.95rem;
+            color: #1e293b;
+            padding: 4px 0;
+        }
+
+        /* ===== LESSON CONTENT ===== */
+        .lesson-content {
+            transition: all 0.5s ease;
+        }
+        .lesson-content.hidden {
+            display: none;
+        }
+
+        .lesson-section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563EB;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #2563EB;
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+        .section-sub {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-right: 8px;
+        }
+        .section-image {
+            margin: 14px 0;
+        }
+        .section-image img {
+            width: 100%;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+        .center-image img {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .section-text p {
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+            color: #1e293b;
+        }
+        .section-text .highlight-box {
+            background: #f0f9ff;
+            border-radius: 18px;
+            padding: 16px 18px;
+            border-right: 4px solid #2563EB;
+            margin: 16px 0;
+        }
+        .section-text .highlight-box h4 {
+            color: #1D4ED8;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .section-text .highlight-box.purple {
+            background: #f3e8ff;
+            border-right-color: #8B5CF6;
+        }
+        .section-text .highlight-box.gold {
+            background: #fefce8;
+            border-right-color: #F59E0B;
+        }
+
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            border-radius: 18px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            border-right: 6px solid;
+        }
+        .info-box h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .info-box p {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .info-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .info-box ul li {
+            font-size: 0.95rem;
+            padding: 2px 0;
+        }
+        .info-box ul li::before {
+            content: "• ";
+        }
+        .info-box.blue {
+            background: #eff6ff;
+            border-color: #2563EB;
+        }
+        .info-box.blue h4 {
+            color: #1D4ED8;
+        }
+        .info-box.green {
+            background: #f0fdf4;
+            border-color: #16A34A;
+        }
+        .info-box.green h4 {
+            color: #16A34A;
+        }
+        .info-box.yellow {
+            background: #fefce8;
+            border-color: #F59E0B;
+        }
+        .info-box.yellow h4 {
+            color: #F59E0B;
+        }
+        .info-box.red {
+            background: #fef2f2;
+            border-color: #DC2626;
+        }
+        .info-box.red h4 {
+            color: #DC2626;
+        }
+        .info-box.purple {
+            background: #f3e8ff;
+            border-color: #8B5CF6;
+        }
+        .info-box.purple h4 {
+            color: #8B5CF6;
+        }
+
+        /* ===== TABLES ===== */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .info-table th {
+            background: #2563EB;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .info-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+        .info-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== FLOWCHART ===== */
+        .flowchart {
+            background: #FFFFFF;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin: 16px 0;
+            text-align: center;
+        }
+        .flowchart .step {
+            display: inline-block;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 700;
+            margin: 4px 0;
+            min-width: 120px;
+        }
+        .flowchart .step.blue {
+            background: #dbeafe;
+            color: #1D4ED8;
+            border: 2px solid #2563EB;
+        }
+        .flowchart .step.green {
+            background: #dcfce7;
+            color: #16A34A;
+            border: 2px solid #16A34A;
+        }
+        .flowchart .step.yellow {
+            background: #fefce8;
+            color: #F59E0B;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.purple {
+            background: #f3e8ff;
+            color: #8B5CF6;
+            border: 2px solid #8B5CF6;
+        }
+        .flowchart .step.orange {
+            background: #fef3c7;
+            color: #D97706;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.red {
+            background: #fef2f2;
+            color: #DC2626;
+            border: 2px solid #DC2626;
+        }
+        .flowchart .arrow {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin: 2px 0;
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary-box {
+            background: #f0f9ff;
+            border-right: 6px solid #2563EB;
+            padding: 20px 22px;
+            border-radius: 18px;
+            margin: 24px 0;
+        }
+        .summary-box h4 {
+            color: #1D4ED8;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .summary-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .summary-box ul li {
+            font-size: 0.95rem;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-box ul li:last-child {
+            border-bottom: none;
+        }
+        .summary-box ul li::before {
+            content: "✅ ";
+            color: #16A34A;
+        }
+
+        /* ===== TERMS TABLE ===== */
+        .terms-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .terms-table th {
+            background: #1D4ED8;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .terms-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .terms-table tr:last-child td {
+            border-bottom: none;
+        }
+        .terms-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== COMPLETE BUTTON ===== */
+        .complete-wrapper {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .btn-complete {
+            background: #16A34A;
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-complete:hover {
+            background: #15803d;
+            transform: scale(1.02);
+        }
+        .btn-complete:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-complete.completed {
+            background: #16A34A;
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* ===== EXAM BUTTON ===== */
+        .exam-wrapper {
+            text-align: center;
+            margin: 20px 0 30px;
+            display: none;
+        }
+        .exam-wrapper.show {
+            display: block;
+        }
+        .btn-exam {
+            background: #8B5CF6;
+            color: #fff;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.15rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+        }
+        .btn-exam:hover {
+            background: #7C3AED;
+            transform: scale(1.02);
+            box-shadow: 0 12px 32px rgba(139, 92, 246, 0.45);
+        }
+        .exam-wrapper p {
+            color: #64748b;
+            font-size: 0.95rem;
+            margin-top: 10px;
+        }
+        .exam-wrapper .note {
+            background: #fefce8;
+            border-radius: 12px;
+            padding: 10px 16px;
+            border-right: 4px solid #F59E0B;
+            margin-top: 12px;
+            display: inline-block;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        /* ===== FOOTER ===== */
+        .lesson-footer {
+            margin-top: 24px;
+            padding: 16px;
+            text-align: center;
+            color: #94a3b8;
+            border-top: 2px dashed #e2e8f0;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            .lesson-info h1 {
+                font-size: 1rem;
+            }
+            .lesson-icon {
+                font-size: 1.5rem;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-back {
+                align-self: flex-start;
+                font-size: 0.75rem;
+                padding: 4px 12px;
+            }
+            .hero {
+                padding: 14px 14px;
+                gap: 14px;
+            }
+            .hero-content h2 {
+                font-size: 1.5rem;
+            }
+            .section-title {
+                font-size: 1.3rem;
+            }
+            .goal-card {
+                padding: 16px 14px;
+            }
+            .btn-complete {
+                font-size: 1rem;
+                padding: 12px 20px;
+            }
+            .btn-exam {
+                font-size: 1rem;
+                padding: 12px 24px;
+                width: 100%;
+                justify-content: center;
+            }
+            .info-table th,
+            .info-table td,
+            .terms-table th,
+            .terms-table td {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .section-text p {
+                font-size: 0.92rem;
+            }
+            .hero-desc {
+                font-size: 0.9rem;
+            }
+            .info-box {
+                padding: 12px 14px;
+            }
+            .flowchart .step {
+                min-width: 80px;
+                font-size: 0.9rem;
+                padding: 6px 12px;
+            }
+            .exam-wrapper .note {
+                font-size: 0.8rem;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hero-content h2 {
+                font-size: 1.3rem;
+            }
+            .progress-label {
+                font-size: 0.7rem;
+            }
+            .progress-percent {
+                font-size: 0.7rem;
+            }
+        }
+
+        .section-image img,
+        .hero-image img,
+        .center-image img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">💻</span>
+            <div class="lesson-info">
+                <h1>كيف تعمل المكونات معًا؟ <span class="lesson-badge">الدرس العاشر</span></h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+            <div class="progress-wrapper">
+                <span class="progress-label">التقدم</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== TABS ===== -->
+    <div class="tabs-container">
+        <button class="tab-btn active">📖 مادة القراءة</button>
+    </div>
+
+    <!-- ===== محتوى الدرس ===== -->
+    <div class="lesson-content" id="lessonContent">
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>💻 كيف تعمل الأجهزة والبرامج ونظام التشغيل معًا؟</h2>
+                <p class="hero-sub">How Hardware, Software, and the Operating System Work Together</p>
+                <p class="hero-level">المستوى الأول</p>
+                <p class="hero-desc">تعرف على رحلة تنفيذ الأوامر داخل الحاسوب، وكيف تتعاون جميع المكونات لتشغيل أي برنامج.</p>
+            </div>
+        </section>
+
+        <!-- GOAL -->
+        <section class="goal-card">
+            <div class="goal-icon">🎯</div>
+            <h3>أهداف الدرس</h3>
+            <p>بعد الانتهاء من هذا الدرس، ستكون قادرًا على:</p>
+            <ul class="goal-list">
+                <li>✔ فهم العلاقة بين الأجهزة (Hardware) والبرمجيات (Software) ونظام التشغيل (Operating System).</li>
+                <li>✔ معرفة ما يحدث داخل الحاسوب عند تشغيل أي برنامج.</li>
+                <li>✔ التعرف على رحلة تنفيذ الأوامر منذ ضغط المستخدم على التطبيق وحتى ظهور النتيجة.</li>
+                <li>✔ فهم سبب اختلاف سرعة تشغيل البرامج من جهاز لآخر.</li>
+                <li>✔ استيعاب كيف تتعاون جميع مكونات الحاسوب لإنجاز المهام.</li>
+            </ul>
+        </section>
+
+        <!-- ===== مقدمة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مقدمة <span class="section-sub">Introduction</span></h2>
+            <div class="section-text">
+                <p>خلال الدروس السابقة تعرفنا على:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>• المكونات المادية (Hardware).</li>
+                    <li>• البرمجيات (Software).</li>
+                    <li>• وحدة المعالجة المركزية (CPU).</li>
+                    <li>• ذاكرة الوصول العشوائي (RAM).</li>
+                    <li>• وحدة التخزين (Storage).</li>
+                    <li>• نظام التشغيل (Operating System).</li>
+                </ul>
+                <p>لكن هذه المكونات لا تعمل بشكل منفصل، بل تتعاون معًا في كل عملية يقوم بها الحاسوب.</p>
+                <p>فعندما تضغط على أي تطبيق، تبدأ رحلة سريعة جدًا داخل الجهاز، تمر خلالها البيانات بين عدة مكونات قبل أن ترى النتيجة على الشاشة.</p>
+                <p>قد تبدو العملية بسيطة للمستخدم، لكنها في الحقيقة تتكون من عدة خطوات منظمة تحدث خلال أجزاء من الثانية.</p>
+            </div>
+        </section>
+
+        <!-- ===== الصورة الكبيرة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">الصورة الكبيرة</h2>
+            <div class="section-text">
+                <p>يمكن اعتبار الحاسوب فريق عمل، ولكل جزء فيه وظيفة محددة.</p>
+            </div>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>المكون</th>
+                        <th>الوظيفة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>🔧 الأجهزة (Hardware)</strong></td>
+                        <td>تنفذ العمليات فعليًا.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>💾 البرمجيات (Software)</strong></td>
+                        <td>ترسل التعليمات المطلوبة.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>⚙️ نظام التشغيل (Operating System)</strong></td>
+                        <td>ينظم جميع المكونات ويربطها معًا.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="info-box red">
+                <h4>🔴 تنبيه مهم</h4>
+                <p>إذا غاب أي عنصر من هذه العناصر، فلن يعمل الحاسوب بالشكل الصحيح.</p>
+            </div>
+        </section>
+
+        <!-- ===== تشبيه بسيط ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">💡 تشبيه بسيط</h2>
+            <div class="section-text">
+                <p>تخيل مطعمًا:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>👨‍🍳 <strong>الطهاة</strong> = الأجهزة (Hardware).</li>
+                    <li>📄 <strong>وصفات الطعام</strong> = البرمجيات (Software).</li>
+                    <li>👨‍💼 <strong>مدير المطعم</strong> = نظام التشغيل (Operating System).</li>
+                </ul>
+                <p>فالطهاة يستطيعون الطبخ، لكنهم يحتاجون إلى وصفات توضح ما يجب فعله، ويحتاجون أيضًا إلى مدير ينظم العمل بينهم.</p>
+                <p style="font-weight:700; color:#1D4ED8;">وبالمثل، يحتاج الحاسوب إلى أجهزة وبرامج ونظام تشغيل تعمل معًا.</p>
+            </div>
+        </section>
+
+        <!-- ===== ماذا يحدث عند فتح تطبيق؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ماذا يحدث عند فتح تطبيق؟</h2>
+            <div class="section-text">
+                <p>لنفترض أنك ضغطت على لعبة موجودة على سطح المكتب.</p>
+                <p>هل تبدأ اللعبة مباشرة؟ <strong>الإجابة: لا.</strong></p>
+                <p>بل تمر العملية بعدة مراحل متتالية.</p>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:18px;">الخطوة الأولى: يضغط المستخدم على التطبيق</h3>
+            <p>كل شيء يبدأ عندما ينقر المستخدم على أيقونة التطبيق. في هذه اللحظة، تصل إشارة إلى نظام التشغيل تخبره بأن المستخدم يريد تشغيل هذا البرنامج.</p>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">الخطوة الثانية: يستقبل نظام التشغيل الطلب</h3>
+            <p>يقوم نظام التشغيل باستقبال الطلب، ثم يتحقق من عدة أمور، مثل:</p>
+            <ul style="list-style:none; padding:6px 0;">
+                <li>• هل التطبيق موجود؟</li>
+                <li>• هل ملفات التطبيق سليمة؟</li>
+                <li>• هل توجد موارد كافية لتشغيله؟</li>
+                <li>• هل يملك المستخدم صلاحية تشغيله؟</li>
+            </ul>
+            <p>إذا كانت جميع الشروط صحيحة، ينتقل إلى الخطوة التالية.</p>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">الخطوة الثالثة: الوصول إلى وحدة التخزين</h3>
+            <p>يعرف نظام التشغيل مكان ملفات البرنامج داخل وحدة التخزين (Storage). يقوم بقراءة الملفات المطلوبة، لكن لا يمكن للمعالج تنفيذها مباشرة من وحدة التخزين لأنها أبطأ من RAM. لذلك لا يبدأ تشغيل البرنامج من هذه المرحلة.</p>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">الخطوة الرابعة: تحميل البرنامج إلى RAM</h3>
+            <p>يقوم نظام التشغيل بنقل الملفات المهمة من وحدة التخزين إلى ذاكرة الوصول العشوائي (RAM).</p>
+            <p><strong>لماذا؟</strong> لأن RAM أسرع بكثير، وتسمح للمعالج بالوصول إلى البيانات بسرعة كبيرة. كلما كانت RAM أكبر، أمكن تشغيل برامج أكثر في الوقت نفسه.</p>
+
+            <div class="info-box yellow">
+                <h4>🟡 مثال</h4>
+                <p>عندما تفتح لعبة حجمها 20 جيجابايت، لا يتم تحميل جميع ملفاتها إلى RAM. بل يقوم نظام التشغيل بتحميل الملفات التي يحتاجها البرنامج في الوقت الحالي فقط، ثم يحمل ملفات أخرى عند الحاجة. وهذا يساعد على استخدام الذاكرة بكفاءة.</p>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">الخطوة الخامسة: يبدأ المعالج بتنفيذ التعليمات</h3>
+            <p>بعد وصول البيانات إلى RAM، يطلب نظام التشغيل من وحدة المعالجة المركزية (CPU) تنفيذ التعليمات.</p>
+            <p>يبدأ المعالج في:</p>
+            <ul style="list-style:none; padding:6px 0;">
+                <li>• تنفيذ أوامر البرنامج.</li>
+                <li>• إجراء العمليات الحسابية.</li>
+                <li>• معالجة البيانات.</li>
+                <li>• إرسال النتائج إلى الأجهزة المناسبة.</li>
+            </ul>
+            <p>وهنا يبدأ البرنامج بالعمل فعليًا.</p>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:24px;">الخطوة السادسة: عرض النتائج للمستخدم</h3>
+            <p>بعد تنفيذ التعليمات، يتم إرسال النتائج إلى أجهزة الإخراج.</p>
+            <p>فمثلًا:</p>
+            <ul style="list-style:none; padding:6px 0;">
+                <li>• تظهر الصورة على الشاشة.</li>
+                <li>• يخرج الصوت من السماعات.</li>
+                <li>• يستجيب البرنامج لحركة الفأرة.</li>
+                <li>• يستقبل الكتابة من لوحة المفاتيح.</li>
+            </ul>
+            <p>وهكذا يبدأ المستخدم في استخدام التطبيق بصورة طبيعية.</p>
+        </section>
+
+        <!-- ===== رحلة كاملة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">🎮 رحلة كاملة في مثال عملي: تشغيل لعبة</h2>
+            <div class="flowchart">
+                <div class="step blue">1️⃣ يضغط المستخدم على اللعبة</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">2️⃣ يستقبل نظام التشغيل الطلب</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">3️⃣ يجد ملفات اللعبة داخل وحدة التخزين</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">4️⃣ ينقل الملفات اللازمة إلى RAM</div>
+                <div class="arrow">⬇️</div>
+                <div class="step orange">5️⃣ يطلب من CPU تنفيذ التعليمات</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">6️⃣ تظهر الرسومات على الشاشة</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">7️⃣ يخرج الصوت من السماعات</div>
+                <div class="arrow">⬇️</div>
+                <div class="step red">8️⃣ يتحكم اللاعب باستخدام لوحة المفاتيح والفأرة</div>
+            </div>
+        </section>
+
+        <!-- ===== تشغيل عدة تطبيقات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ماذا يحدث عند تشغيل عدة تطبيقات؟</h2>
+            <div class="section-text">
+                <p>قد تفتح في الوقت نفسه: متصفح الإنترنت، YouTube، لعبة، برنامج Word.</p>
+                <p>كيف يستطيع الجهاز تشغيلها جميعًا؟</p>
+                <p>يقوم نظام التشغيل بما يلي:</p>
+                <ul style="list-style:none; padding:6px 0;">
+                    <li>• يقسم وقت المعالج بين البرامج.</li>
+                    <li>• يوزع ذاكرة RAM.</li>
+                    <li>• ينظم الوصول إلى وحدة التخزين.</li>
+                    <li>• يتحكم في الأجهزة المختلفة.</li>
+                </ul>
+                <p>كل ذلك يحدث بسرعة كبيرة جدًا، فيبدو للمستخدم أن جميع البرامج تعمل في الوقت نفسه.</p>
+            </div>
+        </section>
+
+        <!-- ===== لماذا تختلف سرعة الأجهزة؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">لماذا تختلف سرعة الأجهزة؟</h2>
+            <div class="section-text">
+                <p>قد تلاحظ أن لعبة تعمل بسرعة على جهاز، لكنها بطيئة على جهاز آخر. السبب ليس البرنامج فقط، بل يعتمد على قوة جميع المكونات.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🟦 وحدة المعالجة المركزية (CPU)</h4>
+                <p>إذا كان المعالج ضعيفًا: يحتاج وقتًا أطول لتنفيذ التعليمات، وتصبح البرامج أبطأ.</p>
+            </div>
+
+            <div class="info-box green">
+                <h4>🟩 ذاكرة الوصول العشوائي (RAM)</h4>
+                <p>إذا كانت RAM صغيرة: لا يمكن تشغيل عدد كبير من البرامج، وقد تغلق بعض التطبيقات تلقائيًا، ويصبح التنقل بين البرامج بطيئًا.</p>
+            </div>
+
+            <div class="info-box yellow">
+                <h4>🟨 وحدة التخزين (Storage)</h4>
+                <p>إذا كانت وحدة التخزين من نوع HDD: يستغرق تحميل البرامج وقتًا أطول. أما إذا كانت SSD: تفتح البرامج بسرعة أكبر ويقل وقت تشغيل النظام.</p>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 البرنامج نفسه</h4>
+                <p>حتى مع وجود جهاز قوي، قد يكون البرنامج غير مُحسَّن بشكل جيد، فيستهلك موارد كثيرة ويعمل ببطء.</p>
+            </div>
+        </section>
+
+        <!-- ===== ماذا يحدث إذا تعطلت إحدى المكونات؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ماذا يحدث إذا تعطلت إحدى المكونات؟</h2>
+            <div class="section-text">
+                <div class="info-box red">
+                    <h4>🔴 تأثير تعطل المكونات</h4>
+                    <ul>
+                        <li>إذا تعطلت وحدة التخزين: لن يستطيع نظام التشغيل قراءة ملفات البرامج.</li>
+                        <li>إذا تعطلت RAM: لن يتمكن المعالج من الوصول بسرعة إلى البيانات.</li>
+                        <li>إذا تعطلت CPU: لن تُنفذ أي تعليمات.</li>
+                        <li>إذا توقف نظام التشغيل: لن تتمكن البرامج من العمل، ولن تُدار موارد الجهاز، ولن يستطيع المستخدم استخدام الحاسوب بصورة طبيعية.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== رحلة تشغيل أي برنامج ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">رحلة تشغيل أي برنامج</h2>
+            <div class="flowchart">
+                <div class="step blue">👤 المستخدم</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">⚙️ نظام التشغيل</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">💽 وحدة التخزين</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">🧠 RAM</div>
+                <div class="arrow">⬇️</div>
+                <div class="step orange">⚡ CPU</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">🖥️ أجهزة الإخراج والإدخال</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">✅ تظهر النتيجة للمستخدم</div>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 معلومة مهمة</h4>
+                <p>قد يعتقد البعض أن المعالج وحده هو المسؤول عن تشغيل البرامج، لكن الحقيقة أن أي برنامج يحتاج إلى تعاون جميع المكونات معًا.</p>
+                <p style="font-weight:700; margin-top:6px;">فإذا كان أحد هذه المكونات بطيئًا أو تالفًا، فسيتأثر أداء الجهاز بالكامل. ولهذا يُقال إن أداء الحاسوب يعتمد على تكامل مكوناته، وليس على قوة مكون واحد فقط.</p>
+            </div>
+        </section>
+
+        <!-- ===== ملخص الدرس ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📌 ملخص الدرس</h2>
+            <div class="summary-box">
+                <ul>
+                    <li>تعتمد جميع العمليات داخل الحاسوب على تعاون الأجهزة والبرامج ونظام التشغيل.</li>
+                    <li>يبدأ تشغيل أي برنامج عندما يرسل المستخدم طلبًا إلى نظام التشغيل.</li>
+                    <li>يبحث نظام التشغيل عن ملفات البرنامج في وحدة التخزين.</li>
+                    <li>ينقل البيانات اللازمة إلى RAM.</li>
+                    <li>يطلب من CPU تنفيذ التعليمات.</li>
+                    <li>تُعرض النتائج عبر أجهزة الإخراج، بينما تُستخدم أجهزة الإدخال للتفاعل مع البرنامج.</li>
+                    <li>يعتمد أداء الحاسوب على تعاون جميع المكونات، وليس على قوة مكون واحد فقط.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ===== المصطلحات الأساسية ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📖 المصطلحات الأساسية</h2>
+            <table class="terms-table">
+                <thead>
+                    <tr>
+                        <th>المصطلح</th>
+                        <th>التعريف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>الأجهزة (Hardware)</strong></td>
+                        <td>المكونات المادية التي تنفذ العمليات داخل الحاسوب.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>البرمجيات (Software)</strong></td>
+                        <td>البرامج والتعليمات التي تخبر الحاسوب بما يجب أن يفعله.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>نظام التشغيل (Operating System)</strong></td>
+                        <td>البرنامج الذي يدير الأجهزة والبرامج وينظم عملها.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>التنفيذ (Execution)</strong></td>
+                        <td>قيام المعالج بتنفيذ تعليمات البرنامج.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>الموارد (Resources)</strong></td>
+                        <td>المكونات التي يستخدمها النظام مثل CPU وRAM ووحدة التخزين.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>سير العمل (Workflow)</strong></td>
+                        <td>سلسلة الخطوات التي تحدث لتنفيذ مهمة داخل الحاسوب.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- زر إكتملت القراءة -->
+        <div class="complete-wrapper">
+            <button class="btn-complete" id="completeReadingBtn">✅ إكتملت القراءة</button>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:6px;">بعد الضغط على هذا الزر سيظهر زر الانتقال إلى الاختبار التراكمي.</p>
+        </div>
+
+        <!-- زر الاختبار التراكمي (يظهر بعد الضغط على زر الإكمال) -->
+        <div class="exam-wrapper" id="examWrapper">
+            <button class="btn-exam" id="examBtn">📚 الاختبار التراكمي (الدروس ٨-٩-١٠)</button>
+            <p>يحتوي الاختبار على 8 أسئلة تغطي الدروس الثامن والتاسع والعاشر.</p>
+            <div class="note">📌 هذا الاختبار هو آخر اختبار في المستوى الأول. بعد اجتيازه ستكون قد أنهيت جميع الدروس الأساسية.</div>
+        </div>
+
+    </div> <!-- نهاية lesson-content -->
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="lesson-footer">
+        <p>🚀 تم إنجاز الدرس العاشر. استعد للاختبار التراكمي!</p>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const completeBtn = document.getElementById('completeReadingBtn');
+            const lessonContent = document.getElementById('lessonContent');
+            const backBtn = document.getElementById('backBtn');
+            const examWrapper = document.getElementById('examWrapper');
+            const examBtn = document.getElementById('examBtn');
+
+            let readingCompleted = false;
+
+            // ===== زر الرجوع =====
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'lesson9.html';
+                }
+            });
+
+            // ===== زر الاختبار التراكمي =====
+            examBtn.addEventListener('click', function() {
+                window.location.href = 'exam2.html';
+            });
+
+            // ===== تحديث التقدم أثناء التمرير =====
+            function updateScrollProgress() {
+                if (readingCompleted) return;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const docHeight = Math.max(
+                    document.documentElement.scrollHeight,
+                    document.body.scrollHeight
+                ) - window.innerHeight;
+                let progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                let rounded = Math.min(100, Math.round(progress));
+                progressFill.style.width = rounded + '%';
+                progressPercent.textContent = rounded + '%';
+            }
+
+            window.addEventListener('scroll', updateScrollProgress);
+            window.addEventListener('resize', updateScrollProgress);
+            window.addEventListener('load', updateScrollProgress);
+
+            // ===== زر "إكتملت القراءة" =====
+            completeBtn.addEventListener('click', function() {
+                if (readingCompleted) return;
+                readingCompleted = true;
+
+                completeBtn.textContent = '✅ تم ✓';
+                completeBtn.classList.add('completed');
+                completeBtn.disabled = true;
+
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                window.removeEventListener('scroll', updateScrollProgress);
+                window.removeEventListener('resize', updateScrollProgress);
+
+                // إظهار زر الاختبار التراكمي
+                examWrapper.classList.add('show');
+
+                // التمرير إلى زر الاختبار
+                setTimeout(() => {
+                    examWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+
+        })();
+    </script>
+</body>
+</html>

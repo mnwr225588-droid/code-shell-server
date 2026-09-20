@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>💻 البيانات داخل الحاسوب - الدرس الخامس</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 18px;
+            object-fit: cover;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon {
+            font-size: 1.8rem;
+        }
+        .lesson-info h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1D4ED8;
+        }
+        .lesson-badge {
+            background: #F59E0B;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .level-badge {
+            background: #2563EB;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .progress-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 40px;
+            overflow: hidden;
+            min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #2563EB;
+            border-radius: 40px;
+            transition: width 0.5s ease;
+        }
+        .progress-percent {
+            font-weight: 700;
+            color: #2563EB;
+            font-size: 0.8rem;
+        }
+        .btn-back {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-back:hover {
+            background: #cbd5e1;
+        }
+
+        /* ===== TABS ===== */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF;
+            border: 2px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+        }
+        .tab-btn.disabled {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .tab-btn.disabled:hover::after {
+            content: " ⚠️ أكمل قراءة الدرس أولاً.";
+            font-size: 0.7rem;
+            color: #DC2626;
+            display: block;
+        }
+        .tab-btn.enabled {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+            cursor: pointer;
+            opacity: 1;
+        }
+        .tab-btn.enabled:hover {
+            background: #1D4ED8;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: #FFFFFF;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 20px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .hero-content {
+            flex: 1 1 100%;
+        }
+        .hero-content h2 {
+            font-size: 1.8rem;
+            color: #1D4ED8;
+            font-weight: 700;
+        }
+        .hero-sub {
+            font-size: 1rem;
+            color: #2563EB;
+            font-weight: 700;
+            margin: 4px 0 6px;
+        }
+        .hero-level {
+            background: #F59E0B;
+            color: #fff;
+            display: inline-block;
+            padding: 2px 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin: 6px 0 10px;
+        }
+        .hero-desc {
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        /* ===== GOAL CARD ===== */
+        .goal-card {
+            background: #dbeafe;
+            border-radius: 18px;
+            padding: 20px 18px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            border-right: 6px solid #2563EB;
+        }
+        .goal-icon {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+        .goal-card h3 {
+            font-size: 1.4rem;
+            color: #1D4ED8;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .goal-card>p {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .goal-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px 0;
+        }
+        .goal-list li {
+            font-size: 0.95rem;
+            color: #1e293b;
+            padding: 4px 0;
+        }
+
+        /* ===== LESSON CONTENT ===== */
+        .lesson-content {
+            transition: all 0.5s ease;
+        }
+        .lesson-content.hidden {
+            display: none;
+        }
+
+        .lesson-section {
+            margin-bottom: 45px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563EB;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #2563EB;
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+        .section-sub {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-right: 8px;
+        }
+        .section-image {
+            margin: 14px 0;
+        }
+        .section-image img {
+            width: 100%;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+        .center-image img {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .section-text p {
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+            color: #1e293b;
+        }
+        .section-text .highlight-box {
+            background: #f0f9ff;
+            border-radius: 18px;
+            padding: 16px 18px;
+            border-right: 4px solid #2563EB;
+            margin: 16px 0;
+        }
+        .section-text .highlight-box h4 {
+            color: #1D4ED8;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            border-radius: 18px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            border-right: 6px solid;
+        }
+        .info-box h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .info-box p {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .info-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .info-box ul li {
+            font-size: 0.95rem;
+            padding: 2px 0;
+        }
+        .info-box ul li::before {
+            content: "• ";
+        }
+        .info-box.blue {
+            background: #eff6ff;
+            border-color: #2563EB;
+        }
+        .info-box.blue h4 {
+            color: #1D4ED8;
+        }
+        .info-box.green {
+            background: #f0fdf4;
+            border-color: #16A34A;
+        }
+        .info-box.green h4 {
+            color: #16A34A;
+        }
+        .info-box.yellow {
+            background: #fefce8;
+            border-color: #F59E0B;
+        }
+        .info-box.yellow h4 {
+            color: #F59E0B;
+        }
+        .info-box.red {
+            background: #fef2f2;
+            border-color: #DC2626;
+        }
+        .info-box.red h4 {
+            color: #DC2626;
+        }
+        .info-box.purple {
+            background: #f3e8ff;
+            border-color: #8B5CF6;
+        }
+        .info-box.purple h4 {
+            color: #8B5CF6;
+        }
+
+        /* ===== TABLES ===== */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .info-table th {
+            background: #2563EB;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .info-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+        .info-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== FLOWCHART ===== */
+        .flowchart {
+            background: #FFFFFF;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin: 16px 0;
+            text-align: center;
+        }
+        .flowchart .step {
+            display: inline-block;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 700;
+            margin: 4px 0;
+            min-width: 120px;
+        }
+        .flowchart .step.blue {
+            background: #dbeafe;
+            color: #1D4ED8;
+            border: 2px solid #2563EB;
+        }
+        .flowchart .step.green {
+            background: #dcfce7;
+            color: #16A34A;
+            border: 2px solid #16A34A;
+        }
+        .flowchart .step.yellow {
+            background: #fefce8;
+            color: #F59E0B;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.purple {
+            background: #f3e8ff;
+            color: #8B5CF6;
+            border: 2px solid #8B5CF6;
+        }
+        .flowchart .arrow {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin: 2px 0;
+        }
+
+        /* ===== DATA CONVERSION CARDS ===== */
+        /* تعديل: جعل المربعات فوق بعضها بدلاً من جنباً إلى جنب */
+        .conversion-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin: 16px 0;
+        }
+        .conversion-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 18px 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            border-right: 6px solid #2563EB;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        .conversion-card:hover {
+            transform: translateY(-3px);
+        }
+        .conversion-card .icon {
+            font-size: 2.2rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .conversion-card h4 {
+            font-size: 1.15rem;
+            color: #1D4ED8;
+            margin-bottom: 6px;
+        }
+        .conversion-card p {
+            font-size: 0.95rem;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+        .conversion-card .binary-example {
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 6px;
+            color: #1e293b;
+            word-break: break-all;
+            direction: ltr;
+            border: 1px solid #e2e8f0;
+        }
+        .conversion-card.text {
+            border-color: #2563EB;
+        }
+        .conversion-card.text .icon {
+            color: #2563EB;
+        }
+        .conversion-card.image {
+            border-color: #8B5CF6;
+        }
+        .conversion-card.image .icon {
+            color: #8B5CF6;
+        }
+        .conversion-card.audio {
+            border-color: #16A34A;
+        }
+        .conversion-card.audio .icon {
+            color: #16A34A;
+        }
+        .conversion-card.video {
+            border-color: #DC2626;
+        }
+        .conversion-card.video .icon {
+            color: #DC2626;
+        }
+        .conversion-card.software {
+            border-color: #F59E0B;
+        }
+        .conversion-card.software .icon {
+            color: #F59E0B;
+        }
+
+        /* ===== STORAGE CARDS ===== */
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 14px;
+            margin: 16px 0;
+        }
+        .storage-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            text-align: center;
+            border-top: 4px solid #2563EB;
+            transition: transform 0.2s;
+        }
+        .storage-card:hover {
+            transform: translateY(-3px);
+        }
+        .storage-card .storage-icon {
+            font-size: 2.2rem;
+        }
+        .storage-card h5 {
+            font-size: 1rem;
+            color: #1D4ED8;
+            margin: 4px 0 2px;
+        }
+        .storage-card p {
+            font-size: 0.85rem;
+            color: #475569;
+        }
+        .storage-card.hdd {
+            border-color: #2563EB;
+        }
+        .storage-card.ssd {
+            border-color: #16A34A;
+        }
+        .storage-card.usb {
+            border-color: #F59E0B;
+        }
+        .storage-card.sd {
+            border-color: #8B5CF6;
+        }
+        .storage-card.cloud {
+            border-color: #DC2626;
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary-box {
+            background: #f0f9ff;
+            border-right: 6px solid #2563EB;
+            padding: 20px 22px;
+            border-radius: 18px;
+            margin: 24px 0;
+        }
+        .summary-box h4 {
+            color: #1D4ED8;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .summary-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .summary-box ul li {
+            font-size: 0.95rem;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-box ul li:last-child {
+            border-bottom: none;
+        }
+        .summary-box ul li::before {
+            content: "✅ ";
+            color: #16A34A;
+        }
+
+        /* ===== COMPLETE BUTTON ===== */
+        .complete-wrapper {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .btn-complete {
+            background: #16A34A;
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-complete:hover {
+            background: #15803d;
+            transform: scale(1.02);
+        }
+        .btn-complete:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-complete.completed {
+            background: #16A34A;
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* ===== QUIZ SECTION ===== */
+        .quiz-section {
+            display: none;
+            margin: 20px 0 30px;
+            padding: 16px 14px;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        }
+        .quiz-section.active {
+            display: block;
+        }
+        .quiz-question {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px 16px;
+            margin-bottom: 18px;
+            border-right: 4px solid #2563EB;
+        }
+        .quiz-question h4 {
+            font-size: 1.05rem;
+            color: #1D4ED8;
+            margin-bottom: 10px;
+        }
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .quiz-options label {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .quiz-options label:hover {
+            border-color: #2563EB;
+            background: #f0f9ff;
+        }
+        .quiz-options input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563EB;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .quiz-options label.correct {
+            border-color: #16A34A;
+            background: #dcfce7;
+        }
+        .quiz-options label.wrong {
+            border-color: #DC2626;
+            background: #fef2f2;
+        }
+        .quiz-options label.disabled {
+            cursor: default;
+            opacity: 0.9;
+        }
+        .quiz-options label.disabled:hover {
+            border-color: #e2e8f0;
+            background: #fff;
+        }
+        .quiz-options label.correct.disabled:hover {
+            border-color: #16A34A;
+            background: #dcfce7;
+        }
+        .quiz-options label.wrong.disabled:hover {
+            border-color: #DC2626;
+            background: #fef2f2;
+        }
+        .quiz-feedback {
+            margin-top: 10px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        .quiz-feedback.correct {
+            color: #16A34A;
+            background: #dcfce7;
+        }
+        .quiz-feedback.wrong {
+            color: #DC2626;
+            background: #fef2f2;
+        }
+        .quiz-result {
+            background: #f0f9ff;
+            border-radius: 18px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 16px;
+            border: 2px solid #2563EB;
+        }
+        .quiz-result h3 {
+            color: #1D4ED8;
+            font-size: 1.3rem;
+        }
+        .quiz-result .score {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2563EB;
+        }
+        .btn-next-lesson {
+            background: #2563EB;
+            color: #fff;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .btn-next-lesson:hover {
+            background: #1D4ED8;
+            transform: scale(1.02);
+        }
+
+        /* ===== FOOTER ===== */
+        .lesson-footer {
+            margin-top: 24px;
+            padding: 16px;
+            text-align: center;
+            color: #94a3b8;
+            border-top: 2px dashed #e2e8f0;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            .lesson-info h1 {
+                font-size: 1rem;
+            }
+            .lesson-icon {
+                font-size: 1.5rem;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-back {
+                align-self: flex-start;
+                font-size: 0.75rem;
+                padding: 4px 12px;
+            }
+            .hero {
+                padding: 14px 14px;
+                gap: 14px;
+            }
+            .hero-content h2 {
+                font-size: 1.5rem;
+            }
+            .section-title {
+                font-size: 1.3rem;
+            }
+            .goal-card {
+                padding: 16px 14px;
+            }
+            .quiz-question {
+                padding: 12px 12px;
+            }
+            .quiz-options label {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            .btn-complete {
+                font-size: 1rem;
+                padding: 12px 20px;
+            }
+            .info-table th,
+            .info-table td {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .section-text p {
+                font-size: 0.92rem;
+            }
+            .hero-desc {
+                font-size: 0.9rem;
+            }
+            .btn-next-lesson {
+                font-size: 1rem;
+                padding: 10px 24px;
+                width: 100%;
+                justify-content: center;
+            }
+            .info-box {
+                padding: 12px 14px;
+            }
+            .flowchart .step {
+                min-width: 80px;
+                font-size: 0.9rem;
+                padding: 6px 12px;
+            }
+            .storage-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            /* تحسينات إضافية للهواتف */
+            .conversion-card {
+                padding: 14px 16px;
+            }
+            .conversion-card .binary-example {
+                font-size: 0.65rem;
+                padding: 6px 10px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hero-content h2 {
+                font-size: 1.3rem;
+            }
+            .tab-btn {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+            .progress-label {
+                font-size: 0.7rem;
+            }
+            .progress-percent {
+                font-size: 0.7rem;
+            }
+            .storage-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section-image img,
+        .hero-image img,
+        .center-image img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">💻</span>
+            <div class="lesson-info">
+                <h1>البيانات داخل الحاسوب <span class="lesson-badge">الدرس الخامس</span></h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+            <div class="progress-wrapper">
+                <span class="progress-label">التقدم</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== TABS ===== -->
+    <div class="tabs-container">
+        <button class="tab-btn active" id="readingTab">📖 مادة القراءة</button>
+        <button class="tab-btn disabled" id="quizTab" disabled title="أكمل قراءة الدرس أولاً.">📝 الاختبار</button>
+    </div>
+
+    <!-- ===== محتوى الدرس ===== -->
+    <div class="lesson-content" id="lessonContent">
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>💻 البيانات داخل الحاسوب</h2>
+                <p class="hero-sub">Data Inside the Computer: What Does the Computer Process?</p>
+                <p class="hero-level">المستوى الأول</p>
+                <p class="hero-desc">تعرف على مفهوم البيانات، وأنواعها، وكيف يتعامل الحاسوب معها، وكيف تُقاس وتُخزن داخل الجهاز.</p>
+            </div>
+        </section>
+
+        <!-- GOAL -->
+        <section class="goal-card">
+            <div class="goal-icon">🎯</div>
+            <h3>أهداف الدرس</h3>
+            <p>بعد الانتهاء من هذا الدرس ستكون قادرًا على:</p>
+            <ul class="goal-list">
+                <li>✔ فهم معنى البيانات (Data).</li>
+                <li>✔ التمييز بين أنواع البيانات المختلفة.</li>
+                <li>✔ معرفة كيف يتعامل الحاسوب مع البيانات.</li>
+                <li>✔ فهم الفرق بين البيانات والمعلومات.</li>
+                <li>✔ إدراك أن كل ما يستخدمه الحاسوب هو في النهاية بيانات.</li>
+            </ul>
+        </section>
+
+        <!-- ===== مقدمة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مقدمة <span class="section-sub">Introduction</span></h2>
+            <div class="section-text">
+                <p>عندما تستخدم الحاسوب أو الهاتف الذكي، قد تكتب رسالة، أو تلتقط صورة، أو تشاهد فيلمًا، أو تستمع إلى أغنية، أو تلعب لعبة.</p>
+                <p>بالنسبة لنا، تبدو هذه الأشياء مختلفة تمامًا؛ فالصورة ليست مثل الفيديو، والنص ليس مثل الصوت.</p>
+                <p>لكن <strong>بالنسبة للحاسوب، لا يوجد فرق كبير بينها</strong>. فالحاسوب يرى جميع هذه الأشياء على أنها <strong>بيانات (Data)</strong>.</p>
+                <p>ولهذا السبب تُعد البيانات أساس عمل جميع أجهزة الحاسوب. بدون بيانات، لن يستطيع الحاسوب تنفيذ أي عملية، ولن يتمكن من تشغيل البرامج أو عرض الصور أو تشغيل الفيديوهات أو حتى كتابة حرف واحد.</p>
+
+                <div class="section-image center-image">
+                    <img src="images/data_central.png" alt="Data central concept" />
+                    <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                        (Image: Computer surrounded by icons representing document, image, video, music, and message — all pointing to the word "DATA".)
+                    </p>
+                </div>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 تعريف أساسي</h4>
+                <p><strong>البيانات (Data):</strong> هي المادة الخام التي يعمل عليها الحاسوب. وهي مجموعة من الحقائق أو القيم أو الرموز أو الأوامر التي يستطيع الحاسوب استقبالها، أو تخزينها، أو معالجتها، أو نقلها.</p>
+            </div>
+
+            <div class="info-box green">
+                <h4>🟢 لماذا تُعد البيانات مهمة؟</h4>
+                <p>كل ما يفعله الحاسوب يعتمد على البيانات. فعندما تكتب رسالة، أو تشاهد فيديو، أو تستخدم برنامجًا، أو تلعب لعبة، فإن الحاسوب يستقبل بيانات، ثم يعالجها، ثم يعرض النتائج لك.</p>
+                <p style="margin-top:6px;"><strong>تشبيه:</strong> يمكن تشبيه البيانات بالمواد الخام التي تدخل إلى مصنع. فكما يحتاج المصنع إلى الحديد أو الخشب لصناعة المنتجات، يحتاج الحاسوب إلى البيانات لإنتاج المعلومات والنتائج.</p>
+            </div>
+        </section>
+
+        <!-- ===== البيانات والمعلومات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">البيانات والمعلومات <span class="section-sub">Data vs. Information</span></h2>
+            <div class="section-text">
+                <p>يخلط كثير من المبتدئين بين البيانات (Data) والمعلومات (Information)، لكن هناك فرق مهم بينهما.</p>
+            </div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:16px; margin:12px 0;">
+                <div style="flex:1 1 200px; background:#fefce8; border-radius:18px; padding:16px; border-right:6px solid #F59E0B;">
+                    <h4 style="color:#F59E0B; font-size:1.1rem;">📊 البيانات (Data)</h4>
+                    <p style="font-size:0.95rem;">هي حقائق أولية لم تتم معالجتها بعد.</p>
+                    <p style="font-weight:700; margin-top:6px;">مثل:</p>
+                    <ul style="list-style:none; font-size:0.95rem;">
+                        <li>• أحمد</li>
+                        <li>• 95</li>
+                        <li>• القاهرة</li>
+                        <li>• 2026</li>
+                    </ul>
+                    <p style="color:#475569; margin-top:6px; font-size:0.9rem;">كل عنصر من هذه العناصر بمفرده لا يوضح الصورة كاملة.</p>
+                </div>
+                <div style="flex:1 1 200px; background:#dcfce7; border-radius:18px; padding:16px; border-right:6px solid #16A34A;">
+                    <h4 style="color:#16A34A; font-size:1.1rem;">ℹ️ المعلومات (Information)</h4>
+                    <p style="font-size:0.95rem;">هي البيانات بعد تنظيمها أو معالجتها لتصبح ذات معنى.</p>
+                    <p style="font-weight:700; margin-top:6px;">مثال:</p>
+                    <p style="font-size:0.95rem;"><strong>حصل أحمد على 95 درجة في مادة الحاسوب عام 2026.</strong></p>
+                    <p style="color:#475569; margin-top:6px; font-size:0.9rem;">هنا أصبحت البيانات معلومة مفهومة.</p>
+                </div>
+            </div>
+
+            <div class="flowchart">
+                <p style="font-weight:700; margin-bottom:8px;">البيانات ← المعالجة ← المعلومات</p>
+                <div class="step yellow">📊 بيانات (Data)</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">⚙️ معالجة (Processing)</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">ℹ️ معلومات (Information)</div>
+            </div>
+
+            <div class="info-box yellow">
+                <h4>🟡 مثال من الحياة اليومية</h4>
+                <p><strong>قبل التصحيح:</strong> درجات الطلاب عبارة عن بيانات.</p>
+                <p><strong>بعد حساب المتوسط وإظهار النتيجة النهائية:</strong> تصبح معلومات.</p>
+            </div>
+
+            <div class="section-image center-image">
+                <img src="images/data_to_info.png" alt="Data to Information flow" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Box labeled "Data" with an arrow "Processing" pointing to a box labeled "Information".)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== أنواع البيانات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">أنواع البيانات <span class="section-sub">Types of Data</span></h2>
+            <div class="section-text">
+                <p>لا يتعامل الحاسوب مع نوع واحد من البيانات، بل مع أنواع كثيرة. ورغم اختلافها بالنسبة لنا، فإن الحاسوب يعالجها جميعًا بالطريقة نفسها.</p>
+            </div>
+
+            <!-- النصوص -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:18px;">📝 أولًا: النصوص (Text)</h3>
+            <p>النصوص هي أكثر أنواع البيانات استخدامًا. وتشمل الرسائل، والكتب، والمقالات، والأكواد البرمجية، والمستندات.</p>
+            <div class="info-box green">
+                <h4>🟢 أمثلة</h4>
+                <ul>
+                    <li>كتابة اسمك.</li>
+                    <li>كتابة كلمة المرور.</li>
+                    <li>كتابة بريد إلكتروني.</li>
+                    <li>كتابة قصة.</li>
+                    <li>كتابة كود برمجي.</li>
+                </ul>
+            </div>
+            <div class="section-image">
+                <img src="images/text_data.png" alt="Text data example" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: A Word document with Arabic and English text and a blinking cursor.)
+                </p>
+            </div>
+
+            <!-- الأرقام -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:28px;">🔢 ثانيًا: الأرقام (Numbers)</h3>
+            <p>الأرقام هي بيانات تُستخدم في العمليات الحسابية والبرامج المختلفة. ومن أمثلتها: درجات الطلاب، أسعار المنتجات، أعمار الأشخاص، نتائج المباريات.</p>
+            <div class="info-box green">
+                <h4>🟢 مثال عملي</h4>
+                <p>إذا أدخلت <strong>50 + 25</strong>، فالأرقام التي كتبتها تُعد بيانات. أما الناتج <strong>75</strong> فهو معلومة نتجت بعد المعالجة.</p>
+            </div>
+            <div class="section-image">
+                <img src="images/numbers_data.png" alt="Numbers data" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Calculator display showing numbers and graphs.)
+                </p>
+            </div>
+
+            <!-- الصور -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:28px;">🖼️ ثالثًا: الصور (Images)</h3>
+            <p>الصور أيضًا نوع من أنواع البيانات. قد تكون صورة شخصية، أو صورة التقطتها بالكاميرا، أو شعار شركة، أو رسمًا توضيحيًا.</p>
+            <p>ويقوم الحاسوب بتخزين الصور داخل ملفات مثل: <strong>JPG، PNG، WEBP</strong>.</p>
+            <div class="section-image">
+                <img src="images/images_data.png" alt="Images data" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Gallery of different photos displayed on a computer screen.)
+                </p>
+            </div>
+
+            <!-- الصوت -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:28px;">🎵 رابعًا: الصوت (Audio)</h3>
+            <p>الصوت هو بيانات تمثل الكلام أو الموسيقى أو أي تسجيل صوتي. مثل الأغاني، والتسجيلات الصوتية، والمكالمات، والبودكاست.</p>
+            <p>ويخزن الحاسوب الصوت في ملفات مثل: <strong>MP3، WAV، AAC</strong>.</p>
+            <div class="section-image">
+                <img src="images/audio_data.png" alt="Audio data" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Microphone with sound waves and headphones.)
+                </p>
+            </div>
+
+            <!-- الفيديو -->
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:28px;">🎬 خامسًا: الفيديو (Video)</h3>
+            <p>الفيديو يجمع بين الصور المتحركة والصوت، ولذلك يكون حجمه غالبًا أكبر من الصور أو الملفات النصية.</p>
+            <p>ومن أمثلة صيغ الفيديو: <strong>MP4، AVI، MOV، MKV</strong>.</p>
+            <div class="section-image">
+                <img src="images/video_data.png" alt="Video data" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Video player showing a movie with a play bar.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== مقارنة بين أنواع البيانات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مقارنة بين أنواع البيانات</h2>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>نوع البيانات</th>
+                        <th>أمثلة</th>
+                        <th>الاستخدام</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>النصوص (Text)</strong></td>
+                        <td>الرسائل، الكتب، المستندات</td>
+                        <td>القراءة والكتابة</td>
+                    </tr>
+                    <tr>
+                        <td><strong>الأرقام (Numbers)</strong></td>
+                        <td>الدرجات، الأسعار، العمليات الحسابية</td>
+                        <td>الحساب والتحليل</td>
+                    </tr>
+                    <tr>
+                        <td><strong>الصور (Images)</strong></td>
+                        <td>الصور الشخصية والرسومات</td>
+                        <td>العرض والتصميم</td>
+                    </tr>
+                    <tr>
+                        <td><strong>الأصوات (Audio)</strong></td>
+                        <td>الأغاني والتسجيلات</td>
+                        <td>الاستماع والتواصل</td>
+                    </tr>
+                    <tr>
+                        <td><strong>الفيديوهات (Video)</strong></td>
+                        <td>الأفلام والدروس التعليمية</td>
+                        <td>المشاهدة والتعلم</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ===== كيف يفهم الحاسوب البيانات؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">كيف يفهم الحاسوب البيانات؟</h2>
+            <div class="section-text">
+                <p>بعد أن عرفنا أن الحاسوب يتعامل مع النصوص والصور والأصوات والفيديوهات على أنها بيانات، يبقى السؤال الأهم:</p>
+                <p><strong>كيف يستطيع الحاسوب فهم هذه البيانات؟ هل يفهم اللغة العربية؟ هل يفهم اللغة الإنجليزية؟ هل يعرف معنى الصورة أو الفيديو؟</strong></p>
+            </div>
+
+            <div class="info-box red">
+                <h4>🔴 الإجابة: لا.</h4>
+                <p>الحاسوب لا يفهم أي لغة بشرية كما يفهمها الإنسان، بل يعتمد على لغة خاصة به تُسمى <strong>اللغة الثنائية (Binary Language)</strong>.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 ما هي لغة الحاسوب؟</h4>
+                <p>لغة الحاسوب هي اللغة الوحيدة التي يستطيع الحاسوب فهمها والتعامل معها. وتُعرف باسم <strong>اللغة الثنائية (Binary Language)</strong>.</p>
+                <p>وسُميت "ثنائية" لأنها تعتمد على رقمين فقط: <strong>0</strong> و <strong>1</strong>. ولهذا السبب تُسمى أحيانًا <strong>لغة الصفر والواحد</strong>.</p>
+                <p style="margin-top:6px;">قد يبدو غريبًا أن يتمكن الحاسوب من تشغيل الألعاب، وعرض الأفلام، وتشغيل الإنترنت، والذكاء الاصطناعي باستخدام رقمين فقط، لكن هذا ما يحدث بالفعل.</p>
+            </div>
+
+            <div class="section-image center-image">
+                <img src="images/binary_language.png" alt="Binary language" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: A person typing "Hello" on a keyboard, with the text transforming into a sequence of 0s and 1s going into the CPU.)
+                </p>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.2rem; margin-top:24px;">لماذا يستخدم الحاسوب الرقمين 0 و1 فقط؟</h3>
+            <p>لفهم ذلك، يجب أن نعرف كيف يعمل الحاسوب من الداخل. يتكون الحاسوب من مليارات المكونات الإلكترونية الصغيرة جدًا تُسمى <strong>الترانزستورات (Transistors)</strong>.</p>
+            <p>يمكن تشبيه الترانزستور بمفتاح كهربائي صغير جدًا. وله حالتان فقط:</p>
+            <ul style="list-style:none; padding:6px 0;">
+                <li>• ✅ يعمل (ON)</li>
+                <li>• ❌ لا يعمل (OFF)</li>
+            </ul>
+            <p>وبسبب وجود هاتين الحالتين فقط، يستخدم الحاسوب رقمين فقط لتمثيلهما:</p>
+            <table class="info-table" style="max-width:400px; margin:0 auto;">
+                <thead>
+                    <tr><th>حالة الترانزستور</th><th>القيمة الثنائية</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>OFF (لا يوجد تيار كهربائي)</td><td>0</td></tr>
+                    <tr><td>ON (يوجد تيار كهربائي)</td><td>1</td></tr>
+                </tbody>
+            </table>
+            <div class="section-image center-image">
+                <img src="images/transistor_binary.png" alt="Transistor states" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Simple transistor illustration showing OFF = 0 and ON = 1.)
+                </p>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 معلومة تقنية</h4>
+                <p>قد يحتوي المعالج الحديث على أكثر من <strong>50 مليار ترانزستور</strong>. وكل ترانزستور يعمل كمفتاح كهربائي صغير جدًا ينتقل بين حالتي 0 و1 مليارات المرات في الثانية. ومن خلال هذا العدد الهائل من التبديلات، يستطيع الحاسوب تشغيل نظام التشغيل، والألعاب، والمتصفحات، وبرامج التصميم، وحتى تطبيقات الذكاء الاصطناعي.</p>
+            </div>
+        </section>
+
+        <!-- ===== كيف تتحول البيانات إلى لغة الحاسوب؟ (المربعات فوق بعضها) ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">كيف تتحول البيانات إلى لغة الحاسوب؟</h2>
+
+            <div class="info-box blue">
+                <h4>🔵 المبدأ الأساسي</h4>
+                <p>مهما كان نوع البيانات، فإن الحاسوب يحولها أولًا إلى أرقام ثنائية (0 و1). هذه العملية تسمى <strong>التحويل الرقمي (Digitization)</strong>.</p>
+            </div>
+
+            <div class="conversion-grid">
+                <!-- النصوص -->
+                <div class="conversion-card text">
+                    <span class="icon">📝</span>
+                    <h4>النصوص (Text)</h4>
+                    <p>يُحوّل كل حرف إلى قيمة رقمية وفق نظام ترميز مثل <strong>ASCII</strong> أو <strong>Unicode</strong>، ثم تُحوّل هذه القيم إلى أرقام ثنائية.</p>
+                    <div class="binary-example">كلمة "Computer" → 01000011 01101111 01101101 01110000 01110101 01110100 01100101 01110010</div>
+                </div>
+
+                <!-- الصور -->
+                <div class="conversion-card image">
+                    <span class="icon">🖼️</span>
+                    <h4>الصور (Images)</h4>
+                    <p>تُقسّم الصورة إلى شبكة من النقاط الصغيرة تسمى <strong>بكسلات (Pixels)</strong>. كل بكسل يُحوّل إلى أرقام تمثل لونه (أحمر، أخضر، أزرق)، ثم إلى نظام ثنائي.</p>
+                    <div class="binary-example">صورة 10×10 بكسل → 100 بكسل × 3 قيم لونية = 300 قيمة ثنائية</div>
+                </div>
+
+                <!-- الصوت -->
+                <div class="conversion-card audio">
+                    <span class="icon">🎵</span>
+                    <h4>الصوت (Audio)</h4>
+                    <p>تُؤخذ عينات من الموجة الصوتية بفترات زمنية منتظمة (<strong>Sampling</strong>)، وتُحوّل كل عينة إلى قيمة رقمية، ثم إلى نظام ثنائي.</p>
+                    <div class="binary-example">تسجيل صوتي 3 دقائق → ملايين العينات → مليارات الأرقام الثنائية</div>
+                </div>
+
+                <!-- الفيديو -->
+                <div class="conversion-card video">
+                    <span class="icon">🎬</span>
+                    <h4>الفيديو (Video)</h4>
+                    <p>يتكون الفيديو من <strong>صور متتابعة (Frames)</strong> + <strong>مسار صوتي</strong>. كل إطار يُحوّل كصورة مستقلة، والصوت يُحوّل كملف صوتي منفصل، ثم يُدمج كل شيء.</p>
+                    <div class="binary-example">فيديو 30 إطار/ثانية × 60 دقيقة = أكثر من 100,000 صورة + صوت</div>
+                </div>
+
+                <!-- البرامج -->
+                <div class="conversion-card software">
+                    <span class="icon">💾</span>
+                    <h4>البرامج والألعاب (Programs & Games)</h4>
+                    <p>جميع البرامج، سواء كانت Word، Photoshop، ألعاب، أو أنظمة تشغيل مثل Windows وLinux، <strong>تتحول بالكامل إلى تعليمات ثنائية</strong> يفهمها المعالج وينفذها.</p>
+                    <div class="binary-example">ملف تنفيذي (EXE) → ملايين التعليمات الثنائية (0 و1) ينفذها المعالج خطوة بخطوة</div>
+                </div>
+            </div>
+
+            <div class="flowchart">
+                <p style="font-weight:700; margin-bottom:8px;">مثال عملي: كتابة كلمة "السلام"</p>
+                <div class="step blue">⌨️ Keyboard</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">📝 Text</div>
+                <div class="arrow">⬇️</div>
+                <div class="step purple">🔢 Binary (0 و1)</div>
+                <div class="arrow">⬇️</div>
+                <div class="step blue">⚙️ CPU</div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">🖥️ Screen</div>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 ملاحظة مهمة</h4>
+                <p>الحاسوب لا يقرأ الرقم "1" كما يقرأه الإنسان، ولا يعرف معنى الرقم "0". بل يتعامل معهما على أنهما <strong>حالتان كهربائيتان</strong> داخل الدوائر الإلكترونية: 0 = لا تيار، 1 = يوجد تيار.</p>
+            </div>
+        </section>
+
+        <!-- ===== وحدات قياس البيانات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">وحدات قياس البيانات</h2>
+            <div class="section-text">
+                <p>بعد أن عرفنا أن الحاسوب يحول جميع البيانات إلى لغة ثنائية، يخطر ببالنا سؤال: <strong>كيف نقيس حجم البيانات؟</strong></p>
+                <p>يستخدم الحاسوب وحدات خاصة لقياس حجم البيانات، تمامًا كما نستخدم المتر لقياس الطول والكيلوغرام لقياس الوزن.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 أصغر وحدة: البِت (Bit)</h4>
+                <p><strong>Bit</strong> هي اختصار لـ <strong>Binary Digit</strong> (رقم ثنائي). وهي أصغر وحدة بيانات، ويمكن أن تأخذ قيمة واحدة فقط: <strong>0</strong> أو <strong>1</strong>.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 البايت (Byte)</h4>
+                <p>كل <strong>8 Bits</strong> تساوي <strong>1 Byte</strong>. وغالبًا يستطيع البايت الواحد تمثيل حرف واحد في أنظمة الترميز الشائعة.</p>
+                <div style="background:#f1f5f9; border-radius:12px; padding:8px; text-align:center; font-family:monospace; margin-top:6px; direction:ltr;">
+                    01000001 ← هذا البايت يمثل الحرف "A" في نظام ASCII
+                </div>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:20px;">جدول وحدات قياس البيانات</h3>
+            <table class="info-table">
+                <thead>
+                    <tr>
+                        <th>الوحدة</th>
+                        <th>الاختصار</th>
+                        <th>القيمة بالبايت</th>
+                        <th>مثال تقريبي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>بت</strong></td>
+                        <td>Bit</td>
+                        <td>1/8 بايت</td>
+                        <td>قيمة واحدة (0 أو 1)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>بايت</strong></td>
+                        <td>Byte</td>
+                        <td>1 بايت</td>
+                        <td>حرف واحد (مثل "A")</td>
+                    </tr>
+                    <tr>
+                        <td><strong>كيلوبايت</strong></td>
+                        <td>KB</td>
+                        <td>1,024 بايت</td>
+                        <td>صفحة نصية صغيرة</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ميجابايت</strong></td>
+                        <td>MB</td>
+                        <td>1,024 KB</td>
+                        <td>صورة عالية الجودة أو أغنية MP3</td>
+                    </tr>
+                    <tr>
+                        <td><strong>جيجابايت</strong></td>
+                        <td>GB</td>
+                        <td>1,024 MB</td>
+                        <td>فيلم كامل أو لعبة كبيرة</td>
+                    </tr>
+                    <tr>
+                        <td><strong>تيرابايت</strong></td>
+                        <td>TB</td>
+                        <td>1,024 GB</td>
+                        <td>قرص صلب خارجي أو خادم</td>
+                    </tr>
+                    <tr>
+                        <td><strong>بيتابايت</strong></td>
+                        <td>PB</td>
+                        <td>1,024 TB</td>
+                        <td>مراكز البيانات الكبيرة</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box green">
+                <h4>🟢 أمثلة من الحياة اليومية</h4>
+                <ul>
+                    <li><strong>صفحة نصية:</strong> حوالي 5-10 KB</li>
+                    <li><strong>صورة عالية الجودة:</strong> 2-10 MB</li>
+                    <li><strong>أغنية MP3:</strong> 3-8 MB</li>
+                    <li><strong>فيلم بدقة Full HD:</strong> 1-4 GB</li>
+                    <li><strong>لعبة حديثة:</strong> 40-150 GB</li>
+                    <li><strong>قرص صلب خارجي:</strong> 1-8 TB</li>
+                </ul>
+            </div>
+
+            <div class="section-image center-image">
+                <img src="images/file_sizes.png" alt="File size examples" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Different file icons with approximate sizes next to them.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== أين يخزن الحاسوب البيانات؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">أين يخزن الحاسوب البيانات؟</h2>
+            <div class="section-text">
+                <p>كل البيانات التي يتعامل معها الحاسوب تُخزن داخل <strong>وسائط التخزين (Storage Media)</strong>. وهناك عدة أنواع منها، لكل نوع مميزاته واستخداماته.</p>
+            </div>
+
+            <div class="storage-grid">
+                <div class="storage-card hdd">
+                    <div class="storage-icon">💾</div>
+                    <h5>القرص الصلب (HDD)</h5>
+                    <p>يخزن البيانات على أقراص مغناطيسية دوارة. سعة تخزين كبيرة، لكنه أبطأ من SSD.</p>
+                </div>
+                <div class="storage-card ssd">
+                    <div class="storage-icon">⚡</div>
+                    <h5>القرص الصلب (SSD)</h5>
+                    <p>يخزن البيانات على ذاكرة فلاش إلكترونية. أسرع بكثير من HDD، وأكثر مقاومة للصدمات.</p>
+                </div>
+                <div class="storage-card usb">
+                    <div class="storage-icon">🔌</div>
+                    <h5>ذاكرة USB</h5>
+                    <p>وسيط تخزين صغير محمول، يعمل بالذاكرة الفلاش. مثالي لنقل الملفات بين الأجهزة.</p>
+                </div>
+                <div class="storage-card sd">
+                    <div class="storage-icon">📱</div>
+                    <h5>بطاقة الذاكرة (SD)</h5>
+                    <p>تُستخدم في الهواتف والكاميرات والأجهزة اللوحية لتوسيع سعة التخزين.</p>
+                </div>
+                <div class="storage-card cloud">
+                    <div class="storage-icon">☁️</div>
+                    <h5>التخزين السحابي (Cloud)</h5>
+                    <p>تخزين البيانات على خوادم بعيدة عبر الإنترنت. يمكن الوصول إليها من أي جهاز متصل بالإنترنت.</p>
+                </div>
+            </div>
+
+            <div class="section-image center-image">
+                <img src="images/storage_devices.png" alt="Storage devices" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: HDD, SSD, USB, SD Card, and Cloud Storage icons arranged in a row.)
+                </p>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 معلومة تقنية: حذف الملفات</h4>
+                <p>عندما تحذف ملفًا من جهازك، لا تختفي بياناته فورًا. بل يعتبر نظام التشغيل أن المساحة التي كان يشغلها أصبحت <strong>متاحة لكتابة بيانات جديدة</strong>. لذلك قد تتمكن برامج استعادة الملفات من استرجاع بعض الملفات المحذوفة إذا لم تُكتب بيانات جديدة فوقها.</p>
+            </div>
+
+            <div class="info-box yellow">
+                <h4>🟡 ماذا يحدث عند حفظ ملف؟</h4>
+                <ol style="padding-right:20px; font-size:0.95rem;">
+                    <li>يحول البرنامج النص إلى بيانات رقمية.</li>
+                    <li>يحول الحاسوب البيانات إلى لغة ثنائية (0 و1).</li>
+                    <li>تُخزن هذه البيانات على وسيط التخزين.</li>
+                    <li>عند فتح الملف لاحقًا، يقرأ الحاسوب البيانات ويعرضها مرة أخرى كنص.</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- ===== ملخص الدرس ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📝 ملخص الدرس</h2>
+            <div class="summary-box">
+                <h4>🗂️ ما تعلمناه في هذا الدرس</h4>
+                <ul>
+                    <li><strong>البيانات (Data)</strong> هي أساس عمل جميع أجهزة الحاسوب. يستطيع الحاسوب استقبال البيانات، ومعالجتها، وتخزينها، وإرسالها.</li>
+                    <li>توجد أنواع مختلفة من البيانات، مثل <strong>النصوص</strong> و<strong>الأرقام</strong> و<strong>الصور</strong> و<strong>الأصوات</strong> و<strong>الفيديوهات</strong>.</li>
+                    <li>الفرق بين <strong>البيانات (Data)</strong> و<strong>المعلومات (Information)</strong>: البيانات هي حقائق خام، بينما المعلومات هي بيانات تمت معالجتها وأصبحت ذات معنى.</li>
+                    <li>لا يفهم الحاسوب اللغات البشرية مباشرة، بل يحول جميع البيانات إلى <strong>النظام الثنائي (Binary)</strong> الذي يعتمد على الرقمين <strong>0</strong> و <strong>1</strong>.</li>
+                    <li>يعتمد الحاسوب على <strong>الترانزستورات</strong> (مفاتيح كهربائية صغيرة) لتمثيل 0 و1. الترانزستور إما <strong>ON</strong> (يمثل 1) أو <strong>OFF</strong> (يمثل 0).</li>
+                    <li>أصغر وحدة بيانات هي <strong>Bit</strong>، وكل <strong>8 Bits</strong> تساوي <strong>1 Byte</strong>.</li>
+                    <li>تستخدم وحدات مثل <strong>KB</strong> و <strong>MB</strong> و <strong>GB</strong> و <strong>TB</strong> لقياس أحجام الملفات. كل وحدة أكبر بـ 1024 مرة من التي قبلها.</li>
+                    <li>تُخزن البيانات داخل وسائط التخزين مثل <strong>HDD</strong> و <strong>SSD</strong> و <strong>USB</strong> و <strong>SD Card</strong> و <strong>السحابة (Cloud)</strong>.</li>
+                    <li><strong>كل ما تفعله على الحاسوب أو الهاتف يعتمد في النهاية على البيانات.</strong></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- زر إكتملت القراءة -->
+        <div class="complete-wrapper">
+            <button class="btn-complete" id="completeReadingBtn">✅ إكتملت القراءة</button>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:6px;">بعد الضغط على هذا الزر سيتم التوجيه إلى الاختبار.</p>
+        </div>
+
+    </div> <!-- نهاية lesson-content -->
+
+    <!-- ===== QUIZ SECTION ===== -->
+    <section class="quiz-section" id="quizSection">
+        <h2 style="color:#1D4ED8; font-size:1.5rem; margin-bottom:16px;">🧠 اختبر نفسك</h2>
+        <p style="margin-bottom:18px; font-size:0.95rem;">أجب عن الأسئلة التالية. كل سؤال له إجابة واحدة صحيحة.</p>
+
+        <div class="quiz-question" data-question="1">
+            <h4>السؤال الأول: ما المقصود بالبيانات (Data)؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q1" value="a"> أ) مجموعة من الألعاب.</label>
+                <label><input type="radio" name="q1" value="b"> ب) معلومات أو حقائق يمكن للحاسوب استقبالها أو تخزينها أو معالجتها.</label>
+                <label><input type="radio" name="q1" value="c"> ج) شاشة الحاسوب.</label>
+                <label><input type="radio" name="q1" value="d"> د) نظام التشغيل.</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-question" data-question="2">
+            <h4>السؤال الثاني: ما اللغة التي يفهمها الحاسوب مباشرة؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q2" value="a"> أ) اللغة العربية.</label>
+                <label><input type="radio" name="q2" value="b"> ب) اللغة الإنجليزية.</label>
+                <label><input type="radio" name="q2" value="c"> ج) اللغة الثنائية (Binary) المكونة من 0 و1.</label>
+                <label><input type="radio" name="q2" value="d"> د) لغة البرمجة Python.</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-question" data-question="3">
+            <h4>السؤال الثالث: ما أصغر وحدة لقياس البيانات؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q3" value="a"> أ) Byte</label>
+                <label><input type="radio" name="q3" value="b"> ب) KB</label>
+                <label><input type="radio" name="q3" value="c"> ج) Bit</label>
+                <label><input type="radio" name="q3" value="d"> د) MB</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-question" data-question="4">
+            <h4>السؤال الرابع: كم يساوي البايت الواحد (Byte)؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q4" value="a"> أ) 2 Bits</label>
+                <label><input type="radio" name="q4" value="b"> ب) 4 Bits</label>
+                <label><input type="radio" name="q4" value="c"> ج) 8 Bits</label>
+                <label><input type="radio" name="q4" value="d"> د) 16 Bits</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-question" data-question="5">
+            <h4>السؤال الخامس: أي وحدة تُستخدم غالبًا لقياس حجم فيلم أو لعبة كبيرة؟</h4>
+            <div class="quiz-options">
+                <label><input type="radio" name="q5" value="a"> أ) Bit</label>
+                <label><input type="radio" name="q5" value="b"> ب) Byte</label>
+                <label><input type="radio" name="q5" value="c"> ج) KB</label>
+                <label><input type="radio" name="q5" value="d"> د) GB</label>
+            </div>
+            <div class="quiz-feedback"></div>
+        </div>
+
+        <div class="quiz-result" id="quizResult" style="display:none;">
+            <h3>🏆 نتيجة الاختبار</h3>
+            <p class="score" id="finalScore">0%</p>
+            <p id="resultMessage"></p>
+            <button class="btn-next-lesson" id="nextLessonBtn">📘 الدرس التالي</button>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="lesson-footer">
+        <p>🚀 تم إنجاز الدرس بالكامل. حظاً موفقاً!</p>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const readingTab = document.getElementById('readingTab');
+            const quizTab = document.getElementById('quizTab');
+            const completeBtn = document.getElementById('completeReadingBtn');
+            const lessonContent = document.getElementById('lessonContent');
+            const quizSection = document.getElementById('quizSection');
+            const backBtn = document.getElementById('backBtn');
+            const nextLessonBtn = document.getElementById('nextLessonBtn');
+
+            let readingCompleted = false;
+            let quizFinished = false;
+            let answeredQuestions = {};
+            const totalQuestions = 5;
+            const correctAnswers = {
+                q1: 'b',
+                q2: 'c',
+                q3: 'c',
+                q4: 'c',
+                q5: 'd'
+            };
+
+            // ===== زر الرجوع =====
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'lesson4.html';
+                }
+            });
+
+            // ===== زر الدرس التالي =====
+            nextLessonBtn.addEventListener('click', function() {
+                window.location.href = 'lesson6.html';
+            });
+
+            // ===== دوال التقدم =====
+            function updateOverallProgress(readingDone, quizScore) {
+                let total = 0;
+                if (readingDone) total += 70;
+                if (quizScore !== undefined && quizScore !== null) {
+                    total += quizScore;
+                }
+                total = Math.min(100, Math.round(total));
+                progressFill.style.width = total + '%';
+                progressPercent.textContent = total + '%';
+                return total;
+            }
+
+            function updateScrollProgress() {
+                if (readingCompleted) return;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const docHeight = Math.max(
+                    document.documentElement.scrollHeight,
+                    document.body.scrollHeight
+                ) - window.innerHeight;
+                let progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                let rounded = Math.min(100, Math.round(progress));
+                let displayProgress = Math.min(70, Math.round(progress * 0.7));
+                progressFill.style.width = displayProgress + '%';
+                progressPercent.textContent = displayProgress + '%';
+            }
+
+            window.addEventListener('scroll', updateScrollProgress);
+            window.addEventListener('resize', updateScrollProgress);
+            window.addEventListener('load', updateScrollProgress);
+
+            // ===== زر "إكتملت القراءة" =====
+            completeBtn.addEventListener('click', function() {
+                if (readingCompleted) return;
+                readingCompleted = true;
+                completeBtn.textContent = '✅ تم ✓';
+                completeBtn.classList.add('completed');
+                completeBtn.disabled = true;
+
+                lessonContent.classList.add('hidden');
+
+                quizTab.disabled = false;
+                quizTab.classList.remove('disabled');
+                quizTab.classList.add('enabled');
+                quizTab.title = 'الاختبار متاح';
+
+                updateOverallProgress(true, null);
+
+                window.removeEventListener('scroll', updateScrollProgress);
+                window.removeEventListener('resize', updateScrollProgress);
+
+                quizSection.classList.add('active');
+                quizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                readingTab.classList.remove('active');
+                quizTab.classList.add('active');
+                readingTab.style.pointerEvents = 'none';
+                readingTab.style.opacity = '0.6';
+
+                const wrapper = document.querySelector('.complete-wrapper');
+                const msg = document.createElement('p');
+                msg.style.color = '#16A34A';
+                msg.style.fontWeight = '700';
+                msg.style.marginTop = '8px';
+                msg.textContent = '🎉 تم التوجيه إلى الاختبار!';
+                wrapper.appendChild(msg);
+            });
+
+            // ===== زر الاختبار =====
+            quizTab.addEventListener('click', function() {
+                if (this.disabled) return;
+                if (!quizSection.classList.contains('active')) {
+                    quizSection.classList.add('active');
+                    quizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                readingTab.classList.remove('active');
+                this.classList.add('active');
+                readingTab.style.pointerEvents = 'none';
+                readingTab.style.opacity = '0.6';
+            });
+
+            // ===== معالجة الاختبار =====
+            const questions = document.querySelectorAll('.quiz-question');
+
+            questions.forEach((q) => {
+                const options = q.querySelectorAll('input[type="radio"]');
+                const feedback = q.querySelector('.quiz-feedback');
+
+                options.forEach(opt => {
+                    opt.addEventListener('change', function() {
+                        if (quizFinished) return;
+
+                        const qName = this.name;
+                        const selectedValue = this.value;
+                        const correct = correctAnswers[qName];
+
+                        const allLabels = q.querySelectorAll('.quiz-options label');
+                        allLabels.forEach(label => {
+                            label.classList.add('disabled');
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (radio) radio.disabled = true;
+                        });
+
+                        let isCorrect = false;
+                        allLabels.forEach(label => {
+                            const radio = label.querySelector('input[type="radio"]');
+                            if (!radio) return;
+                            if (radio.value === correct) {
+                                label.classList.add('correct');
+                            }
+                            if (radio.checked && radio.value !== correct) {
+                                label.classList.add('wrong');
+                            }
+                            if (radio.checked && radio.value === correct) {
+                                isCorrect = true;
+                            }
+                        });
+
+                        if (isCorrect) {
+                            feedback.textContent = '✅ إجابة صحيحة!';
+                            feedback.className = 'quiz-feedback correct';
+                        } else {
+                            feedback.textContent = '❌ إجابة خاطئة.';
+                            feedback.className = 'quiz-feedback wrong';
+                        }
+
+                        answeredQuestions[qName] = isCorrect;
+
+                        let correctCount = 0;
+                        for (let key in correctAnswers) {
+                            if (answeredQuestions[key] === true) correctCount++;
+                        }
+                        let quizScore = Math.round((correctCount / totalQuestions) * 30);
+                        updateOverallProgress(true, quizScore);
+
+                        if (Object.keys(answeredQuestions).length === totalQuestions) {
+                            quizFinished = true;
+                            const finalPercent = Math.round((correctCount / totalQuestions) * 100);
+                            document.getElementById('finalScore').textContent = finalPercent + '%';
+                            const resultDiv = document.getElementById('quizResult');
+                            resultDiv.style.display = 'block';
+                            const msg = document.getElementById('resultMessage');
+                            if (finalPercent === 100) {
+                                msg.textContent = '🎉 ممتاز! أجبته جميعاً بشكل صحيح.';
+                                msg.style.color = '#16A34A';
+                            } else if (finalPercent >= 60) {
+                                msg.textContent = '👍 جيد، لكن راجع بعض النقاط.';
+                                msg.style.color = '#F59E0B';
+                            } else {
+                                msg.textContent = '📖 ننصحك بإعادة قراءة الدرس مرة أخرى.';
+                                msg.style.color = '#DC2626';
+                            }
+                            document.querySelectorAll('.quiz-options input[type="radio"]').forEach(r => r.disabled = true);
+                            quizTab.disabled = true;
+                            quizTab.classList.remove('enabled');
+                            quizTab.classList.add('disabled');
+                            quizTab.title = 'تم الانتهاء من الاختبار';
+
+                            nextLessonBtn.style.display = 'inline-flex';
+                        }
+                    });
+                });
+            });
+
+            nextLessonBtn.style.display = 'none';
+
+        })();
+    </script>
+</body>
+</html>
