@@ -18,7 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('lectures:send-reminders')->everyMinute();
     })
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // تفعيل CORS middleware للسماح بطلبات API من موقع الويب وتطبيق file:// المحلي
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
