@@ -29,6 +29,20 @@ Route::get('/', function () {
     return redirect('/web/index.html');
 });
 
+// مسار محدد لعرض ملفات واجهة الويب مباشرة من public/web
+Route::get('/web/{any?}', function ($any = 'index.html') {
+    $file = $any ?: 'index.html';
+    $path = public_path('web/' . $file);
+    if (file_exists($path) && !is_dir($path)) {
+        return response()->file($path);
+    }
+    $indexPath = public_path('web/index.html');
+    if (file_exists($indexPath)) {
+        return response()->file($indexPath);
+    }
+    abort(404);
+})->where('any', '.*');
+
 Route::get('/verify-email/{token}', function ($token) {
     /// الهدف: تفعيل البريد الإلكتروني لما المستخدم يضغط على الرابط اللي جاله في رسالة التفعيل.
     /// الخطوات:
