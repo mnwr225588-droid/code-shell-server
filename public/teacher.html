@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Code Shell — نظام المدرس" />
+  <title>Code Shell — نظام المدرس</title>
+  <link rel="icon" type="image/png" href="assets/images/logo.png" />
+  
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+  <style>
+    .teacher-badge {
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      color: #FFFFFF;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .teacher-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .teacher-stat-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: rgba(59, 130, 246, 0.12);
+      color: #3B82F6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 28px;
+      width: 90%;
+      max-width: 520px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+    }
+    .modal-overlay.active .modal-card {
+      transform: translateY(0);
+    }
+    .students-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .students-table th, .students-table td {
+      padding: 12px 16px;
+      text-align: right;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .students-table th {
+      background: var(--bg-body);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .break-timer-banner {
+      background: linear-gradient(135deg, #D97706, #B45309);
+      color: #FFFFFF;
+      padding: 16px 24px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 20px rgba(217, 119, 6, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/images/logo.png" alt="Code Shell Logo" class="sidebar-logo" />
+        <span class="sidebar-brand">Code Shell</span>
+      </div>
+      <div class="sidebar-toggle" id="sidebar-toggle">
+        <div class="sidebar-toggle-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+        <span>تصغير النافذة</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="teacher.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">لوحة المدرس</span>
+        </a>
+        <a class="nav-item" href="index.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">الرئيسية (وضع الطالب)</span>
+        </a>
+        <a class="nav-item" href="live.html">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M16.24 7.76a6 6 0 0 1 0 8.49"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M7.76 16.24a6 6 0 0 1 0-8.49"/>
+              <path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">اللايفات المباشرة</span>
+        </a>
+        <div class="sidebar-divider"></div>
+        <a class="nav-item nav-item-logout" href="javascript:void(0)" onclick="ApiClient.logout().then(() => window.location.href='login.html')">
+          <span class="nav-item-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
+          <span class="nav-item-text">تسجيل الخروج</span>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-content" id="main-content">
+      <header class="top-navbar">
+        <div class="top-nav-right">
+          <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="فتح القائمة">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <h2 class="top-nav-title">نظام المدرس — Code Shell Teacher Mode</h2>
+        </div>
+        <div class="top-nav-left">
+          <button class="top-nav-btn theme-single-btn" id="top-theme-btn" onclick="toggleTheme()" title="تغيير المظهر">
+            <svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+            </svg>
+            <svg class="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="main-page-container">
+        
+        <!-- بنر الاستراحة إن وجد -->
+        <div id="break-active-banner" class="break-timer-banner" style="display: none;">
+          <div>
+            <div style="font-size: 14px; opacity: 0.9;">☕ المحاضرة حالياً في فتره استراحة (Break)</div>
+            <div style="font-size: 24px; font-weight: 800;" id="break-countdown-text">10:00</div>
+          </div>
+          <button onclick="endBreakTimer()" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4); color: white; border-radius: 12px; padding: 8px 16px; font-weight: 700; cursor: pointer;">
+            إنهاء الاستراحة الآن
+          </button>
+        </div>
+
+        <!-- ترويسة المدرس -->
+        <div class="page-header animate-fadeIn">
+          <div class="page-header-right">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+              <h1 class="page-title" id="teacher-welcome-name">أهلاً بك يا أستاذ</h1>
+              <span class="teacher-badge">حساب مدرس</span>
+            </div>
+            <p class="page-greeting">إدارة مجموعاتك الدراسية، متابعة أرقام وبيانات الطلاب، والتحكم التفاعلي في المحاضرات المباشرة</p>
+          </div>
+        </div>
+
+        <!-- إحصائيات المدرس -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px;">
+          <div class="teacher-stat-card">
+            <div class="teacher-stat-icon">👥</div>
+            <div>
+              <div style="font-size: 13px; color: var(--text-muted);">المجموعات المخصصة لي</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--text-primary);" id="stat-groups-count">0</div>
+            </div>
+          </div>
+          <div class="teacher-stat-card">
+            <div class="teacher-stat-icon">🎓</div>
+            <div>
+              <div style="font-size: 13px; color: var(--text-muted);">إجمالي طلابي</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--text-primary);" id="stat-students-count">0</div>
+            </div>
+          </div>
+          <div class="teacher-stat-card">
+            <div class="teacher-stat-icon">🎥</div>
+            <div>
+              <div style="font-size: 13px; color: var(--text-muted);">المحاضرات المباشرة</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--text-primary);" id="stat-lectures-count">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- المجموعات المخصصة للمدرس -->
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 14px;">📚 مجموعاتي الدراسية</h2>
+          <div id="teacher-groups-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+            <div style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
+              جاري تحميل مجموعات المدرس...
+            </div>
+          </div>
+        </div>
+
+        <!-- تفاصيل المجموعة المحددة (قائمة الطلاب والمحاضرات) -->
+        <div id="group-details-section" style="display: none; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 24px; padding: 28px; margin-top: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <span id="selected-group-course-tag" style="background: rgba(59, 130, 246, 0.15); color: #3B82F6; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700;">كورس بايثون</span>
+              <h2 id="selected-group-name" style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 6px;">المجموعة الأولى</h2>
+            </div>
+            <button onclick="closeGroupDetails()" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 12px; cursor: pointer; font-weight: 700;">
+              إغلاق التفاصيل ✕
+            </button>
+          </div>
+
+          <!-- قائمة طلاب المجموعة -->
+          <div style="margin-top: 20px;">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">📋 قائمة الطلاب المسجلين</h3>
+            <div style="overflow-x: auto;">
+              <table class="students-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>اسم الطالب بالكامل</th>
+                    <th>رقم الهاتف</th>
+                    <th>تاريخ الميلاد</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>تواصل</th>
+                  </tr>
+                </thead>
+                <tbody id="students-table-body">
+                  <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">لا يوجد طلاب مسجلون حالياً</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- محاضرات المجموعة والتحكم فيها -->
+          <div style="margin-top: 32px;">
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">🎥 محاضرات أونلاين المجموعة وعناصر التحكم</h3>
+            <div id="group-lectures-container"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- مودال طلب تأجيل المحاضرة -->
+  <div class="modal-overlay" id="postpone-modal">
+    <div class="modal-card">
+      <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">📅 طلب تأجيل المحاضرة للأدمن</h3>
+      <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">قم بكتابة سبب التأجيل والموعد الجديد المقترح ليتم إرساله للأدمن للموافقة عليه</p>
+      
+      <form id="postpone-form" onsubmit="submitPostponeForm(event)">
+        <input type="hidden" id="postpone-lecture-id" />
+        <div class="form-group">
+          <label class="form-label">سبب التأجيل *</label>
+          <textarea id="postpone-reason" class="form-input" style="height: 90px; padding: 12px;" placeholder="سبب إداري أو عذر شخصي..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الموعد الجديد المقترح *</label>
+          <input type="datetime-local" id="postpone-new-date" class="form-input" required />
+        </div>
+        
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+          <button type="submit" class="auth-btn" style="flex: 1; border: none;">إرسال الطلب للأدمن</button>
+          <button type="button" onclick="closePostponeModal()" style="flex: 1; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 14px; font-weight: 700; cursor: pointer;">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- مودال أخذ استراحة -->
+  <div class="modal-overlay" id="break-modal">
+    <div class="modal-card">
+      <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">☕ أخذ استراحة (Break)</h3>
+      <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">اختر مدة الاستراحة لإرسال إشعار فوري وتفعيل مؤقت تنازلي لجميع الطلاب في المجموعة</p>
+      
+      <input type="hidden" id="break-group-id" />
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <button onclick="startBreakTimer(5)" class="auth-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary);">5 دقائق</button>
+        <button onclick="startBreakTimer(10)" class="auth-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary);">10 دقائق</button>
+        <button onclick="startBreakTimer(15)" class="auth-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary);">15 دقيقة</button>
+        <button onclick="startBreakTimer(20)" class="auth-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary);">20 دقيقة</button>
+        <button onclick="startBreakTimer(25)" class="auth-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary);">25 دقيقة</button>
+        <button onclick="startBreakTimer(30)" class="auth-btn" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary);">30 دقيقة</button>
+      </div>
+
+      <button type="button" onclick="closeBreakModal()" style="width: 100%; background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: 14px; font-weight: 700; cursor: pointer;">إلغاء</button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pages/teacher.js"></script>
+</body>
+</html>

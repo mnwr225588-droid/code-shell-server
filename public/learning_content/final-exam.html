@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>📝 الاختبار التراكمي الأول - أساسيات الحاسوب</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon { font-size: 1.8rem; }
+        .lesson-info h1 { font-size: 1.2rem; font-weight: 700; color: #1D4ED8; }
+        .level-badge {
+            background: #2563EB; color: #fff; font-size: 0.65rem;
+            padding: 2px 10px; border-radius: 40px; font-weight: 700;
+            display: inline-block; margin-top: 2px;
+        }
+        .exam-badge {
+            background: #DC2626; color: #fff; font-size: 0.65rem;
+            padding: 2px 10px; border-radius: 40px; font-weight: 700;
+            display: inline-block; margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-back {
+            background: #e2e8f0; border: none; padding: 6px 14px;
+            border-radius: 40px; font-family: 'Cairo', sans-serif;
+            font-weight: 700; font-size: 0.8rem; color: #1e293b;
+            cursor: pointer; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .btn-back:hover { background: #cbd5e1; }
+
+        .tabs-container {
+            display: flex; gap: 10px; margin-bottom: 20px;
+            flex-wrap: wrap; justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF; border: 2px solid #e2e8f0;
+            padding: 8px 18px; border-radius: 40px;
+            font-family: 'Cairo', sans-serif; font-weight: 700;
+            font-size: 0.9rem; color: #1e293b; cursor: default;
+            transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            flex: 1 1 auto; text-align: center;
+        }
+        .tab-btn.active { background: #DC2626; border-color: #DC2626; color: #fff; }
+
+        .exam-container {
+            background: #FFFFFF; border-radius: 18px; padding: 24px 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px; min-height: 400px;
+        }
+        .question-counter {
+            font-size: 0.9rem; color: #64748b;
+            margin-bottom: 12px; text-align: center; font-weight: 700;
+        }
+        .question-text {
+            font-size: 1.2rem; font-weight: 700; color: #1D4ED8;
+            margin-bottom: 18px; padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .options-list {
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .options-list label {
+            background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 14px; padding: 14px 18px; cursor: pointer;
+            transition: all 0.2s; font-size: 1rem;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .options-list label:hover {
+            border-color: #2563EB; background: #eff6ff;
+        }
+        .options-list input[type="radio"] {
+            width: 20px; height: 20px; accent-color: #2563EB;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .options-list label.disabled {
+            cursor: default; opacity: 0.9;
+        }
+        .options-list label.disabled:hover {
+            border-color: #e2e8f0; background: #f8fafc;
+        }
+
+        /* النتائج */
+        .result-container { display: none; }
+        .result-container.active { display: block; }
+        .result-header {
+            text-align: center; padding: 20px 0 16px;
+            border-bottom: 2px solid #e2e8f0; margin-bottom: 24px;
+        }
+        .result-header .score {
+            font-size: 3.5rem; font-weight: 700; color: #2563EB;
+        }
+        .result-header .score-label { font-size: 1.2rem; color: #475569; }
+        .result-header .message {
+            font-size: 1.15rem; margin-top: 6px; font-weight: 700;
+        }
+        .result-header .requirement-message {
+            font-size: 0.95rem;
+            margin-top: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            display: inline-block;
+            color: #475569;
+        }
+        .result-header .requirement-message strong {
+            color: #2563EB;
+        }
+        .result-stats {
+            display: flex; justify-content: center; gap: 30px;
+            margin: 16px 0 20px; flex-wrap: wrap;
+        }
+        .result-stats .stat {
+            background: #f1f5f9; border-radius: 12px; padding: 8px 20px;
+            text-align: center; min-width: 100px;
+        }
+        .result-stats .stat .number { font-size: 1.8rem; font-weight: 700; }
+        .result-stats .stat .label { font-size: 0.8rem; color: #64748b; }
+        .stat.correct .number { color: #16A34A; }
+        .stat.wrong .number { color: #DC2626; }
+        .stat.unanswered .number { color: #F59E0B; }
+
+        .result-details {
+            display: flex; flex-direction: column; gap: 10px;
+            margin-top: 16px; max-height: 500px; overflow-y: auto;
+            padding-left: 4px;
+        }
+        .result-item {
+            background: #f8fafc; border-radius: 12px; padding: 10px 16px;
+            border-right: 6px solid #2563EB;
+            display: flex; flex-wrap: wrap; align-items: center;
+            gap: 6px 12px; font-size: 0.95rem;
+        }
+        .result-item .qnum { font-weight: 700; color: #1D4ED8; min-width: 40px; }
+        .result-item .qtext { flex: 1; font-size: 0.9rem; }
+        .result-item .user-answer {
+            font-weight: 700; font-size: 0.85rem; padding: 2px 12px;
+            border-radius: 40px; background: #e2e8f0;
+        }
+        .result-item .user-answer.correct {
+            background: #dcfce7; color: #16A34A;
+        }
+        .result-item .user-answer.wrong {
+            background: #fef2f2; color: #DC2626;
+        }
+        .result-item .user-answer.unanswered {
+            background: #fefce8; color: #F59E0B;
+        }
+        .result-item .correct-answer {
+            font-size: 0.8rem; color: #475569;
+            background: #e2e8f0; padding: 2px 10px; border-radius: 40px;
+        }
+
+        /* أزرار النتيجة */
+        .result-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .result-actions .btn {
+            background: #2563EB; color: #fff; border: none;
+            padding: 10px 28px; border-radius: 60px;
+            font-family: 'Cairo', sans-serif; font-weight: 700;
+            font-size: 1rem; cursor: pointer; transition: all 0.3s ease;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .result-actions .btn:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+        .result-actions .btn-outline {
+            background: transparent;
+            border: 2px solid #2563EB;
+            color: #2563EB;
+        }
+        .result-actions .btn-outline:hover {
+            background: #2563EB;
+            color: #fff;
+        }
+        .result-actions .btn-success {
+            background: #16A34A;
+        }
+        .result-actions .btn-danger {
+            background: #DC2626;
+        }
+        .result-actions .btn-warning {
+            background: #F59E0B;
+        }
+        .result-actions .btn-secondary {
+            background: #64748b;
+        }
+
+        .lesson-footer {
+            margin-top: 24px; padding: 16px; text-align: center;
+            color: #94a3b8; border-top: 2px dashed #e2e8f0;
+            font-weight: 700; font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .header { padding: 12px 14px; }
+            .lesson-info h1 { font-size: 1rem; }
+            .lesson-icon { font-size: 1.5rem; }
+            .header-right { flex-direction: column; align-items: stretch; }
+            .btn-back { align-self: flex-start; font-size: 0.75rem; padding: 4px 12px; }
+            .exam-container { padding: 16px 14px; }
+            .question-text { font-size: 1.05rem; }
+            .options-list label { padding: 10px 14px; font-size: 0.95rem; }
+            .result-item { padding: 8px 12px; flex-direction: column; align-items: flex-start; }
+            .result-header .score { font-size: 2.5rem; }
+            .result-stats { gap: 10px; }
+            .result-stats .stat { min-width: 70px; padding: 6px 12px; }
+            .result-stats .stat .number { font-size: 1.3rem; }
+            .result-actions .btn { padding: 8px 20px; font-size: 0.9rem; width: 100%; justify-content: center; }
+            .result-header .requirement-message { font-size: 0.85rem; padding: 6px 12px; }
+        }
+        @media (max-width: 380px) {
+            .question-text { font-size: 0.95rem; }
+            .options-list label { font-size: 0.85rem; padding: 8px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">📝</span>
+            <div class="lesson-info">
+                <h1>الاختبار التراكمي الأول</h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                    <span class="exam-badge">25 سؤالاً</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <button class="tab-btn active">📝 الاختبار التراكمي</button>
+    </div>
+
+    <div class="exam-container" id="examContainer">
+
+        <div id="questionArea">
+            <div class="question-counter" id="questionCounter">السؤال 1 من 25</div>
+            <div class="question-text" id="questionText">Loading...</div>
+            <div class="options-list" id="optionsList"></div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-header">
+                <div class="score-label">نتيجتك</div>
+                <div class="score" id="finalScore">0%</div>
+                <div class="message" id="resultMessage"></div>
+                <div class="requirement-message" id="requirementMessage">
+                    ⚡ <strong>يلزم الحصول على 80% أو أكثر</strong> للانتقال إلى الدرس التالي
+                </div>
+                <div class="result-stats" id="resultStats">
+                    <div class="stat correct"><div class="number" id="correctCount">0</div><div class="label">✅ صحيح</div></div>
+                    <div class="stat wrong"><div class="number" id="wrongCount">0</div><div class="label">❌ خطأ</div></div>
+                    <div class="stat unanswered"><div class="number" id="unansweredCount">0</div><div class="label">⏳ لم يجب</div></div>
+                </div>
+                <div class="result-actions" id="resultActions">
+                    <!-- سيتم إنشاؤها ديناميكياً -->
+                </div>
+            </div>
+            <div class="result-details" id="resultDetails"></div>
+        </div>
+
+    </div>
+
+    <footer class="lesson-footer">
+        <p>🚀 الاختبار التراكمي الأول – أساسيات الحاسوب</p>
+    </footer>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const questions = [
+                { id: 1, text: 'أي عبارة تصف العلاقة بين الذاكرة (RAM) ووحدة التخزين (Storage) عند تشغيل برنامج؟', options: ['يعمل البرنامج مباشرة من وحدة التخزين دون استخدام RAM.', 'تنتقل الملفات المطلوبة من وحدة التخزين إلى RAM ليتمكن الحاسوب من تشغيلها بسرعة.', 'تُنقل البيانات أولًا إلى الشاشة.', 'تُحفظ البرامج داخل Cache فقط.'], correct: 1 },
+                { id: 2, text: 'ما هو الحاسوب؟', options: ['جهاز مخصص لتشغيل الألعاب فقط.', 'جهاز إلكتروني يستقبل البيانات ويعالجها ويُخرج النتائج.', 'جهاز لتصفح الإنترنت فقط.', 'جهاز لتخزين الملفات فقط.'], correct: 1 },
+                { id: 3, text: 'أي جهاز من الأجهزة التالية يُعد من أنواع الحواسيب؟', options: ['الطابعة.', 'الهاتف الذكي.', 'السماعات.', 'الميكروفون.'], correct: 1 },
+                { id: 4, text: 'أي ترتيب يمثل دورة عمل الحاسوب بشكل صحيح؟', options: ['معالجة ← إخراج ← إدخال', 'إدخال ← معالجة ← إخراج', 'إخراج ← معالجة ← إدخال', 'معالجة ← إدخال ← إخراج'], correct: 1 },
+                { id: 5, text: 'أي مما يلي يُعد جهاز إدخال؟', options: ['الشاشة.', 'الطابعة.', 'لوحة المفاتيح.', 'السماعات.'], correct: 2 },
+                { id: 6, text: 'أي جهاز يُعد الأنسب للأعمال الثقيلة مثل التصميم والبرمجة؟', options: ['الهاتف الذكي.', 'الجهاز اللوحي.', 'الحاسوب المكتبي.', 'الساعة الذكية.'], correct: 2 },
+                { id: 7, text: 'لماذا لا يستطيع الحاسوب فهم اللغة العربية أو الإنجليزية مباشرة؟', options: ['لأنه يتعامل مع جميع البيانات بعد تحويلها إلى النظام الثنائي (0 و1).', 'لأنه يفهم الصور فقط.', 'لأنه لا يستطيع قراءة النصوص.', 'لأنه يحتاج إلى الإنترنت.'], correct: 0 },
+                { id: 8, text: 'أي مما يلي يُعد مثالًا على البرمجيات (Software)؟', options: ['الشاشة.', 'الفأرة.', 'نظام Windows.', 'وحدة المعالجة.'], correct: 2 },
+                { id: 9, text: 'أي عبارة تصف المكونات المادية (Hardware)؟', options: ['برامج لا يمكن لمسها.', 'أجزاء الحاسوب التي يمكن رؤيتها ولمسها.', 'ملفات الإنترنت.', 'البيانات الموجودة داخل RAM.'], correct: 1 },
+                { id: 10, text: 'أي نوع من الذاكرة يساعد المعالج بالاحتفاظ بالبيانات المستخدمة كثيرًا لتسريع الأداء؟', options: ['ROM', 'HDD', 'RAM', 'Cache Memory'], correct: 3 },
+                { id: 11, text: 'أي نوع من البيانات يمثل صورة ملتقطة بالكاميرا؟', options: ['نص.', 'صورة.', 'رقم.', 'صوت.'], correct: 1 },
+                { id: 12, text: 'أي عبارة صحيحة عن اللغة الثنائية (Binary Language)؟', options: ['تعتمد على الأرقام من 0 إلى 9.', 'تعتمد على الرقمين 0 و1 فقط.', 'تُستخدم لكتابة البرامج فقط.', 'يفهمها الإنسان مباشرة.'], correct: 1 },
+                { id: 13, text: 'ما أصغر وحدة لقياس البيانات؟', options: ['Byte', 'KB', 'Bit', 'GB'], correct: 2 },
+                { id: 14, text: 'كم يساوي البايت الواحد (Byte)؟', options: ['2 Bits', '4 Bits', '8 Bits', '16 Bits'], correct: 2 },
+                { id: 15, text: 'أي وحدة تُستخدم غالبًا لقياس حجم صورة عالية الجودة؟', options: ['MB', 'Bit', 'Byte', 'TB'], correct: 0 },
+                { id: 16, text: 'ما وظيفة ROM؟', options: ['تشغيل الألعاب.', 'تخزين الملفات الشخصية.', 'حفظ التعليمات الأساسية اللازمة لبدء تشغيل الحاسوب.', 'زيادة مساحة التخزين.'], correct: 2 },
+                { id: 17, text: 'أي وحدة تخزين تعتمد على أجزاء ميكانيكية متحركة؟', options: ['SSD', 'RAM', 'HDD', 'Cache'], correct: 2 },
+                { id: 18, text: 'أي ميزة تُعد من أهم مميزات SSD؟', options: ['يحتوي على أقراص دوارة.', 'أسرع في الوصول إلى البيانات.', 'يفقد البيانات عند إيقاف التشغيل.', 'يعتمد على RAM.'], correct: 1 },
+                { id: 19, text: 'إذا أغلقت الحاسوب دون حفظ ملف، فأين تضيع البيانات؟', options: ['من RAM.', 'من SSD.', 'من HDD.', 'من ROM.'], correct: 0 },
+                { id: 20, text: 'أي وسيلة تُستخدم غالبًا لنقل الملفات بين الأجهزة؟', options: ['الشاشة.', 'USB Flash Drive.', 'المعالج.', 'السماعات.'], correct: 1 },
+                { id: 21, text: 'أي من التالي يُعد جهاز إخراج؟', options: ['الميكروفون.', 'لوحة المفاتيح.', 'الشاشة.', 'الكاميرا.'], correct: 2 },
+                { id: 22, text: 'ما السبب الرئيسي في أن الحاسوب يستطيع تنفيذ ملايين العمليات بسرعة؟', options: ['لأنه يحتوي على مليارات الترانزستورات التي تعمل بحالتي 0 و1.', 'لأنه متصل دائمًا بالإنترنت.', 'لأنه يستخدم شاشة كبيرة.', 'لأنه يحتوي على لوحة مفاتيح.'], correct: 0 },
+                { id: 23, text: 'أي من التالي يُعد مثالًا على البيانات (Data)؟', options: ['فيديو.', 'صورة.', 'نص.', 'جميع ما سبق.'], correct: 3 },
+                { id: 24, text: 'أي عبارة تصف ذاكرة Cache؟', options: ['أكبر من RAM.', 'تُستخدم لحفظ الصور.', 'صغيرة جدًا وسريعة وتساعد المعالج.', 'وحدة تخزين دائمة.'], correct: 2 },
+                { id: 25, text: 'أي عبارة صحيحة عن التخزين (Storage)؟', options: ['يفقد جميع البيانات عند إيقاف الجهاز.', 'يُستخدم فقط أثناء تشغيل البرامج.', 'يحفظ الملفات والبيانات حتى بعد إيقاف تشغيل الحاسوب.', 'أسرع من Cache.'], correct: 2 }
+            ];
+
+            const totalQuestions = questions.length;
+
+            // عناصر الصفحة
+            const backBtn = document.getElementById('backBtn');
+            const questionCounter = document.getElementById('questionCounter');
+            const questionText = document.getElementById('questionText');
+            const optionsList = document.getElementById('optionsList');
+            const questionArea = document.getElementById('questionArea');
+            const resultContainer = document.getElementById('resultContainer');
+            const finalScore = document.getElementById('finalScore');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultDetails = document.getElementById('resultDetails');
+            const correctCountEl = document.getElementById('correctCount');
+            const wrongCountEl = document.getElementById('wrongCount');
+            const unansweredCountEl = document.getElementById('unansweredCount');
+            const resultActions = document.getElementById('resultActions');
+            const requirementMessage = document.getElementById('requirementMessage');
+
+            let currentIndex = 0;
+            let userAnswers = new Array(totalQuestions).fill(undefined);
+            let answerStatus = new Array(totalQuestions).fill(undefined);
+            let isAnswered = false;
+
+            // دالة عرض السؤال
+            function renderQuestion(index) {
+                const q = questions[index];
+                questionCounter.textContent = `السؤال ${index + 1} من ${totalQuestions}`;
+                questionText.textContent = q.text;
+
+                const letters = ['أ', 'ب', 'ج', 'د'];
+                let html = '';
+                q.options.forEach((opt, i) => {
+                    const checked = (userAnswers[index] === i) ? 'checked' : '';
+                    const disabled = (userAnswers[index] !== undefined) ? 'disabled' : '';
+                    html += `
+                        <label class="${disabled ? 'disabled' : ''}">
+                            <input type="radio" name="question" value="${i}" ${checked} ${disabled}>
+                            <span><strong>${letters[i]})</strong> ${opt}</span>
+                        </label>
+                    `;
+                });
+                optionsList.innerHTML = html;
+
+                isAnswered = (userAnswers[index] !== undefined);
+
+                const radios = optionsList.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        if (isAnswered) return;
+                        const selected = parseInt(this.value);
+                        handleAnswer(selected);
+                    });
+                });
+            }
+
+            // معالجة الإجابة
+            function handleAnswer(selectedIndex) {
+                if (isAnswered) return;
+                const q = questions[currentIndex];
+                const isCorrect = (selectedIndex === q.correct);
+
+                userAnswers[currentIndex] = selectedIndex;
+                answerStatus[currentIndex] = isCorrect;
+                isAnswered = true;
+
+                // تعطيل الخيارات
+                const allLabels = optionsList.querySelectorAll('label');
+                allLabels.forEach(label => {
+                    label.classList.add('disabled');
+                    const radio = label.querySelector('input[type="radio"]');
+                    if (radio) radio.disabled = true;
+                });
+
+                // الانتقال للسؤال التالي بعد 0.4 ثانية
+                setTimeout(() => {
+                    if (currentIndex < totalQuestions - 1) {
+                        currentIndex++;
+                        renderQuestion(currentIndex);
+                    } else {
+                        showResult();
+                    }
+                }, 400);
+            }
+
+            // عرض النتيجة
+            function showResult() {
+                questionArea.style.display = 'none';
+                resultContainer.classList.add('active');
+
+                let correctCount = 0, wrongCount = 0, unansweredCount = 0;
+                for (let i = 0; i < totalQuestions; i++) {
+                    if (answerStatus[i] === true) correctCount++;
+                    else if (answerStatus[i] === false) wrongCount++;
+                    else unansweredCount++;
+                }
+                const percent = Math.round((correctCount / totalQuestions) * 100);
+                finalScore.textContent = percent + '%';
+
+                // رسالة
+                const msgEl = resultMessage;
+                if (percent === 100) {
+                    msgEl.textContent = '🎉 ممتاز! إجابة كاملة وصحيحة!';
+                    msgEl.style.color = '#16A34A';
+                } else if (percent >= 80) {
+                    msgEl.textContent = '🌟 جيد جداً! لقد تجاوزت الحد المطلوب.';
+                    msgEl.style.color = '#2563EB';
+                } else if (percent >= 70) {
+                    msgEl.textContent = '👍 جيد، لكنك لم تصل إلى الحد المطلوب. حاول مرة أخرى.';
+                    msgEl.style.color = '#F59E0B';
+                } else {
+                    msgEl.textContent = '📖 ننصحك بإعادة قراءة الدروس ثم المحاولة مرة أخرى.';
+                    msgEl.style.color = '#DC2626';
+                }
+
+                correctCountEl.textContent = correctCount;
+                wrongCountEl.textContent = wrongCount;
+                unansweredCountEl.textContent = unansweredCount;
+
+                // تفاصيل الإجابات
+                const letters = ['أ', 'ب', 'ج', 'د'];
+                let detailsHtml = '';
+                for (let i = 0; i < totalQuestions; i++) {
+                    const q = questions[i];
+                    const userAns = userAnswers[i];
+                    const isCorrect = answerStatus[i];
+                    let userLetter = 'لم يجب';
+                    let statusClass = 'unanswered';
+                    let statusText = '⏳ لم يجب';
+                    if (userAns !== undefined) {
+                        userLetter = letters[userAns];
+                        if (isCorrect === true) {
+                            statusClass = 'correct';
+                            statusText = '✅ صح';
+                        } else {
+                            statusClass = 'wrong';
+                            statusText = '❌ خطأ';
+                        }
+                    }
+                    const correctLetter = letters[q.correct];
+                    detailsHtml += `
+                        <div class="result-item">
+                            <span class="qnum">${i+1}.</span>
+                            <span class="qtext">${q.text}</span>
+                            <span class="user-answer ${statusClass}">${statusText} (${userLetter})</span>
+                            <span class="correct-answer">الإجابة الصحيحة: ${correctLetter}</span>
+                        </div>
+                    `;
+                }
+                resultDetails.innerHTML = detailsHtml;
+
+                // توليد الأزرار حسب النسبة
+                generateButtons(percent);
+            }
+
+            // توليد الأزرار بناءً على النسبة
+            function generateButtons(percent) {
+                let html = '';
+
+                // زر إعادة المحاولة يظهر دائماً
+                html += `<button class="btn btn-warning" id="retryBtn">🔄 إعادة المحاولة</button>`;
+
+                if (percent >= 80) {
+                    // زر الدرس التالي
+                    html += `<button class="btn btn-success" id="nextLessonBtn">📘 الدرس التالي</button>`;
+                    // تحديث رسالة المتطلب
+                    requirementMessage.innerHTML = '✅ <strong>تهانينا!</strong> لقد تجاوزت الحد المطلوب (80%) ويمكنك الانتقال للدرس التالي.';
+                    requirementMessage.style.background = '#dcfce7';
+                    requirementMessage.style.color = '#16A34A';
+                } else {
+                    requirementMessage.innerHTML = '⚠️ <strong>يلزم الحصول على 80% أو أكثر</strong> للانتقال إلى الدرس التالي.';
+                    requirementMessage.style.background = '#fef2f2';
+                    requirementMessage.style.color = '#DC2626';
+                }
+
+                if (percent < 70) {
+                    // زر العودة للدروس
+                    html += `<button class="btn btn-secondary" id="homeBtn">🏠 العودة للدروس</button>`;
+                }
+
+                resultActions.innerHTML = html;
+
+                // ربط الأحداث
+                document.getElementById('retryBtn').addEventListener('click', resetExam);
+                const nextBtn = document.getElementById('nextLessonBtn');
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function() {
+                        window.location.href = 'lesson7.html';
+                    });
+                }
+                const homeBtn = document.getElementById('homeBtn');
+                if (homeBtn) {
+                    homeBtn.addEventListener('click', function() {
+                        window.location.href = 'lesson1.html';
+                    });
+                }
+            }
+
+            // إعادة تعيين الاختبار
+            function resetExam() {
+                // إعادة ضبط المتغيرات
+                currentIndex = 0;
+                userAnswers = new Array(totalQuestions).fill(undefined);
+                answerStatus = new Array(totalQuestions).fill(undefined);
+                isAnswered = false;
+
+                // إعادة تعيين رسالة المتطلب
+                requirementMessage.innerHTML = '⚡ <strong>يلزم الحصول على 80% أو أكثر</strong> للانتقال إلى الدرس التالي';
+                requirementMessage.style.background = '#f1f5f9';
+                requirementMessage.style.color = '#475569';
+
+                // إخفاء النتيجة وإظهار الأسئلة
+                resultContainer.classList.remove('active');
+                questionArea.style.display = 'block';
+
+                // عرض السؤال الأول
+                renderQuestion(0);
+                // التمرير إلى أعلى الصفحة
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // زر الرجوع
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) window.history.back();
+                else window.location.href = 'lesson6.html';
+            });
+
+            // بدء الاختبار
+            renderQuestion(0);
+        })();
+    </script>
+</body>
+</html>

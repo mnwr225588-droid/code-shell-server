@@ -1,0 +1,1011 @@
+/* ====================================================
+   components.css — الـ Components المشتركة
+   ده فيه كل الحاجات المشتركة زي الـ sidebar والأزرار
+   والكروت والـ layout الأساسي
+   ==================================================== */
+
+/* ====================================================
+   الـ Layout الأساسي — القائمة الجانبية + المحتوى
+   الصفحة متقسمة: sidebar على اليمين + main content
+   ==================================================== */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* --- المحتوى الرئيسي — الجزء اللي فيه محتوى الصفحة --- */
+.main-content {
+  flex: 1;
+  margin-right: var(--sidebar-width);
+  padding: 0;
+  min-height: 100vh;
+  transition: margin-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* لما القائمة تتصغر — المحتوى بياخد مساحة أكبر */
+.sidebar-collapsed .main-content {
+  margin-right: var(--sidebar-collapsed-width);
+}
+
+/* ====================================================
+   القائمة الجانبية (Sidebar) — تصميم احترافي
+   Premium sidebar with glassmorphism, smooth animations,
+   and floating active indicator
+   ==================================================== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: linear-gradient(175deg, #1e3a8a 0%, #1d4ed8 35%, #2563eb 65%, #3b82f6 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+/* --- سكرولبار مخصص للقائمة --- */
+.sidebar::-webkit-scrollbar {
+  width: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+/* ====================================================
+   هيدر القائمة — اللوجو واسم التطبيق
+   ==================================================== */
+.sidebar-header {
+  padding: 28px 24px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 8px;
+}
+
+/* --- صورة اللوجو --- */
+.sidebar-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: cover;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.sidebar-logo:hover {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+/* --- اسم التطبيق جنب اللوجو --- */
+.sidebar-brand {
+  color: #FFFFFF;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* ====================================================
+   زر تصغير/تكبير القائمة — تصميم شفاف أنيق
+   ==================================================== */
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  margin: 4px 14px 12px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* --- أيقونة السهم في زر التصغير --- */
+.sidebar-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+.sidebar-toggle:hover .sidebar-toggle-icon {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ====================================================
+   عناصر القائمة (Navigation Items)
+   كل زر في القائمة — الرئيسية، الكورسات، حسابي، إلخ
+   ==================================================== */
+.sidebar-nav {
+  padding: 4px 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* --- العنصر العادي --- */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  text-decoration: none;
+  white-space: nowrap;
+  margin: 1px 4px;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.06);
+  transform: translateX(-3px);
+}
+
+/* --- العنصر النشط — تصميم بارز ومميز --- */
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #1e3a8a !important;
+  font-weight: 800 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: none !important;
+  transform: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* خط ذهبي جانبي على الزر النشط */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 4px;
+  background: linear-gradient(180deg, #f59e0b, #eab308);
+  border-radius: 0 4px 4px 0;
+}
+
+.nav-item.active .nav-item-icon,
+.nav-item.active .nav-item-text,
+.nav-item.active svg {
+  color: #1e3a8a !important;
+  stroke: #1e3a8a;
+}
+
+/* --- زر تسجيل الخروج الأحمر --- */
+.nav-item-logout {
+  color: rgba(248, 113, 113, 0.9) !important;
+  margin-top: 8px;
+}
+
+.nav-item-logout:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #EF4444 !important;
+  border-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.nav-item-logout .nav-item-icon svg {
+  stroke: #F87171;
+}
+
+.nav-item-logout:hover .nav-item-icon svg {
+  stroke: #EF4444;
+}
+
+/* --- أيقونة العنصر --- */
+.nav-item-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.nav-item:hover .nav-item-icon {
+  transform: scale(1.1);
+}
+
+/* --- نص العنصر --- */
+.nav-item-text {
+  flex: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* --- العنصر الفرعي (زي "كورساتي الحالية") --- */
+.nav-sub-item {
+  padding: 10px 18px 10px 18px;
+  margin-right: 38px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+}
+.nav-sub-item:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- فاصل بين المجموعات في القائمة --- */
+.nav-divider,
+.sidebar-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 10px 20px;
+}
+
+/* ====================================================
+   القائمة لما تتصغر (Collapsed State)
+   بنخبي النصوص ونخلي الأيقونات بس ظاهرة مع انتقال سلس
+   ==================================================== */
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed .nav-item-text,
+.sidebar.collapsed .sidebar-toggle span,
+.sidebar.collapsed .nav-sub-item {
+  display: none;
+}
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 24px 8px 16px;
+}
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 13px;
+  border-radius: 12px;
+  margin: 2px 8px;
+}
+.sidebar.collapsed .nav-item.active::before {
+  display: none;
+}
+.sidebar.collapsed .nav-item.active {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+.sidebar.collapsed .sidebar-toggle {
+  justify-content: center;
+  margin: 4px 10px 10px;
+  padding: 10px;
+}
+.sidebar.collapsed .sidebar-toggle-icon svg {
+  transform: rotate(180deg);
+}
+
+/* ====================================================
+   الأزرار — الأشكال المختلفة
+   ==================================================== */
+
+/* --- الزر الأساسي (Primary) --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: var(--radius-btn);
+  font-weight: 700;
+  font-size: 15px;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-primary);
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+
+/* --- زر بحدود (Outline) --- */
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+.btn-outline:hover {
+  background: var(--primary-light);
+}
+
+/* --- زر خطر (Danger) --- */
+.btn-danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border: 2px solid rgba(239, 68, 68, 0.4);
+}
+.btn-danger-outline:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: var(--danger);
+}
+
+/* --- زر بعرض كامل --- */
+.btn-block {
+  width: 100%;
+}
+
+/* ====================================================
+   الكروت (Cards) — الشكل الموحد
+   ==================================================== */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ====================================================
+   حقول الإدخال (Form Inputs)
+   ==================================================== */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-input);
+  color: var(--text-primary);
+  font-size: 15px;
+  transition: all var(--transition-fast);
+}
+.form-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ====================================================
+   الـ Loading Spinner — مؤشر التحميل
+   ==================================================== */
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ====================================================
+   Responsive — التوافق مع الشاشات الصغيرة
+   ==================================================== */
+
+/* --- تابلت (أقل من 1024px) — القائمة تبقى كاملة وزر التصغير يشتغل عادي --- */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-right: var(--sidebar-width);
+  }
+  /* لما المستخدم يصغر القائمة بالزر */
+  .sidebar-collapsed .main-content {
+    margin-right: var(--sidebar-collapsed-width);
+  }
+}
+
+/* --- الزر ده مخفي في الديسكتوب ومظهور في الموبايل --- */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  background: var(--primary);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 20px;
+  z-index: 1001;
+  box-shadow: var(--shadow-primary);
+  cursor: pointer;
+}
+
+/* --- الخلفية الشفافة لما القائمة تتفتح في الموبايل --- */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* ====================================================
+   شريط الهيدر العلوي (Top Navbar) — متوافق مع الثيم والمنصة
+   ==================================================== */
+.top-navbar {
+  background: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.25);
+  color: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  transition: all 0.3s ease;
+}
+
+/* --- حاوية محتوى الصفحات تحت الشريط العلوي --- */
+#main-page-container {
+  padding: 28px 32px 32px;
+}
+
+/* --- الجزء الأيمن: عنوان الصفحة --- */
+.top-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-nav-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.3px;
+  margin: 0;
+  white-space: nowrap;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* --- الجزء الأوسط: شريط البحث --- */
+.top-nav-center {
+  flex: 1;
+  max-width: 480px;
+  display: flex;
+  justify-content: center;
+}
+
+.top-nav-search {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.top-nav-search input {
+  width: 100%;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 25px;
+  padding: 0 44px 0 20px;
+  font-size: 14px;
+  font-family: 'Cairo', sans-serif;
+  color: #1F2937;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.top-nav-search input::placeholder {
+  color: #6B7280;
+  font-size: 13.5px;
+}
+
+.top-nav-search input:focus {
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.top-nav-search .search-icon {
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+  color: #2563EB;
+}
+
+/* --- الجزء الأيسر: الإشعارات والثيم والأفاتار --- */
+.top-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* --- كارت المحفظة (الرصيد) --- */
+.top-nav-wallet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary-glow);
+  padding: 6px 16px 6px 8px;
+  border-radius: 24px;
+  color: var(--primary);
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.wallet-icon-bg {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* --- أزرار الإشعارات والثيم --- */
+.top-nav-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.top-nav-btn:hover {
+  transform: scale(1.08);
+  background: rgba(255, 255, 255, 0.28);
+  border-color: #FFFFFF;
+  color: #FFFFFF;
+}
+
+.top-notif-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: #EF4444;
+  border: 1.5px solid #1E40AF;
+  border-radius: 50%;
+}
+
+/* --- زر تبديل الوضع الكبسولة الاحترافي الفخم (Futuristic Glossy Switch) --- */
+.theme-single-btn {
+  width: 72px !important;
+  height: 38px !important;
+  border-radius: 30px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+  padding: 3px !important;
+  position: relative !important;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-single-btn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15), 0 6px 20px rgba(255, 255, 255, 0.25) !important;
+}
+
+/* المقبض المتحرك الأبيض الناصع (Sliding White Thumb) */
+.theme-single-btn::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px; /* RTL right default for Light */
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* الأيقونات الشمس والقمر داخل المفتاح */
+.theme-single-btn .theme-icon-sun,
+.theme-single-btn .theme-icon-moon {
+  position: relative;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  transition: all 0.35s ease;
+  pointer-events: none;
+}
+
+/* في الوضع الفاتح (Light Mode) */
+html[data-theme="light"] .theme-single-btn::after {
+  transform: translateX(0);
+}
+html[data-theme="light"] .theme-single-btn .theme-icon-sun {
+  color: #F59E0B;
+  transform: scale(1) rotate(0deg);
+  opacity: 1;
+  margin-right: 6px;
+}
+html[data-theme="light"] .theme-single-btn .theme-icon-moon {
+  color: rgba(255, 255, 255, 0.7);
+  transform: scale(0.8);
+  opacity: 0.6;
+  margin-left: 6px;
+}
+
+/* في الوضع الداكن (Dark Mode) */
+html[data-theme="dark"] .theme-single-btn {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+html[data-theme="dark"] .theme-single-btn::after {
+  transform: translateX(-32px); /* يتحرك لليسار بشكل دقيق */
+  background: #1E293B;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="dark"] .theme-single-btn .theme-icon-sun {
+  color: rgba(255, 255, 255, 0.4);
+  transform: scale(0.8);
+  opacity: 0.5;
+  margin-right: 6px;
+}
+html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
+  color: #38BDF8;
+  transform: scale(1) rotate(0deg);
+  opacity: 1;
+  margin-left: 6px;
+}
+
+/* --- الأفاتار (صورة المستخدم) --- */
+.top-nav-avatar {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.top-nav-avatar:hover {
+  transform: scale(1.08);
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+  border: 2px solid var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  /* تعديل تخطيط الصفحة للشاشات الصغرى */
+  .main-content {
+    margin-right: 0 !important;
+    padding-top: 0;
+  }
+
+  /* زر القائمة الجانبية للشاشات الصغيرة */
+  .mobile-menu-btn {
+    display: flex !important;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 1005;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: #FFFFFF;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+    cursor: pointer;
+  }
+
+  /* القائمة الجانبية كدروار منزلق على الهاتف (Full Mobile Slide Drawer) */
+  .sidebar {
+    width: 280px !important;
+    right: -300px;
+    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+    z-index: 1010;
+    transform: none !important;
+  }
+
+  .sidebar.mobile-open {
+    right: 0 !important;
+  }
+
+  /* إظهار النصوص في الموبايل عند فتح القائمة */
+  .sidebar.mobile-open .sidebar-brand,
+  .sidebar.mobile-open .nav-item-text,
+  .sidebar.mobile-open .sidebar-toggle span {
+    display: inline !important;
+  }
+
+  .sidebar.mobile-open .sidebar-header {
+    justify-content: center !important;
+    padding: 24px 20px 16px !important;
+  }
+
+  .sidebar.mobile-open .nav-item {
+    justify-content: flex-start !important;
+    padding: 14px 20px !important;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1008;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block !important;
+  }
+
+  /* تعديل الهيدر العلوي في الهاتف */
+  .top-navbar {
+    padding: 14px 16px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .top-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 0; /* زر الموبايل مندمج بشكل أفق */
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    position: static !important; /* وضع طبيعي داخل الشريط العلوي */
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: #FFFFFF;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.25);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .top-nav-title {
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .top-nav-center {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  .top-nav-search input {
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .top-nav-left {
+    gap: 8px;
+  }
+
+  /* تعديل الحاويات الرئيسية للكروت بالهاتف */
+  #main-page-container {
+    padding: 16px 12px 32px !important;
+  }
+
+  /* كروت الإحصائيات بالصفحة الرئيسية — عمود واحد */
+  .dashboard-top-cards,
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* inline grid overrides for home page stats and bottom sections */
+  div[style*="grid-template-columns: repeat(auto-fit"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  div[style*="grid-template-columns: 320px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* كروت اللغات البرمجية */
+  .courses-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .language-card {
+    min-height: 190px !important;
+    padding: 16px 12px !important;
+    border-radius: 20px !important;
+  }
+
+  .language-card-name {
+    font-size: 14px !important;
+  }
+
+  .language-card-desc {
+    font-size: 10.5px !important;
+  }
+
+  /* بانر أساسيات الحاسوب في صفحة الكورسات — تحسين للهاتف */
+  div[style*="display: flex; align-items: center; justify-content: space-between; gap: 24px"] {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+
+  div[style*="display: flex; align-items: center; justify-content: space-between; gap: 24px"] > div:first-child {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+
+  /* كارت كورساتي الحالية — عمود واحد */
+  div[style*="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap"] {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+
+  div[style*="min-width: 260px; justify-content: flex-end"] {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* الأزرار العائمة */
+  div[style*="position: fixed; bottom: 24px"] {
+    bottom: 16px !important;
+    left: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #main-page-container {
+    padding: 12px 10px 24px !important;
+  }
+
+  .dashboard-stats-grid,
+  .dashboard-bottom-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-stat-card {
+    width: 100% !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+  }
+
+  .dashboard-progress-card,
+  .dashboard-chart-card {
+    width: 100% !important;
+    border-radius: 18px !important;
+    padding: 18px 14px !important;
+  }
+
+  .courses-grid {
+    grid-template-columns: 1fr !important; /* كارت كامل بعرض الشاشة في الموبايل */
+  }
+
+  .language-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .language-card-icon {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .language-card-icon img {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  /* تحسين بانر أساسيات الحاسوب */
+  div[style*="padding: 32px 28px"] {
+    padding: 18px 14px !important;
+    border-radius: 18px !important;
+    width: 100% !important;
+  }
+
+  div[style*="font-size: 24px; font-weight: 800; color: #FFFFFF"] {
+    font-size: 17px !important;
+  }
+
+  /* تحسين الهيدر العلوي */
+  .top-nav-title {
+    font-size: 15px !important;
+  }
+
+  .theme-single-btn {
+    width: 54px !important;
+    height: 32px !important;
+  }
+}
+

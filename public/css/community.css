@@ -1,0 +1,612 @@
+/* ====================================================
+   community.css — ستايلات منتدى مجتمع Code Shell
+   تصميم مودرن SaaS + EdTech + Developer Community
+   يتوافق تلقائياً مع الثيم الداكن والفاتح والهواتف
+   ==================================================== */
+
+/* --- هيدر المنتدى --- */
+.forum-header-banner {
+  background: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%);
+  border-radius: 24px;
+  padding: 32px 28px;
+  color: #FFFFFF;
+  margin-bottom: 28px;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.forum-banner-circles {
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.forum-header-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.forum-title-group h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #FFFFFF;
+}
+
+.forum-title-group p {
+  font-size: 14px;
+  color: #DBEAFE;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.forum-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.forum-search-box {
+  position: relative;
+  min-width: 260px;
+}
+
+.forum-search-box input {
+  width: 100%;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  padding: 0 42px 0 16px;
+  font-size: 13.5px;
+  font-family: 'Cairo', sans-serif;
+  color: #1F2937;
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.forum-search-box .search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #2563EB;
+}
+
+.btn-create-post {
+  height: 46px;
+  padding: 0 24px;
+  background: #FFFFFF;
+  color: #1E40AF;
+  font-weight: 800;
+  font-size: 14.5px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+
+.btn-create-post:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* --- الهيكل الرئيسي للمنتدى (شبكة بعمودين في الشاشات الكبيرة) --- */
+.forum-main-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* --- القائمة الجانبية للمنتدى (Forum Sidebar) --- */
+.forum-sidebar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+
+.forum-sidebar-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.forum-menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forum-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.forum-menu-item:hover,
+.forum-menu-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.forum-menu-item.active svg {
+  stroke: var(--primary);
+}
+
+/* --- إحصائيات المجتمع --- */
+.community-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.stat-box {
+  background: var(--bg-body, rgba(0, 0, 0, 0.03));
+  padding: 10px 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.stat-box-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.stat-box-lbl {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* --- أقسام المجالات (Categories Bar Horizontal Scroll) --- */
+.categories-horizontal-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+  scrollbar-width: thin;
+}
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.category-chip:hover,
+.category-chip.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+/* --- تبويبات الفلترة (Tabs: Latest, Active, Unanswered, Solved) --- */
+.forum-tabs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 20px;
+  padding-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.forum-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.forum-tab-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.forum-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.forum-tab-btn.active {
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* --- كروت المناقشات (Discussion Cards) --- */
+.discussions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.discussion-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.discussion-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-glow, rgba(37, 99, 235, 0.3));
+}
+
+.discussion-card.pinned {
+  border-right: 4px solid #F59E0B;
+}
+
+.discussion-card.solved {
+  border-right: 4px solid #10B981;
+}
+
+.discussion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.author-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.author-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border);
+}
+
+.author-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.author-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.author-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* الشارات والمراتب (User Role Badges) */
+.user-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-student { background: rgba(59, 130, 246, 0.12); color: #2563EB; }
+.badge-instructor { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-moderator { background: rgba(139, 92, 246, 0.15); color: #7C3AED; }
+.badge-admin { background: rgba(239, 68, 68, 0.15); color: #DC2626; }
+
+.discussion-time {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.discussion-title {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 0.2s;
+  text-decoration: none;
+  display: block;
+}
+
+.discussion-title:hover {
+  color: var(--primary);
+}
+
+.discussion-excerpt {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discussion-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  pt: 12px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.discussion-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-pill {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary-light, rgba(37, 99, 235, 0.08));
+  color: var(--primary);
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+
+.discussion-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stat-item.liked {
+  color: #EF4444;
+}
+
+/* شارة تم الحل (Solved Badge) */
+.solved-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+/* --- تفاصيل السؤال والردود (Discussion Detail View) --- */
+.discussion-detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.code-block-container {
+  background: #1E293B;
+  color: #F8FAFC;
+  border-radius: 14px;
+  margin: 16px 0;
+  overflow: hidden;
+  direction: ltr;
+  text-align: left;
+}
+
+.code-header {
+  background: #0F172A;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #94A3B8;
+  font-family: monospace;
+}
+
+.btn-copy-code {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #E2E8F0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.code-block-container pre {
+  padding: 16px;
+  margin: 0;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+/* --- الردود والتعليقات (Replies Section) --- */
+.reply-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.reply-card.is-solution {
+  border: 2px solid #10B981;
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.solution-banner {
+  background: #10B981;
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* --- نموذج إنشاء منشور جديد (Create Post Form) --- */
+.create-post-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: var(--bg-body, rgba(0, 0, 0, 0.02));
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-family: 'Cairo', sans-serif;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--primary);
+  background: var(--bg-card);
+}
+
+/* --- تجاوب الشاشات (Responsive Mobile Rules) --- */
+@media (max-width: 1024px) {
+  .forum-main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .forum-sidebar-card {
+    display: none; /* إخفاء قائمة السايدبار المكررة في الموبايل واستبدالها بالتصفح العلوي الأفقي */
+  }
+}
+
+@media (max-width: 768px) {
+  .forum-header-banner {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .forum-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .forum-header-actions {
+    width: 100%;
+  }
+
+  .forum-search-box {
+    width: 100%;
+  }
+
+  .btn-create-post {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .discussion-card {
+    padding: 16px 14px;
+  }
+
+  .discussion-title {
+    font-size: 15px;
+  }
+}

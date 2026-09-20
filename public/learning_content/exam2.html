@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>📝 الاختبار التراكمي - الدروس ٨-٩-١٠</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon { font-size: 1.8rem; }
+        .lesson-info h1 { font-size: 1.2rem; font-weight: 700; color: #1D4ED8; }
+        .level-badge {
+            background: #2563EB; color: #fff; font-size: 0.65rem;
+            padding: 2px 10px; border-radius: 40px; font-weight: 700;
+            display: inline-block; margin-top: 2px;
+        }
+        .exam-badge {
+            background: #DC2626; color: #fff; font-size: 0.65rem;
+            padding: 2px 10px; border-radius: 40px; font-weight: 700;
+            display: inline-block; margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-back {
+            background: #e2e8f0; border: none; padding: 6px 14px;
+            border-radius: 40px; font-family: 'Cairo', sans-serif;
+            font-weight: 700; font-size: 0.8rem; color: #1e293b;
+            cursor: pointer; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .btn-back:hover { background: #cbd5e1; }
+        .progress-wrapper {
+            display: flex; align-items: center; gap: 10px; flex: 1; min-width: 150px;
+        }
+        .progress-label { font-weight: 700; font-size: 0.8rem; color: #475569; }
+        .progress-bar {
+            flex: 1; height: 8px; background: #e2e8f0;
+            border-radius: 40px; overflow: hidden; min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%; width: 0%; background: #8B5CF6;
+            border-radius: 40px; transition: width 0.5s ease;
+        }
+        .progress-percent { font-weight: 700; color: #8B5CF6; font-size: 0.8rem; }
+
+        .tabs-container {
+            display: flex; gap: 10px; margin-bottom: 20px;
+            flex-wrap: wrap; justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF; border: 2px solid #e2e8f0;
+            padding: 8px 18px; border-radius: 40px;
+            font-family: 'Cairo', sans-serif; font-weight: 700;
+            font-size: 0.9rem; color: #1e293b; cursor: default;
+            transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            flex: 1 1 auto; text-align: center;
+        }
+        .tab-btn.active { background: #8B5CF6; border-color: #8B5CF6; color: #fff; }
+
+        .exam-container {
+            background: #FFFFFF; border-radius: 18px; padding: 24px 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px; min-height: 400px;
+        }
+
+        .question-counter {
+            font-size: 0.9rem; color: #64748b;
+            margin-bottom: 12px; text-align: center; font-weight: 700;
+        }
+        .question-text {
+            font-size: 1.2rem; font-weight: 700; color: #1D4ED8;
+            margin-bottom: 18px; padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .options-list {
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .options-list label {
+            background: #f8fafc; border: 2px solid #e2e8f0;
+            border-radius: 14px; padding: 14px 18px; cursor: pointer;
+            transition: all 0.2s; font-size: 1rem;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .options-list label:hover {
+            border-color: #8B5CF6; background: #f3e8ff;
+        }
+        .options-list input[type="radio"] {
+            width: 20px; height: 20px; accent-color: #8B5CF6;
+            cursor: pointer; flex-shrink: 0;
+        }
+        .options-list label.disabled {
+            cursor: default; opacity: 0.9;
+        }
+        .options-list label.disabled:hover {
+            border-color: #e2e8f0; background: #f8fafc;
+        }
+        .options-list label.correct {
+            border-color: #16A34A; background: #dcfce7;
+        }
+        .options-list label.wrong {
+            border-color: #DC2626; background: #fef2f2;
+        }
+
+        .feedback-message {
+            margin-top: 14px; font-weight: 700; padding: 10px 16px;
+            border-radius: 12px; text-align: center; display: none;
+        }
+        .feedback-message.correct {
+            display: block; color: #16A34A; background: #dcfce7; border-right: 4px solid #16A34A;
+        }
+        .feedback-message.wrong {
+            display: block; color: #DC2626; background: #fef2f2; border-right: 4px solid #DC2626;
+        }
+
+        .result-container { display: none; }
+        .result-container.active { display: block; }
+        .result-header {
+            text-align: center; padding: 20px 0 16px;
+            border-bottom: 2px solid #e2e8f0; margin-bottom: 24px;
+        }
+        .result-header .score {
+            font-size: 3.5rem; font-weight: 700; color: #8B5CF6;
+        }
+        .result-header .score-label { font-size: 1.2rem; color: #475569; }
+        .result-header .message {
+            font-size: 1.15rem; margin-top: 6px; font-weight: 700;
+        }
+        .result-stats {
+            display: flex; justify-content: center; gap: 30px;
+            margin: 16px 0 20px; flex-wrap: wrap;
+        }
+        .result-stats .stat {
+            background: #f1f5f9; border-radius: 12px; padding: 8px 20px;
+            text-align: center; min-width: 100px;
+        }
+        .result-stats .stat .number { font-size: 1.8rem; font-weight: 700; }
+        .result-stats .stat .label { font-size: 0.8rem; color: #64748b; }
+        .stat.correct .number { color: #16A34A; }
+        .stat.wrong .number { color: #DC2626; }
+        .stat.unanswered .number { color: #F59E0B; }
+
+        .result-details {
+            display: flex; flex-direction: column; gap: 10px;
+            margin-top: 16px; max-height: 500px; overflow-y: auto;
+            padding-left: 4px;
+        }
+        .result-item {
+            background: #f8fafc; border-radius: 12px; padding: 10px 16px;
+            border-right: 6px solid #8B5CF6;
+            display: flex; flex-wrap: wrap; align-items: center;
+            gap: 6px 12px; font-size: 0.95rem;
+        }
+        .result-item .qnum { font-weight: 700; color: #1D4ED8; min-width: 40px; }
+        .result-item .qtext { flex: 1; font-size: 0.9rem; }
+        .result-item .user-answer {
+            font-weight: 700; font-size: 0.85rem; padding: 2px 12px;
+            border-radius: 40px; background: #e2e8f0;
+        }
+        .result-item .user-answer.correct {
+            background: #dcfce7; color: #16A34A;
+        }
+        .result-item .user-answer.wrong {
+            background: #fef2f2; color: #DC2626;
+        }
+        .result-item .user-answer.unanswered {
+            background: #fefce8; color: #F59E0B;
+        }
+        .result-item .correct-answer {
+            font-size: 0.8rem; color: #475569;
+            background: #e2e8f0; padding: 2px 10px; border-radius: 40px;
+        }
+
+        .result-actions {
+            display: flex; justify-content: center; gap: 16px;
+            flex-wrap: wrap; margin-top: 20px;
+        }
+        .result-actions .btn {
+            background: #2563EB; color: #fff; border: none;
+            padding: 10px 28px; border-radius: 60px;
+            font-family: 'Cairo', sans-serif; font-weight: 700;
+            font-size: 1rem; cursor: pointer; transition: all 0.3s ease;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .result-actions .btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .result-actions .btn-success { background: #16A34A; }
+        .result-actions .btn-warning { background: #F59E0B; }
+        .result-actions .btn-secondary { background: #64748b; }
+
+        .lesson-footer {
+            margin-top: 24px; padding: 16px; text-align: center;
+            color: #94a3b8; border-top: 2px dashed #e2e8f0;
+            font-weight: 700; font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .header { padding: 12px 14px; }
+            .lesson-info h1 { font-size: 1rem; }
+            .lesson-icon { font-size: 1.5rem; }
+            .header-right { flex-direction: column; align-items: stretch; }
+            .btn-back { align-self: flex-start; font-size: 0.75rem; padding: 4px 12px; }
+            .exam-container { padding: 16px 14px; }
+            .question-text { font-size: 1.05rem; }
+            .options-list label { padding: 10px 14px; font-size: 0.95rem; }
+            .result-item { padding: 8px 12px; flex-direction: column; align-items: flex-start; }
+            .result-header .score { font-size: 2.5rem; }
+            .result-stats { gap: 10px; }
+            .result-stats .stat { min-width: 70px; padding: 6px 12px; }
+            .result-stats .stat .number { font-size: 1.3rem; }
+            .result-actions .btn { padding: 8px 20px; font-size: 0.9rem; width: 100%; justify-content: center; }
+        }
+        @media (max-width: 380px) {
+            .question-text { font-size: 0.95rem; }
+            .options-list label { font-size: 0.85rem; padding: 8px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">📝</span>
+            <div class="lesson-info">
+                <h1>الاختبار التراكمي</h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                    <span class="exam-badge">الدروس ٨-٩-١٠</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+            <div class="progress-wrapper">
+                <span class="progress-label">التقدم</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <button class="tab-btn active">📝 الاختبار التراكمي</button>
+    </div>
+
+    <div class="exam-container" id="examContainer">
+
+        <div id="questionArea">
+            <div class="question-counter" id="questionCounter">السؤال 1 من 8</div>
+            <div class="question-text" id="questionText">Loading...</div>
+            <div class="options-list" id="optionsList"></div>
+            <div class="feedback-message" id="feedbackMessage"></div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-header">
+                <div class="score-label">نتيجتك</div>
+                <div class="score" id="finalScore">0%</div>
+                <div class="message" id="resultMessage"></div>
+                <div class="result-stats" id="resultStats">
+                    <div class="stat correct"><div class="number" id="correctCount">0</div><div class="label">✅ صحيح</div></div>
+                    <div class="stat wrong"><div class="number" id="wrongCount">0</div><div class="label">❌ خطأ</div></div>
+                    <div class="stat unanswered"><div class="number" id="unansweredCount">0</div><div class="label">⏳ لم يجب</div></div>
+                </div>
+                <div class="result-actions" id="resultActions"></div>
+            </div>
+            <div class="result-details" id="resultDetails"></div>
+        </div>
+
+    </div>
+
+    <footer class="lesson-footer">
+        <p>🚀 الاختبار التراكمي – الدروس الثامن والتاسع والعاشر</p>
+    </footer>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const questions = [{
+                id: 1,
+                text: 'ما الدور الأساسي لنظام التشغيل (Operating System) داخل الحاسوب؟',
+                options: [
+                    'تخزين الملفات فقط',
+                    'إدارة موارد الحاسوب وتشغيل البرامج',
+                    'زيادة سرعة الإنترنت',
+                    'إنشاء الملفات'
+                ],
+                correct: 1
+            }, {
+                id: 2,
+                text: 'أي وظيفة من وظائف نظام التشغيل مسؤولة عن تشغيل البرامج والتبديل بينها بسرعة؟',
+                options: [
+                    'إدارة الملفات',
+                    'إدارة الذاكرة',
+                    'إدارة العمليات',
+                    'إدارة الأجهزة'
+                ],
+                correct: 2
+            }, {
+                id: 3,
+                text: 'عند فتح تطبيق، أين توجد ملفات التطبيق قبل أن يتم تحميلها إلى ذاكرة RAM؟',
+                options: [
+                    'في المعالج (CPU)',
+                    'في وحدة التخزين (Storage)',
+                    'في الشاشة (Monitor)',
+                    'في ذاكرة الكاش (Cache)'
+                ],
+                correct: 1
+            }, {
+                id: 4,
+                text: 'ما السبب الرئيسي لنقل بيانات البرنامج إلى ذاكرة الوصول العشوائي (RAM) قبل تشغيله؟',
+                options: [
+                    'لأنها تحفظ البيانات بشكل دائم',
+                    'لأنها أسرع من وحدة التخزين في وصول المعالج إلى البيانات',
+                    'لأنها تزيد مساحة التخزين',
+                    'لأنها تمنع تشغيل البرامج الأخرى'
+                ],
+                correct: 1
+            }, {
+                id: 5,
+                text: 'أي من العمليات التالية يوضح الترتيب الصحيح لتشغيل تطبيق؟',
+                options: [
+                    'المستخدم → نظام التشغيل → وحدة التخزين → RAM → CPU → عرض النتيجة',
+                    'المستخدم → CPU → RAM → نظام التشغيل → الشاشة',
+                    'وحدة التخزين → المستخدم → CPU → RAM → الشاشة',
+                    'RAM → وحدة التخزين → CPU → نظام التشغيل → الشاشة'
+                ],
+                correct: 0
+            }, {
+                id: 6,
+                text: 'إذا امتلأت ذاكرة الوصول العشوائي (RAM) أثناء تشغيل عدة تطبيقات، فما النتيجة الأكثر احتمالًا؟',
+                options: [
+                    'يزداد حجم وحدة التخزين تلقائيًا',
+                    'يصبح الجهاز أبطأ وقد تُغلق بعض التطبيقات',
+                    'يتوقف المعالج عن العمل نهائيًا',
+                    'تُحذف الملفات الموجودة في وحدة التخزين'
+                ],
+                correct: 1
+            }, {
+                id: 7,
+                text: 'أي وظيفة من وظائف نظام التشغيل مسؤولة عن تنظيم الملفات والمجلدات واسترجاعها عند الحاجة؟',
+                options: [
+                    'إدارة العمليات',
+                    'إدارة الأجهزة',
+                    'إدارة الملفات',
+                    'إدارة الذاكرة'
+                ],
+                correct: 2
+            }, {
+                id: 8,
+                text: 'أي عبارة تُعبّر بشكل صحيح عن العلاقة بين الأجهزة والبرامج ونظام التشغيل؟',
+                options: [
+                    'يمكن للبرامج العمل دون نظام تشغيل.',
+                    'يعمل نظام التشغيل وسيطًا بين البرامج والأجهزة لتنفيذ الأوامر.',
+                    'تستطيع الأجهزة تشغيل نفسها دون برامج.',
+                    'يعمل المعالج مباشرة مع المستخدم دون الحاجة إلى نظام التشغيل.'
+                ],
+                correct: 1
+            }];
+
+            const totalQuestions = questions.length;
+
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const backBtn = document.getElementById('backBtn');
+            const questionCounter = document.getElementById('questionCounter');
+            const questionText = document.getElementById('questionText');
+            const optionsList = document.getElementById('optionsList');
+            const feedbackMessage = document.getElementById('feedbackMessage');
+            const questionArea = document.getElementById('questionArea');
+            const resultContainer = document.getElementById('resultContainer');
+            const finalScore = document.getElementById('finalScore');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultDetails = document.getElementById('resultDetails');
+            const correctCountEl = document.getElementById('correctCount');
+            const wrongCountEl = document.getElementById('wrongCount');
+            const unansweredCountEl = document.getElementById('unansweredCount');
+            const resultActions = document.getElementById('resultActions');
+
+            let currentIndex = 0;
+            let userAnswers = new Array(totalQuestions).fill(undefined);
+            let answerStatus = new Array(totalQuestions).fill(undefined);
+            let isAnswered = false;
+
+            function renderQuestion(index) {
+                const q = questions[index];
+                questionCounter.textContent = `السؤال ${index + 1} من ${totalQuestions}`;
+                questionText.textContent = q.text;
+
+                const letters = ['أ', 'ب', 'ج', 'د'];
+                let html = '';
+                q.options.forEach((opt, i) => {
+                    const checked = (userAnswers[index] === i) ? 'checked' : '';
+                    const disabled = (userAnswers[index] !== undefined) ? 'disabled' : '';
+                    let labelClass = '';
+                    if (userAnswers[index] !== undefined) {
+                        const isCorrect = (i === q.correct);
+                        const isSelected = (userAnswers[index] === i);
+                        if (isSelected && isCorrect) labelClass = 'correct';
+                        else if (isSelected && !isCorrect) labelClass = 'wrong';
+                    }
+                    html += `
+                        <label class="${labelClass} ${disabled ? 'disabled' : ''}">
+                            <input type="radio" name="question" value="${i}" ${checked} ${disabled}>
+                            <span><strong>${letters[i]})</strong> ${opt}</span>
+                        </label>
+                    `;
+                });
+                optionsList.innerHTML = html;
+
+                feedbackMessage.className = 'feedback-message';
+                feedbackMessage.textContent = '';
+                feedbackMessage.style.display = 'none';
+
+                if (userAnswers[index] !== undefined) {
+                    const isCorrect = (userAnswers[index] === q.correct);
+                    feedbackMessage.className = 'feedback-message ' + (isCorrect ? 'correct' : 'wrong');
+                    feedbackMessage.textContent = isCorrect ? '✅ إجابة صحيحة!' : '❌ إجابة خاطئة.';
+                    feedbackMessage.style.display = 'block';
+                    isAnswered = true;
+                } else {
+                    isAnswered = false;
+                }
+
+                const radios = optionsList.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        if (isAnswered) return;
+                        const selected = parseInt(this.value);
+                        handleAnswer(selected);
+                    });
+                });
+
+                const answeredCount = userAnswers.filter(a => a !== undefined).length;
+                const progress = Math.round((answeredCount / totalQuestions) * 100);
+                progressFill.style.width = progress + '%';
+                progressPercent.textContent = progress + '%';
+            }
+
+            function handleAnswer(selectedIndex) {
+                if (isAnswered) return;
+                const q = questions[currentIndex];
+                const isCorrect = (selectedIndex === q.correct);
+
+                userAnswers[currentIndex] = selectedIndex;
+                answerStatus[currentIndex] = isCorrect;
+                isAnswered = true;
+
+                const allLabels = optionsList.querySelectorAll('label');
+                allLabels.forEach((label, idx) => {
+                    label.classList.add('disabled');
+                    const radio = label.querySelector('input[type="radio"]');
+                    if (radio) radio.disabled = true;
+                    if (idx === q.correct) {
+                        label.classList.add('correct');
+                    }
+                    if (idx === selectedIndex && !isCorrect) {
+                        label.classList.add('wrong');
+                    }
+                });
+
+                feedbackMessage.className = 'feedback-message ' + (isCorrect ? 'correct' : 'wrong');
+                feedbackMessage.textContent = isCorrect ? '✅ إجابة صحيحة!' : '❌ إجابة خاطئة.';
+                feedbackMessage.style.display = 'block';
+
+                const answeredCount = userAnswers.filter(a => a !== undefined).length;
+                const progress = Math.round((answeredCount / totalQuestions) * 100);
+                progressFill.style.width = progress + '%';
+                progressPercent.textContent = progress + '%';
+
+                setTimeout(() => {
+                    if (currentIndex < totalQuestions - 1) {
+                        currentIndex++;
+                        renderQuestion(currentIndex);
+                    } else {
+                        showResult();
+                    }
+                }, 1000);
+            }
+
+            function showResult() {
+                questionArea.style.display = 'none';
+                resultContainer.classList.add('active');
+
+                let correctCount = 0, wrongCount = 0, unansweredCount = 0;
+                for (let i = 0; i < totalQuestions; i++) {
+                    if (answerStatus[i] === true) correctCount++;
+                    else if (answerStatus[i] === false) wrongCount++;
+                    else unansweredCount++;
+                }
+                const percent = Math.round((correctCount / totalQuestions) * 100);
+                finalScore.textContent = percent + '%';
+
+                const msgEl = resultMessage;
+                if (percent === 100) {
+                    msgEl.textContent = '🎉 ممتاز! إجابة كاملة وصحيحة!';
+                    msgEl.style.color = '#16A34A';
+                } else if (percent >= 80) {
+                    msgEl.textContent = '🌟 جيد جداً! مستوى ممتاز.';
+                    msgEl.style.color = '#8B5CF6';
+                } else if (percent >= 60) {
+                    msgEl.textContent = '👍 جيد، لكن هناك نقاط تحتاج إلى مراجعة.';
+                    msgEl.style.color = '#F59E0B';
+                } else {
+                    msgEl.textContent = '📖 ننصحك بإعادة قراءة الدروس مرة أخرى.';
+                    msgEl.style.color = '#DC2626';
+                }
+
+                correctCountEl.textContent = correctCount;
+                wrongCountEl.textContent = wrongCount;
+                unansweredCountEl.textContent = unansweredCount;
+
+                const letters = ['أ', 'ب', 'ج', 'د'];
+                let detailsHtml = '';
+                for (let i = 0; i < totalQuestions; i++) {
+                    const q = questions[i];
+                    const userAns = userAnswers[i];
+                    const isCorrect = answerStatus[i];
+                    let userLetter = 'لم يجب';
+                    let statusClass = 'unanswered';
+                    let statusText = '⏳ لم يجب';
+                    if (userAns !== undefined) {
+                        userLetter = letters[userAns];
+                        if (isCorrect === true) {
+                            statusClass = 'correct';
+                            statusText = '✅ صح';
+                        } else {
+                            statusClass = 'wrong';
+                            statusText = '❌ خطأ';
+                        }
+                    }
+                    const correctLetter = letters[q.correct];
+                    detailsHtml += `
+                        <div class="result-item">
+                            <span class="qnum">${i+1}.</span>
+                            <span class="qtext">${q.text}</span>
+                            <span class="user-answer ${statusClass}">${statusText} (${userLetter})</span>
+                            <span class="correct-answer">الإجابة الصحيحة: ${correctLetter}</span>
+                        </div>
+                    `;
+                }
+                resultDetails.innerHTML = detailsHtml;
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                // أزرار النتيجة
+                let actionsHtml = '';
+                if (percent >= 80) {
+                    actionsHtml += `<button class="btn btn-success" id="nextBtn">🎉 المستوى التالي</button>`;
+                }
+                actionsHtml += `<button class="btn btn-warning" id="retryBtn">🔄 إعادة المحاولة</button>`;
+                actionsHtml += `<button class="btn btn-secondary" id="homeBtn">🏠 العودة للدروس</button>`;
+                resultActions.innerHTML = actionsHtml;
+
+                document.getElementById('retryBtn').addEventListener('click', resetExam);
+                document.getElementById('homeBtn').addEventListener('click', function() {
+                    window.location.href = 'lesson1.html';
+                });
+                const nextBtn = document.getElementById('nextBtn');
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function() {
+                        window.location.href = 'lesson1.html';
+                    });
+                }
+            }
+
+            function resetExam() {
+                currentIndex = 0;
+                userAnswers = new Array(totalQuestions).fill(undefined);
+                answerStatus = new Array(totalQuestions).fill(undefined);
+                isAnswered = false;
+
+                resultContainer.classList.remove('active');
+                questionArea.style.display = 'block';
+                renderQuestion(0);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) window.history.back();
+                else window.location.href = 'lesson10.html';
+            });
+
+            renderQuestion(0);
+        })();
+    </script>
+</body>
+</html>

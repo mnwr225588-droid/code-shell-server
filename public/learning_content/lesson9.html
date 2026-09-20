@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>💻 الوظائف الأساسية لنظام التشغيل - الدرس التاسع</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+            color: #1e293b;
+            line-height: 1.8;
+            padding: 12px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 18px;
+            object-fit: cover;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-radius: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lesson-icon {
+            font-size: 1.8rem;
+        }
+        .lesson-info h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1D4ED8;
+        }
+        .lesson-badge {
+            background: #F59E0B;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .level-badge {
+            background: #2563EB;
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 10px;
+            border-radius: 40px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 2px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .progress-label {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 40px;
+            overflow: hidden;
+            min-width: 80px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #2563EB;
+            border-radius: 40px;
+            transition: width 0.5s ease;
+        }
+        .progress-percent {
+            font-weight: 700;
+            color: #2563EB;
+            font-size: 0.8rem;
+        }
+        .btn-back {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #1e293b;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-back:hover {
+            background: #cbd5e1;
+        }
+
+        /* ===== TABS ===== */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .tab-btn {
+            background: #FFFFFF;
+            border: 2px solid #e2e8f0;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            cursor: default;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #2563EB;
+            border-color: #2563EB;
+            color: #fff;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: #FFFFFF;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 20px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .hero-content {
+            flex: 1 1 100%;
+        }
+        .hero-content h2 {
+            font-size: 1.8rem;
+            color: #1D4ED8;
+            font-weight: 700;
+        }
+        .hero-sub {
+            font-size: 1rem;
+            color: #2563EB;
+            font-weight: 700;
+            margin: 4px 0 6px;
+        }
+        .hero-level {
+            background: #F59E0B;
+            color: #fff;
+            display: inline-block;
+            padding: 2px 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin: 6px 0 10px;
+        }
+        .hero-desc {
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        /* ===== GOAL CARD ===== */
+        .goal-card {
+            background: #dbeafe;
+            border-radius: 18px;
+            padding: 20px 18px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+            border-right: 6px solid #2563EB;
+        }
+        .goal-icon {
+            font-size: 2rem;
+            margin-bottom: 4px;
+        }
+        .goal-card h3 {
+            font-size: 1.4rem;
+            color: #1D4ED8;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .goal-card>p {
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .goal-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px 0;
+        }
+        .goal-list li {
+            font-size: 0.95rem;
+            color: #1e293b;
+            padding: 4px 0;
+        }
+
+        /* ===== LESSON CONTENT ===== */
+        .lesson-content {
+            transition: all 0.5s ease;
+        }
+        .lesson-content.hidden {
+            display: none;
+        }
+
+        .lesson-section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563EB;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #2563EB;
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+        .section-sub {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-right: 8px;
+        }
+        .section-image {
+            margin: 14px 0;
+        }
+        .section-image img {
+            width: 100%;
+            border-radius: 18px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+        .center-image img {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .section-text p {
+            margin-bottom: 14px;
+            font-size: 0.98rem;
+            color: #1e293b;
+        }
+
+        /* ===== INFO BOXES ===== */
+        .info-box {
+            border-radius: 18px;
+            padding: 16px 20px;
+            margin: 18px 0;
+            border-right: 6px solid;
+        }
+        .info-box h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .info-box p {
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .info-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .info-box ul li {
+            font-size: 0.95rem;
+            padding: 2px 0;
+        }
+        .info-box ul li::before {
+            content: "• ";
+        }
+        .info-box.blue {
+            background: #eff6ff;
+            border-color: #2563EB;
+        }
+        .info-box.blue h4 {
+            color: #1D4ED8;
+        }
+        .info-box.green {
+            background: #f0fdf4;
+            border-color: #16A34A;
+        }
+        .info-box.green h4 {
+            color: #16A34A;
+        }
+        .info-box.yellow {
+            background: #fefce8;
+            border-color: #F59E0B;
+        }
+        .info-box.yellow h4 {
+            color: #F59E0B;
+        }
+        .info-box.red {
+            background: #fef2f2;
+            border-color: #DC2626;
+        }
+        .info-box.red h4 {
+            color: #DC2626;
+        }
+        .info-box.purple {
+            background: #f3e8ff;
+            border-color: #8B5CF6;
+        }
+        .info-box.purple h4 {
+            color: #8B5CF6;
+        }
+
+        /* ===== TABLES ===== */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .info-table th {
+            background: #2563EB;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .info-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+        .info-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== FLOWCHART ===== */
+        .flowchart {
+            background: #FFFFFF;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            margin: 16px 0;
+            text-align: center;
+        }
+        .flowchart .step {
+            display: inline-block;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 700;
+            margin: 4px 0;
+            min-width: 120px;
+        }
+        .flowchart .step.blue {
+            background: #dbeafe;
+            color: #1D4ED8;
+            border: 2px solid #2563EB;
+        }
+        .flowchart .step.green {
+            background: #dcfce7;
+            color: #16A34A;
+            border: 2px solid #16A34A;
+        }
+        .flowchart .step.yellow {
+            background: #fefce8;
+            color: #F59E0B;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.purple {
+            background: #f3e8ff;
+            color: #8B5CF6;
+            border: 2px solid #8B5CF6;
+        }
+        .flowchart .step.orange {
+            background: #fef3c7;
+            color: #D97706;
+            border: 2px solid #F59E0B;
+        }
+        .flowchart .step.red {
+            background: #fef2f2;
+            color: #DC2626;
+            border: 2px solid #DC2626;
+        }
+        .flowchart .arrow {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin: 2px 0;
+        }
+
+        /* ===== SUMMARY ===== */
+        .summary-box {
+            background: #f0f9ff;
+            border-right: 6px solid #2563EB;
+            padding: 20px 22px;
+            border-radius: 18px;
+            margin: 24px 0;
+        }
+        .summary-box h4 {
+            color: #1D4ED8;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .summary-box ul {
+            list-style: none;
+            padding-right: 6px;
+        }
+        .summary-box ul li {
+            font-size: 0.95rem;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-box ul li:last-child {
+            border-bottom: none;
+        }
+        .summary-box ul li::before {
+            content: "✅ ";
+            color: #16A34A;
+        }
+
+        /* ===== TERMS TABLE ===== */
+        .terms-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            font-size: 0.9rem;
+        }
+        .terms-table th {
+            background: #1D4ED8;
+            color: #fff;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .terms-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .terms-table tr:last-child td {
+            border-bottom: none;
+        }
+        .terms-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ===== COMPLETE BUTTON ===== */
+        .complete-wrapper {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .btn-complete {
+            background: #16A34A;
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.3);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        .btn-complete:hover {
+            background: #15803d;
+            transform: scale(1.02);
+        }
+        .btn-complete:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-complete.completed {
+            background: #16A34A;
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        /* ===== NEXT BUTTON ===== */
+        .next-wrapper {
+            text-align: center;
+            margin: 20px 0 30px;
+            display: none;
+        }
+        .next-wrapper.show {
+            display: block;
+        }
+        .btn-next-lesson {
+            background: #2563EB;
+            color: #fff;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 60px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+        }
+        .btn-next-lesson:hover {
+            background: #1D4ED8;
+            transform: scale(1.02);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.4);
+        }
+
+        /* ===== FOOTER ===== */
+        .lesson-footer {
+            margin-top: 24px;
+            padding: 16px;
+            text-align: center;
+            color: #94a3b8;
+            border-top: 2px dashed #e2e8f0;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .header {
+                padding: 12px 14px;
+            }
+            .lesson-info h1 {
+                font-size: 1rem;
+            }
+            .lesson-icon {
+                font-size: 1.5rem;
+            }
+            .header-right {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-back {
+                align-self: flex-start;
+                font-size: 0.75rem;
+                padding: 4px 12px;
+            }
+            .hero {
+                padding: 14px 14px;
+                gap: 14px;
+            }
+            .hero-content h2 {
+                font-size: 1.5rem;
+            }
+            .section-title {
+                font-size: 1.3rem;
+            }
+            .goal-card {
+                padding: 16px 14px;
+            }
+            .btn-complete {
+                font-size: 1rem;
+                padding: 12px 20px;
+            }
+            .btn-next-lesson {
+                font-size: 1rem;
+                padding: 12px 24px;
+                width: 100%;
+                justify-content: center;
+            }
+            .info-table th,
+            .info-table td,
+            .terms-table th,
+            .terms-table td {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .section-text p {
+                font-size: 0.92rem;
+            }
+            .hero-desc {
+                font-size: 0.9rem;
+            }
+            .info-box {
+                padding: 12px 14px;
+            }
+            .flowchart .step {
+                min-width: 80px;
+                font-size: 0.9rem;
+                padding: 6px 12px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hero-content h2 {
+                font-size: 1.3rem;
+            }
+            .progress-label {
+                font-size: 0.7rem;
+            }
+            .progress-percent {
+                font-size: 0.7rem;
+            }
+        }
+
+        .section-image img,
+        .hero-image img,
+        .center-image img {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <span class="lesson-icon">💻</span>
+            <div class="lesson-info">
+                <h1>الوظائف الأساسية لنظام التشغيل <span class="lesson-badge">الدرس التاسع</span></h1>
+                <div>
+                    <span class="level-badge">المستوى الأول</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-back" id="backBtn">↩️ رجوع</button>
+            <div class="progress-wrapper">
+                <span class="progress-label">التقدم</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== TABS ===== -->
+    <div class="tabs-container">
+        <button class="tab-btn active">📖 مادة القراءة</button>
+    </div>
+
+    <!-- ===== محتوى الدرس ===== -->
+    <div class="lesson-content" id="lessonContent">
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>💻 الوظائف الأساسية لنظام التشغيل</h2>
+                <p class="hero-sub">The Main Functions of the Operating System</p>
+                <p class="hero-level">المستوى الأول</p>
+                <p class="hero-desc">تعرف على الوظائف الأربع الرئيسية لنظام التشغيل: إدارة العمليات، الذاكرة، الملفات، والأجهزة.</p>
+            </div>
+        </section>
+
+        <!-- GOAL -->
+        <section class="goal-card">
+            <div class="goal-icon">🎯</div>
+            <h3>أهداف الدرس</h3>
+            <p>بعد الانتهاء من هذا الدرس، ستكون قادرًا على:</p>
+            <ul class="goal-list">
+                <li>✔ التعرف على أهم الوظائف التي يؤديها نظام التشغيل.</li>
+                <li>✔ فهم كيفية إدارة البرامج أثناء تشغيلها.</li>
+                <li>✔ معرفة كيف ينظم نظام التشغيل استخدام ذاكرة RAM.</li>
+                <li>✔ فهم طريقة تنظيم الملفات داخل وحدة التخزين.</li>
+                <li>✔ التعرف على كيفية تحكم نظام التشغيل في مكونات الحاسوب المختلفة.</li>
+                <li>✔ فهم كيف تتعاون جميع هذه الوظائف لتشغيل الجهاز بكفاءة.</li>
+            </ul>
+        </section>
+
+        <!-- ===== مقدمة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">مقدمة <span class="section-sub">Introduction</span></h2>
+            <div class="section-text">
+                <p>في الدرس السابق تعرفنا على أن نظام التشغيل (Operating System) هو البرنامج الأساسي الذي يدير الحاسوب، ويعمل كحلقة وصل بين المستخدم والبرامج والمكونات المادية.</p>
+                <p>لكن يبقى السؤال: <strong>ما الذي يفعله نظام التشغيل طوال الوقت؟</strong></p>
+                <p>في الحقيقة، بمجرد تشغيل الحاسوب يبدأ نظام التشغيل في تنفيذ مئات العمليات المختلفة، فهو لا يكتفي بتشغيل الجهاز فقط، بل ينظم عمل جميع البرامج، ويوزع موارد الجهاز بينها، ويتحكم في الملفات والأجهزة، حتى يعمل كل شيء بصورة سليمة.</p>
+                <p>يمكن تشبيه نظام التشغيل بمدير شركة كبيرة، حيث يقوم بتنظيم عمل جميع الأقسام في الوقت نفسه حتى لا يحدث أي تعارض أو فوضى.</p>
+                <div class="section-image center-image">
+                    <img src="images/os_functions_overview.png" alt="OS functions overview" />
+                    <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                        (Image: A manager in the center of a large office directing multiple employees, next to it a diagram showing the OS organizing programs and devices.)
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== الوظائف الأساسية ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">الوظائف الأساسية لنظام التشغيل</h2>
+            <div class="section-text">
+                <p>يقوم نظام التشغيل بأربع وظائف رئيسية تعمل معًا باستمرار:</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0;">
+                    <div style="background:#eff6ff; border-radius:14px; padding:12px 16px; border-right:6px solid #2563EB;">
+                        <h4 style="color:#1D4ED8; font-size:1rem;">🟦 إدارة العمليات</h4>
+                        <p style="font-size:0.85rem; color:#475569;">(Process Management)</p>
+                    </div>
+                    <div style="background:#f0fdf4; border-radius:14px; padding:12px 16px; border-right:6px solid #16A34A;">
+                        <h4 style="color:#16A34A; font-size:1rem;">🟩 إدارة الذاكرة</h4>
+                        <p style="font-size:0.85rem; color:#475569;">(Memory Management)</p>
+                    </div>
+                    <div style="background:#fefce8; border-radius:14px; padding:12px 16px; border-right:6px solid #F59E0B;">
+                        <h4 style="color:#F59E0B; font-size:1rem;">🟨 إدارة الملفات</h4>
+                        <p style="font-size:0.85rem; color:#475569;">(File Management)</p>
+                    </div>
+                    <div style="background:#fef2f2; border-radius:14px; padding:12px 16px; border-right:6px solid #DC2626;">
+                        <h4 style="color:#DC2626; font-size:1rem;">🟥 إدارة الأجهزة</h4>
+                        <p style="font-size:0.85rem; color:#475569;">(Device Management)</p>
+                    </div>
+                </div>
+                <p>كل وظيفة من هذه الوظائف مسؤولة عن جزء معين من عمل الحاسوب، وعند تعاونها معًا يستطيع الجهاز تشغيل البرامج بسرعة وكفاءة.</p>
+                <div class="section-image center-image">
+                    <img src="images/os_functions_diagram.png" alt="OS functions diagram" />
+                    <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                        (Image: Circular diagram with "Operating System" in the center and four arrows branching to the four functions.)
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== أولاً: إدارة العمليات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">أولًا: إدارة العمليات <span class="section-sub">Process Management</span></h2>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:6px;">ما المقصود بالعملية (Process)؟</h3>
+            <p>عندما تقوم بفتح أي برنامج، مثل: متصفح الإنترنت، لعبة، برنامج Word، آلة حاسبة. فإن هذا البرنامج يتحول إلى <strong>عملية (Process)</strong>، أي برنامج يعمل الآن داخل الحاسوب.</p>
+
+            <div class="info-box blue">
+                <h4>🔵 تعريف مهم</h4>
+                <p><strong>العملية (Process):</strong> هي برنامج قيد التشغيل يتم تنفيذ تعليماته بواسطة المعالج.</p>
+            </div>
+
+            <div class="info-box green">
+                <h4>🟢 ماذا يفعل نظام التشغيل؟</h4>
+                <ul>
+                    <li>تشغيل البرامج.</li>
+                    <li>إيقاف البرامج عند إغلاقها.</li>
+                    <li>توزيع وقت المعالج بين البرامج.</li>
+                    <li>تحديد أولوية كل برنامج.</li>
+                    <li>منع البرامج من التعارض مع بعضها.</li>
+                </ul>
+            </div>
+
+            <h3 style="color:#1D4ED8; font-size:1.1rem; margin-top:20px;">كيف يستطيع تشغيل عدة برامج؟</h3>
+            <p>قد تعتقد أن جميع البرامج تعمل في الوقت نفسه، لكن الحقيقة مختلفة.</p>
+            <p>المعالج (CPU) ينفذ عددًا محدودًا من التعليمات في كل لحظة، لذلك يقوم نظام التشغيل بتقسيم وقت المعالج إلى أجزاء صغيرة جدًا، ويعطي كل برنامج جزءًا من هذا الوقت.</p>
+            <p>تتكرر هذه العملية بسرعة هائلة، فيبدو للمستخدم أن جميع البرامج تعمل معًا.</p>
+            <p style="font-weight:700; color:#1D4ED8;">ويُعرف ذلك باسم: <strong>تعدد المهام (Multitasking)</strong></p>
+
+            <div class="info-box yellow">
+                <h4>🟡 مثال</h4>
+                <p>أثناء الدراسة قد تقوم بـ:</p>
+                <ul>
+                    <li>تشغيل YouTube.</li>
+                    <li>كتابة ملخص في Word.</li>
+                    <li>الاستماع إلى الموسيقى.</li>
+                    <li>تحميل ملف من الإنترنت.</li>
+                </ul>
+                <p>كل هذه البرامج تعمل بفضل إدارة العمليات.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/process_management.png" alt="Process management" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Screen showing four open programs with arrows from the OS to each program.)
+                </p>
+            </div>
+
+            <div class="info-box red">
+                <h4>🔴 ماذا يحدث بدون إدارة العمليات؟</h4>
+                <ul>
+                    <li>توقف بعض البرامج.</li>
+                    <li>بطء شديد.</li>
+                    <li>استهلاك برنامج واحد لجميع موارد المعالج.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ===== ثانياً: إدارة الذاكرة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ثانيًا: إدارة الذاكرة <span class="section-sub">Memory Management</span></h2>
+            <div class="section-text">
+                <p>يعتمد تشغيل البرامج على وجود مساحة داخل ذاكرة الوصول العشوائي (RAM). لكن RAM ليست غير محدودة، لذلك يجب تنظيم استخدامها. وهنا يأتي دور نظام التشغيل.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 تعريف</h4>
+                <p><strong>إدارة الذاكرة</strong> هي عملية تنظيم استخدام ذاكرة RAM وتوزيعها بين البرامج المختلفة.</p>
+            </div>
+
+            <div class="info-box green">
+                <h4>🟢 ماذا يفعل نظام التشغيل؟</h4>
+                <ul>
+                    <li>تخصيص جزء من RAM لكل برنامج.</li>
+                    <li>استعادة الذاكرة بعد إغلاق البرنامج.</li>
+                    <li>منع البرامج من استخدام ذاكرة برامج أخرى.</li>
+                    <li>توزيع الذاكرة بطريقة تحقق أفضل أداء.</li>
+                </ul>
+            </div>
+
+            <div class="info-box yellow">
+                <h4>🟡 مثال</h4>
+                <p>إذا فتحت: لعبة، متصفح، برنامج تصميم، Word. فإن جميعها تحتاج إلى RAM. يقوم نظام التشغيل بتوزيع الذاكرة بينها حتى تعمل جميعها بأفضل شكل ممكن.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/memory_management.png" alt="Memory management" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Rectangle representing RAM divided into four parts, each labeled with a program name.)
+                </p>
+            </div>
+
+            <div class="info-box red">
+                <h4>🔴 ماذا يحدث عند امتلاء RAM؟</h4>
+                <ul>
+                    <li>يبدأ الجهاز في البطء.</li>
+                    <li>قد تتوقف بعض التطبيقات.</li>
+                    <li>قد يغلق النظام بعض البرامج.</li>
+                    <li>تصبح عملية التنقل بين التطبيقات أبطأ.</li>
+                </ul>
+                <p style="margin-top:6px;">ولهذا فإن زيادة سعة RAM تساعد على تشغيل برامج أكثر في الوقت نفسه.</p>
+            </div>
+        </section>
+
+        <!-- ===== ثالثاً: إدارة الملفات ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">ثالثًا: إدارة الملفات <span class="section-sub">File Management</span></h2>
+            <div class="section-text">
+                <p>كل الملفات الموجودة على جهازك، مثل: الصور، الفيديوهات، المستندات، الألعاب، البرامج. تحتاج إلى تنظيم. وهذا التنظيم يقوم به نظام التشغيل.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 تعريف</h4>
+                <p><strong>إدارة الملفات</strong> هي عملية إنشاء الملفات وتنظيمها وتخزينها واسترجاعها عند الحاجة.</p>
+            </div>
+
+            <div class="info-box green">
+                <h4>🟢 ماذا يفعل نظام التشغيل؟</h4>
+                <ul>
+                    <li>إنشاء الملفات.</li>
+                    <li>حذف الملفات.</li>
+                    <li>إعادة تسميتها.</li>
+                    <li>نقلها.</li>
+                    <li>إنشاء المجلدات.</li>
+                    <li>تنظيم البيانات داخل وحدة التخزين.</li>
+                </ul>
+            </div>
+
+            <div class="info-box yellow">
+                <h4>🟡 مثال</h4>
+                <p>عند الضغط على صورة: يبحث نظام التشغيل عنها، يحدد مكانها، يقرأها من وحدة التخزين، يرسلها إلى برنامج عرض الصور، تظهر الصورة على الشاشة. كل ذلك يحدث خلال أجزاء من الثانية.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/file_management.png" alt="File management" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Folder containing images and files with an arrow showing an image moving to the computer screen.)
+                </p>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 لماذا تنظيم الملفات مهم؟</h4>
+                <p>تخيل لو كانت جميع ملفات جهازك موجودة في مكان واحد دون أسماء أو مجلدات. سيصبح العثور على أي ملف أمرًا صعبًا جدًا. ولهذا ينظم نظام التشغيل جميع الملفات داخل مجلدات مرتبة.</p>
+            </div>
+        </section>
+
+        <!-- ===== رابعاً: إدارة الأجهزة ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">رابعًا: إدارة الأجهزة <span class="section-sub">Device Management</span></h2>
+            <div class="section-text">
+                <p>يحتوي الحاسوب على العديد من الأجهزة، مثل: الشاشة، لوحة المفاتيح، الفأرة، الطابعة، السماعات، الكاميرا، الميكروفون. يجب أن تعمل جميع هذه الأجهزة معًا بطريقة صحيحة.</p>
+            </div>
+
+            <div class="info-box blue">
+                <h4>🔵 تعريف</h4>
+                <p><strong>إدارة الأجهزة</strong> هي التحكم في طريقة عمل مكونات الحاسوب والتنسيق بينها.</p>
+            </div>
+
+            <div class="info-box green">
+                <h4>🟢 ماذا يفعل نظام التشغيل؟</h4>
+                <ul>
+                    <li>استقبال الكتابة من لوحة المفاتيح.</li>
+                    <li>استقبال حركة الفأرة.</li>
+                    <li>إرسال الصورة إلى الشاشة.</li>
+                    <li>تشغيل الصوت عبر السماعات.</li>
+                    <li>التحكم بالطابعة والكاميرا.</li>
+                    <li>إدارة توصيل وفصل الأجهزة الخارجية.</li>
+                </ul>
+            </div>
+
+            <div class="info-box yellow">
+                <h4>🟡 مثال</h4>
+                <p>عند تشغيل فيلم: يرسل نظام التشغيل الصورة إلى الشاشة، ويرسل الصوت إلى السماعات، وينسق بينهما حتى يعمل الصوت والصورة في الوقت نفسه.</p>
+            </div>
+            <div class="section-image center-image">
+                <img src="images/device_management.png" alt="Device management" />
+                <p style="font-size:0.8rem; color:#94a3b8; text-align:center; margin-top:6px;">
+                    (Image: Monitor, speakers, keyboard, and mouse all connected to the Operating System.)
+                </p>
+            </div>
+        </section>
+
+        <!-- ===== كيف تعمل هذه الوظائف معًا؟ ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">كيف تعمل هذه الوظائف معًا؟</h2>
+            <div class="section-text">
+                <p>لنفترض أنك فتحت لعبة. ما الذي يحدث؟</p>
+            </div>
+            <div class="flowchart">
+                <div class="step blue">🎮 يضغط المستخدم على اللعبة</div>
+                <div class="arrow">⬇️</div>
+                <div class="step yellow">🟦 يبدأ نظام التشغيل تشغيل اللعبة <span style="font-size:0.7rem; color:#64748b;">(إدارة العمليات)</span></div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">🟩 يخصص جزءًا من RAM <span style="font-size:0.7rem; color:#64748b;">(إدارة الذاكرة)</span></div>
+                <div class="arrow">⬇️</div>
+                <div class="step orange">🟨 يقرأ ملفات اللعبة من وحدة التخزين <span style="font-size:0.7rem; color:#64748b;">(إدارة الملفات)</span></div>
+                <div class="arrow">⬇️</div>
+                <div class="step red">🟥 يرسل البيانات إلى الشاشة والسماعات ويتعامل مع لوحة المفاتيح والفأرة <span style="font-size:0.7rem; color:#64748b;">(إدارة الأجهزة)</span></div>
+                <div class="arrow">⬇️</div>
+                <div class="step green">✅ تعمل اللعبة بصورة طبيعية</div>
+            </div>
+
+            <div class="info-box red">
+                <h4>🔴 ماذا يحدث إذا تعطلت إحدى هذه الوظائف؟</h4>
+                <ul>
+                    <li>إذا توقفت إدارة العمليات، فلن تعمل البرامج بصورة صحيحة.</li>
+                    <li>إذا تعطلت إدارة الذاكرة، سيصبح الجهاز بطيئًا أو تتوقف التطبيقات.</li>
+                    <li>إذا تعطلت إدارة الملفات، لن تستطيع فتح أو حفظ الملفات.</li>
+                    <li>إذا تعطلت إدارة الأجهزة، قد تتوقف الشاشة أو لوحة المفاتيح أو السماعات عن العمل.</li>
+                </ul>
+                <p style="font-weight:700; margin-top:6px;">ولهذا تعتمد جميع أجزاء نظام التشغيل على بعضها البعض.</p>
+            </div>
+
+            <div class="info-box purple">
+                <h4>🟣 معلومة مهمة</h4>
+                <p>لا يؤدي نظام التشغيل هذه الوظائف مرة واحدة فقط، بل يكررها آلاف المرات في الثانية الواحدة، لذلك يستطيع الجهاز الاستجابة بسرعة كبيرة لكل أمر يصدره المستخدم.</p>
+            </div>
+        </section>
+
+        <!-- ===== ملخص الدرس ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📌 ملخص الدرس</h2>
+            <div class="summary-box">
+                <ul>
+                    <li>يؤدي نظام التشغيل أربع وظائف رئيسية: إدارة العمليات، إدارة الذاكرة، إدارة الملفات، إدارة الأجهزة.</li>
+                    <li>إدارة العمليات تنظم تشغيل البرامج وتوزع وقت المعالج بينها.</li>
+                    <li>إدارة الذاكرة تخصص ذاكرة RAM للبرامج وتحررها عند الانتهاء.</li>
+                    <li>إدارة الملفات تنظم البيانات داخل وحدة التخزين وتسمح بالوصول إليها بسهولة.</li>
+                    <li>إدارة الأجهزة تتحكم في جميع مكونات الحاسوب وتنسق عملها.</li>
+                    <li>تعمل هذه الوظائف معًا باستمرار لضمان سرعة واستقرار الحاسوب.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ===== المصطلحات الأساسية ===== -->
+        <section class="lesson-section">
+            <h2 class="section-title">📖 المصطلحات الأساسية</h2>
+            <table class="terms-table">
+                <thead>
+                    <tr>
+                        <th>المصطلح</th>
+                        <th>التعريف</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>العملية (Process)</strong></td>
+                        <td>برنامج قيد التشغيل حاليًا.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>إدارة العمليات (Process Management)</strong></td>
+                        <td>تنظيم تشغيل البرامج وتوزيع وقت المعالج بينها.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>إدارة الذاكرة (Memory Management)</strong></td>
+                        <td>تنظيم استخدام ذاكرة RAM وتخصيصها للبرامج.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>إدارة الملفات (File Management)</strong></td>
+                        <td>تنظيم الملفات والمجلدات داخل وحدة التخزين.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>إدارة الأجهزة (Device Management)</strong></td>
+                        <td>التحكم في عمل الأجهزة المختلفة والتنسيق بينها.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>تعدد المهام (Multitasking)</strong></td>
+                        <td>تشغيل عدة برامج بالتبديل السريع بينها بواسطة نظام التشغيل.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- زر إكتملت القراءة -->
+        <div class="complete-wrapper">
+            <button class="btn-complete" id="completeReadingBtn">✅ إكتملت القراءة</button>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:6px;">بعد الضغط على هذا الزر سيظهر زر الانتقال للدرس التالي.</p>
+        </div>
+
+        <!-- زر الدرس التالي (يظهر بعد الضغط على زر الإكمال) -->
+        <div class="next-wrapper" id="nextWrapper">
+            <button class="btn-next-lesson" id="nextLessonBtn">📘 الدرس التالي</button>
+        </div>
+
+    </div> <!-- نهاية lesson-content -->
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="lesson-footer">
+        <p>🚀 تم إنجاز الدرس التاسع. حظاً موفقاً في الدرس القادم!</p>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const completeBtn = document.getElementById('completeReadingBtn');
+            const lessonContent = document.getElementById('lessonContent');
+            const backBtn = document.getElementById('backBtn');
+            const nextWrapper = document.getElementById('nextWrapper');
+            const nextLessonBtn = document.getElementById('nextLessonBtn');
+
+            let readingCompleted = false;
+
+            // ===== زر الرجوع =====
+            backBtn.addEventListener('click', function() {
+                if (window.history && window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = 'lesson8.html';
+                }
+            });
+
+            // ===== زر الدرس التالي =====
+            nextLessonBtn.addEventListener('click', function() {
+                window.location.href = 'lesson10.html';
+            });
+
+            // ===== تحديث التقدم أثناء التمرير =====
+            function updateScrollProgress() {
+                if (readingCompleted) return;
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const docHeight = Math.max(
+                    document.documentElement.scrollHeight,
+                    document.body.scrollHeight
+                ) - window.innerHeight;
+                let progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                let rounded = Math.min(100, Math.round(progress));
+                progressFill.style.width = rounded + '%';
+                progressPercent.textContent = rounded + '%';
+            }
+
+            window.addEventListener('scroll', updateScrollProgress);
+            window.addEventListener('resize', updateScrollProgress);
+            window.addEventListener('load', updateScrollProgress);
+
+            // ===== زر "إكتملت القراءة" =====
+            completeBtn.addEventListener('click', function() {
+                if (readingCompleted) return;
+                readingCompleted = true;
+
+                completeBtn.textContent = '✅ تم ✓';
+                completeBtn.classList.add('completed');
+                completeBtn.disabled = true;
+
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                window.removeEventListener('scroll', updateScrollProgress);
+                window.removeEventListener('resize', updateScrollProgress);
+
+                nextWrapper.classList.add('show');
+
+                setTimeout(() => {
+                    nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+
+        })();
+    </script>
+</body>
+</html>

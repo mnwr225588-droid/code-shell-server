@@ -26,28 +26,17 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\PaymentController;
 
 Route::get('/', function () {
-    return redirect('/web/index.html');
+    return view('web');
 });
 
 // مسار محدد لعرض ملفات واجهة الويب مباشرة من public/web
 Route::get('/web/{any?}', function ($any = 'index.html') {
     $file = $any ?: 'index.html';
-    // استخدام base_path بدلاً من public_path لضمان المسار الصحيح على السيرفر
-    $path = base_path('public/web/' . $file);
-    
+    $path = public_path('web/' . $file);
     if (file_exists($path) && !is_dir($path)) {
-        Log::info("Serving web file: {$path}");
         return response()->file($path);
     }
-    
-    $indexPath = base_path('public/web/index.html');
-    if (file_exists($indexPath)) {
-        Log::info("Fallback to index.html: {$indexPath}");
-        return response()->file($indexPath);
-    }
-    
-    Log::error("Web file not found at: {$path}, base_path: " . base_path() . ", dir: " . __DIR__);
-    abort(404);
+    return view('web');
 })->where('any', '.*');
 
 Route::get('/verify-email/{token}', function ($token) {
