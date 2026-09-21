@@ -35,9 +35,31 @@ class CourseSubscriptionController extends Controller
 
         $isSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
 
+        $group = null;
+        if ($isSubscribed && $user) {
+            $group = $user->groups()->where('course_id', $course->id)->first();
+            if (!$group) {
+                $pivot = \DB::table('course_user')
+                    ->where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->first();
+                if ($pivot && !empty($pivot->group_id)) {
+                    $group = \App\Models\CourseGroup::find($pivot->group_id);
+                }
+            }
+            if (!$group) {
+                $group = \App\Models\CourseGroup::where('course_id', $course->id)->first();
+            }
+        }
+
         return response()->json([
             'status'        => true,
             'is_subscribed' => $isSubscribed,
+            'group'         => $group ? [
+                'id'   => $group->id,
+                'name' => $group->name,
+            ] : null,
+            'group_name'    => $group ? $group->name : null,
             'students_count'=> $course->subscribedUsers()->count() + 120,
         ]);
     }
