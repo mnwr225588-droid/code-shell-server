@@ -70,6 +70,8 @@ class AuthService
                 $userType = 'teacher';
             }
 
+            $user->user_type = $userType;
+
             return [
                 'user' => $user,
                 'token' => $token,
@@ -82,6 +84,8 @@ class AuthService
 
         if ($teacher && Hash::check($data['password'], $teacher->password)) {
             $token = $teacher->createToken('CodeShell')->plainTextToken;
+
+            $teacher->user_type = 'teacher';
 
             return [
                 'user' => $teacher,
