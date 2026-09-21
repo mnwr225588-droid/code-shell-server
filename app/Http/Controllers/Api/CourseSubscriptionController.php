@@ -49,6 +49,20 @@ class CourseSubscriptionController extends Controller
             }
             if (!$group) {
                 $group = \App\Models\CourseGroup::where('course_id', $course->id)->first();
+                if (!$group) {
+                    $group = \App\Models\CourseGroup::create([
+                        'course_id' => $course->id,
+                        'name'      => 'المجموعة الأولى (الأساسية)',
+                        'capacity'  => 30,
+                        'status'    => 'active'
+                    ]);
+                }
+                if ($group) {
+                    \DB::table('course_user')
+                        ->where('user_id', $user->id)
+                        ->where('course_id', $course->id)
+                        ->update(['group_id' => $group->id]);
+                }
             }
         }
 
