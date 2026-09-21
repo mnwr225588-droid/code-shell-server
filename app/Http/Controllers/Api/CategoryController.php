@@ -7,5 +7,13 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    //
+    public function index()
+    {
+        $categories = \App\Models\Category::all();
+        return response()->json([
+            'status' => true,
+            'data' => $categories
+        ]);
+    }
 }
+

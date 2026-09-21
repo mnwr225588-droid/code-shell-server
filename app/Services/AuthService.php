@@ -14,8 +14,9 @@ class AuthService
      */
     public function register(array $data): array
     {
-        $user = User::create([
+        $isTeacher = Teacher::where('email', $data['email'])->exists() || ($data['user_type'] ?? '') === 'teacher';
 
+        $user = User::create([
             'first_name' => $data['first_name'],
             'middle_name' => $data['middle_name'],
             'last_name' => $data['last_name'],
@@ -25,7 +26,7 @@ class AuthService
             'country' => $data['country'] ?? null,
             'password' => Hash::make($data['password']),
             'is_active' => true,
-
+            'email_verified_at' => $isTeacher ? now() : null,
         ]);
 
         $token = $user->createToken('CodeShell')->plainTextToken;
@@ -33,7 +34,7 @@ class AuthService
         return [
             'user' => $user,
             'token' => $token,
-            'user_type' => 'student',
+            'user_type' => $isTeacher ? 'teacher' : 'student',
         ];
     }
 
@@ -52,13 +53,20 @@ class AuthService
                 $user->save();
             }
 
+            // فحص هل المستخدم مدرس لتفعيل بريده تلقائياً وعدم مطالبته بالتحقق
+            $isTeacher = Teacher::where('email', $user->email)->exists() || $user->teacher !== null;
+            if ($isTeacher && !$user->email_verified_at) {
+                $user->email_verified_at = now();
+                $user->save();
+            }
+
             $token = $user->createToken('CodeShell')->plainTextToken;
 
-            // determination of user type: admin if is_admin=1, teacher if hasTeacher relationship, else student
+            // determination of user type: admin if is_admin=1, teacher if hasTeacher relationship or isTeacher, else student
             $userType = 'student';
             if ($user->is_admin) {
                 $userType = 'admin';
-            } elseif ($user->teacher !== null) {
+            } elseif ($isTeacher) {
                 $userType = 'teacher';
             }
 
