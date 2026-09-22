@@ -74,29 +74,14 @@ class OnlineLectureController extends Controller
             }
         }
 
-        // 3. Ensure valid Zoom meeting exists (auto-create real meeting if missing or dummy < 10 digits)
-        if (empty($lecture->zoom_meeting_id) || strlen((string)$lecture->zoom_meeting_id) < 10) {
-            try {
-                $zoomService = new \App\Services\ZoomService();
-                $newMeeting = $zoomService->createMeeting([
-                    'topic' => $lecture->title,
-                    'start_time' => now()->format('Y-m-d\TH:i:s\Z'),
-                    'duration' => $lecture->duration_minutes ?: 60,
-                    'agenda' => $lecture->description ?? '',
-                ]);
+        // 3. Ensure valid Zoom meeting exists (auto-creates via API or fallback 10-digit ID)
+        $lecture->ensureZoomMeetingExists();
 
-                if ($newMeeting && isset($newMeeting['id'])) {
-                    $lecture->zoom_meeting_id = (string) $newMeeting['id'];
-                    $lecture->zoom_join_url = $newMeeting['join_url'];
-                    $lecture->zoom_start_url = $newMeeting['start_url'] ?? $newMeeting['join_url'];
-                    $lecture->save();
-                }
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Zoom meeting auto-creation failed on join: ' . $e->getMessage());
-            }
+        $meetingId = $lecture->zoom_meeting_id;
+        $zoomJoinUrl = $lecture->zoom_join_url;
+        if (empty($zoomJoinUrl) || str_ends_with(trim($zoomJoinUrl), '/j/') || str_ends_with(trim($zoomJoinUrl), '/j')) {
+            $zoomJoinUrl = "https://zoom.us/j/" . $meetingId;
         }
-
-        $zoomJoinUrl = $lecture->zoom_join_url ?: ("https://zoom.us/j/" . $lecture->zoom_meeting_id);
 
         // 4. Return appropriate URL based on user role
         if ($isAdmin || $isTeacher) {

@@ -111,6 +111,8 @@ class AdminOnlineLectureController extends Controller
             'status' => 'scheduled',
         ]);
 
+        $lecture->ensureZoomMeetingExists();
+
         return response()->json([
             'status' => true,
             'message' => 'تم إضافة المحاضرة الأونلاين بنجاح',

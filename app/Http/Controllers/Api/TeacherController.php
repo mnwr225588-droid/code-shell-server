@@ -253,6 +253,7 @@ class TeacherController extends Controller
             Log::warning('Zoom meeting re-creation failed after break: ' . $e->getMessage());
         }
 
+        $lecture->ensureZoomMeetingExists();
         $lecture->status = 'live';
         $lecture->save();
 
@@ -278,27 +279,7 @@ class TeacherController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
-        // Create or refresh real Zoom meeting if zoom_meeting_id is missing or invalid (dummy < 10 digits)
-        if (empty($lecture->zoom_meeting_id) || strlen((string)$lecture->zoom_meeting_id) < 10) {
-            try {
-                $zoomService = new \App\Services\ZoomService();
-                $newMeeting = $zoomService->createMeeting([
-                    'topic' => $lecture->title,
-                    'start_time' => now()->format('Y-m-d\TH:i:s\Z'),
-                    'duration' => $lecture->duration_minutes ?: 60,
-                    'agenda' => $lecture->description ?? '',
-                ]);
-
-                if ($newMeeting && isset($newMeeting['id'])) {
-                    $lecture->zoom_meeting_id = (string) $newMeeting['id'];
-                    $lecture->zoom_join_url = $newMeeting['join_url'];
-                    $lecture->zoom_start_url = $newMeeting['start_url'] ?? $newMeeting['join_url'];
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Zoom meeting creation failed on startLecture: ' . $e->getMessage());
-            }
-        }
-
+        $lecture->ensureZoomMeetingExists();
         $lecture->status = 'live';
         $lecture->save();
 
