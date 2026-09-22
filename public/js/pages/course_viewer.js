@@ -59,8 +59,6 @@ async function loadCourseAndLevelsFromApi(courseId) {
       return;
     }
 
-    // جلب حالة الاشتراك الحالية لهذا الكورس من السيرفر
-    // نحتفظ بحالة الاشتراك الأصلية من بيانات الكورس كقيمة احتياطية
     const existingSubStatus = Boolean(currentCourseData.is_subscribed);
     const subRes = await ApiClient.getSubscriptionStatus(realCourseId).catch((err) => {
       console.warn('Failed to fetch subscription status:', err.message);
@@ -69,7 +67,6 @@ async function loadCourseAndLevelsFromApi(courseId) {
     if (subRes && subRes.is_subscribed !== undefined) {
       currentCourseData.is_subscribed = Boolean(subRes.is_subscribed);
     } else {
-      // إذا فشل طلب حالة الاشتراك، نحتفظ بالقيمة الموجودة في بيانات الكورس
       currentCourseData.is_subscribed = existingSubStatus;
     }
     if (subRes && (subRes.group_name || subRes.group)) {
@@ -101,7 +98,6 @@ async function loadCourseAndLevelsFromApi(courseId) {
       navTitle.textContent = currentCourseData.title || currentCourseData.name || 'مشغل الكورس';
     }
 
-    // جلب المستويات والدروس المضافة من السيرفر
     const levelsRes = await ApiClient.getCourseLevels(realCourseId);
     
     if (levelsRes && levelsRes.is_waiting) {
@@ -151,7 +147,7 @@ async function loadCourseAndLevelsFromApi(courseId) {
 // ====================================================
 // 1. واجهة اختيار المستويات (Levels View)
 // ====================================================
-function renderLevelsView(courseId) {
+async function renderLevelsView(courseId) {
   const container = document.getElementById('course-viewer-container');
   if (!container) return;
 
@@ -262,10 +258,103 @@ function renderLevelsView(courseId) {
   html += `
         </div>
       </div>
-    </div>
   `;
 
+  // جمع المحاضرات المباشرة من المستويات أو المجموعات لعرضها ببطاقة احترافية تحت بطاقة المستوى
+  let onlineLecturesList = [];
+  currentLevels.forEach(lvl => {
+    if (lvl.onlineLectures && Array.isArray(lvl.onlineLectures)) {
+      lvl.onlineLectures.forEach(lec => {
+        if (!onlineLecturesList.some(l => String(l.id) === String(lec.id))) {
+          onlineLecturesList.push({
+            ...lec,
+            teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي'
+          });
+        }
+      });
+    }
+  });
+
+  try {
+    const groupsRes = await ApiClient.getCourseGroups(courseId).catch(() => []);
+    const groups = Array.isArray(groupsRes) ? groupsRes : (groupsRes.data || []);
+    groups.forEach(g => {
+      if (g.online_lectures && Array.isArray(g.online_lectures)) {
+        g.online_lectures.forEach(lec => {
+          if (!onlineLecturesList.some(l => String(l.id) === String(lec.id))) {
+            onlineLecturesList.push({
+              ...lec,
+              groupName: g.name,
+              teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : (g.teacher ? (g.teacher.first_name + ' ' + g.teacher.last_name) : 'المدرس الرئيسي')
+            });
+          }
+        });
+      }
+    });
+  } catch (e) {}
+
+  if (onlineLecturesList.length > 0) {
+    html += `
+      <div class="animate-fadeIn" style="margin-top: 36px;">
+        <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 20px; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
+          <span>🎥 المحاضرات المباشرة والأونلاين للمجموعة</span>
+        </h2>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+    `;
+
+    onlineLecturesList.forEach(lec => {
+      const isLiveNow = lec.status === 'live' || lec.is_active;
+      const statusBadge = isLiveNow 
+        ? `<span style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #EF4444; animation: pulse 1s infinite;"></span> مباشر الآن</span>`
+        : `<span style="background: rgba(59, 130, 246, 0.15); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800;">📅 محاضرة قادمة</span>`;
+
+      html += `
+        <div style="background: linear-gradient(135deg, var(--bg-card), rgba(37,99,235,0.04)); border: 1.5px solid rgba(37, 99, 235, 0.25); border-radius: 22px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+          <div style="display: flex; align-items: flex-start; gap: 16px;">
+            <div style="width: 56px; height: 56px; border-radius: 18px; background: rgba(37, 99, 235, 0.15); color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;">
+              🎥
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
+                ${statusBadge}
+                ${lec.groupName ? `<span style="font-size: 12.5px; color: var(--text-muted);">المجموعة: <strong>${lec.groupName}</strong></span>` : ''}
+              </div>
+              <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">${lec.title || lec.topic || 'محاضرة أونلاين تفاعلية'}</h3>
+              <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">المدرس: <strong>${lec.teacherName}</strong> • الموعد: <strong>${lec.start_time || lec.scheduled_at || 'يحدد عما قريب'}</strong></p>
+            </div>
+          </div>
+
+          <div>
+            <button onclick="joinStudentLectureFromViewer('${lec.id}')" class="auth-btn" style="background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; padding: 12px 26px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.3);">
+              🎥 الانضمام للمحاضرة
+            </button>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
   container.innerHTML = html;
+}
+
+async function joinStudentLectureFromViewer(lectureId) {
+  try {
+    const res = await ApiClient.joinOnlineLecture(lectureId);
+    if (res.zoom_join_url || res.url || res.join_url) {
+      const zoomUrl = res.zoom_join_url || res.url || res.join_url;
+      window.open(zoomUrl, '_blank');
+    } else {
+      alert('لم يتم العثور على رابط المحاضرة، يرجى التواصل مع المدرس');
+    }
+  } catch (error) {
+    alert(error.message || 'تعذر الانضمام للمحاضرة حالياً');
+  }
 }
 
 function startPlayingLesson(levelIdx, lessonIdx) {
@@ -567,7 +656,6 @@ function openCourseSubscriptionModal() {
 let watermarkInterval = null;
 
 function initVideoWatermark() {
-  // إيقاف أي علامة مائية سابقة
   if (watermarkInterval) {
     clearInterval(watermarkInterval);
     watermarkInterval = null;
@@ -576,7 +664,6 @@ function initVideoWatermark() {
   const watermarkEl = document.getElementById('video-watermark');
   if (!watermarkEl) return;
 
-  // تنسيق العلامة المائية: أحمر فاتح قليلاً، أكثر وضوحاً، مع ظل قوي لبروز ممتاز فوق أي فيديو
   watermarkEl.style.cssText = `
     position: absolute;
     top: 10%;
@@ -595,19 +682,16 @@ function initVideoWatermark() {
     display: none;
   `;
 
-  // جلب إيميل الطالب من بيانات الجلسة المحلية
   const user = ApiClient.getUser();
   const email = user ? (user.email || user.name || 'student') : 'student';
   watermarkEl.textContent = email;
 
-  // تحريك العلامة المائية بشكل عشوائي كل 3 ثوانٍ
   function moveWatermark() {
     const wrapper = document.getElementById('video-player-wrapper');
     if (!wrapper || !watermarkEl) return;
 
-    // حساب مواقع عشوائية بحيث لا تخرج خارج حدود الفيديو
-    const maxTop = 75; // نسبة مئوية
-    const maxLeft = 65; // نسبة مئوية
+    const maxTop = 75;
+    const maxLeft = 65;
     const randomTop = Math.floor(Math.random() * maxTop) + 5;
     const randomLeft = Math.floor(Math.random() * maxLeft) + 5;
 
@@ -615,13 +699,9 @@ function initVideoWatermark() {
     watermarkEl.style.left = randomLeft + '%';
   }
 
-  // تحريك أولي فوري
   moveWatermark();
-
-  // تحريك كل 3 ثوانٍ
   watermarkInterval = setInterval(moveWatermark, 3000);
 
-  // إظهار العلامة المائية فقط عند تشغيل الفيديو (play)، وإخفاؤها عند الإيقاف (pause/ended)، ودعم وضع ملء الشاشة (fullscreen)
   setTimeout(() => {
     const plyrContainer = document.querySelector('.plyr');
     if (plyrContainer && watermarkEl.parentElement !== plyrContainer) {
@@ -662,3 +742,4 @@ window.submitLessonQuiz = submitLessonQuiz;
 window.renderLevelsView = renderLevelsView;
 window.openCourseSubscriptionModal = openCourseSubscriptionModal;
 window.initVideoWatermark = initVideoWatermark;
+window.joinStudentLectureFromViewer = joinStudentLectureFromViewer;

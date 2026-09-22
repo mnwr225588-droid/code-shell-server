@@ -264,6 +264,10 @@ class ApiClient {
     return await this.request(`/online-lectures/${lectureId}/join`);
   }
 
+  static async getMyLectures() {
+    return await this.request('/my-lectures');
+  }
+
   // ====================================================
   // 5. نظام المدرس (Teacher System)
   // ====================================================

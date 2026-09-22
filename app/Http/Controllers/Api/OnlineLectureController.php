@@ -67,9 +67,32 @@ class OnlineLectureController extends Controller
                 'message' => 'تم التحقق بنجاح',
                 'data' => [
                     'role' => 'student',
-                    'join_url' => $deepLink,
+                    'join_url' => $lecture->zoom_join_url,
+                    'deep_link' => $deepLink,
                 ]
             ]);
         }
+    }
+
+    public function myLectures(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'data' => []]);
+        }
+
+        $groupIds = $user->groups()->pluck('course_groups.id')->toArray();
+        $courseIds = $user->subscribedCourses()->pluck('courses.id')->toArray();
+
+        $lectures = OnlineLecture::whereIn('group_id', $groupIds)
+            ->orWhereIn('course_id', $courseIds)
+            ->with(['teacher', 'course', 'group', 'level'])
+            ->orderBy('start_date_time', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $lectures
+        ]);
     }
 }

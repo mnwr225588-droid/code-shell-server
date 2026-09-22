@@ -74,6 +74,7 @@ class CourseController extends Controller
     public function getGroups($courseId)
     {
         $groups = \App\Models\CourseGroup::where('course_id', $courseId)
+            ->with(['onlineLectures.teacher', 'teacher'])
             ->withCount('students')
             ->get();
 

@@ -260,13 +260,16 @@ async function renderLevelsView(courseId) {
       </div>
   `;
 
-  // جمع المحاضرات المباشرة لعرضها ببطاقة احترافية تحت بطاقة المستوى
+  // جمع المحاضرات المباشرة من المستويات أو المجموعات لعرضها ببطاقة احترافية تحت بطاقة المستوى
   let onlineLecturesList = [];
   currentLevels.forEach(lvl => {
     if (lvl.onlineLectures && Array.isArray(lvl.onlineLectures)) {
       lvl.onlineLectures.forEach(lec => {
         if (!onlineLecturesList.some(l => String(l.id) === String(lec.id))) {
-          onlineLecturesList.push(lec);
+          onlineLecturesList.push({
+            ...lec,
+            teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي'
+          });
         }
       });
     }
@@ -282,7 +285,7 @@ async function renderLevelsView(courseId) {
             onlineLecturesList.push({
               ...lec,
               groupName: g.name,
-              teacherName: g.teacher ? (g.teacher.first_name + ' ' + g.teacher.last_name) : 'المدرس الرئيسي'
+              teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : (g.teacher ? (g.teacher.first_name + ' ' + g.teacher.last_name) : 'المدرس الرئيسي')
             });
           }
         });
@@ -317,7 +320,7 @@ async function renderLevelsView(courseId) {
                 ${lec.groupName ? `<span style="font-size: 12.5px; color: var(--text-muted);">المجموعة: <strong>${lec.groupName}</strong></span>` : ''}
               </div>
               <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">${lec.title || lec.topic || 'محاضرة أونلاين تفاعلية'}</h3>
-              <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">المدرس: <strong>${lec.teacherName || (lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي')}</strong> • الموعد: <strong>${lec.start_time || lec.scheduled_at || 'يحدد عما قريب'}</strong></p>
+              <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">المدرس: <strong>${lec.teacherName}</strong> • الموعد: <strong>${lec.start_time || lec.scheduled_at || 'يحدد عما قريب'}</strong></p>
             </div>
           </div>
 

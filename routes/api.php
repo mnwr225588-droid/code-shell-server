@@ -265,6 +265,7 @@ Route::get('/server-logs', function () {
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/online-lectures/{id}/join', [\App\Http\Controllers\Api\OnlineLectureController::class, 'join']);
+    Route::get('/my-lectures', [\App\Http\Controllers\Api\OnlineLectureController::class, 'myLectures']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/change-password', [AuthController::class, 'changePassword']); // مسار تغيير كلمة المرور
