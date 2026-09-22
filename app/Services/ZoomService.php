@@ -12,12 +12,12 @@ class ZoomService
      */
     private function getAccessToken()
     {
-        $accountId = trim(env('ZOOM_ACCOUNT_ID', ''));
-        $clientId = trim(env('ZOOM_CLIENT_ID', ''));
-        $clientSecret = trim(env('ZOOM_CLIENT_SECRET', ''));
+        $accountId = trim(config('services.zoom.account_id') ?? env('ZOOM_ACCOUNT_ID', ''));
+        $clientId = trim(config('services.zoom.client_id') ?? env('ZOOM_CLIENT_ID', ''));
+        $clientSecret = trim(config('services.zoom.client_secret') ?? env('ZOOM_CLIENT_SECRET', ''));
 
         if (!$accountId || !$clientId || !$clientSecret) {
-            Log::error('Zoom API credentials are missing in .env file.');
+            Log::error('Zoom API credentials are missing in config/services.php or .env file.');
             return null;
         }
 
@@ -55,26 +55,33 @@ class ZoomService
     /**
      * Create a Zoom meeting.
      */
-    public function createMeeting(array $data)
+    public function createMeeting(array $data, ?string $teacherEmail = null)
     {
         $token = $this->getAccessToken();
         if (!$token) {
             $fallbackMeetingId = (string) rand(9100000000, 9999999999);
             return [
                 'id' => $fallbackMeetingId,
+                'zoom_meeting_id' => $fallbackMeetingId,
                 'join_url' => 'https://zoom.us/j/' . $fallbackMeetingId,
                 'start_url' => 'https://zoom.us/s/' . $fallbackMeetingId,
             ];
         }
 
+        $userId = $teacherEmail ?: 'me';
+
         try {
+            $startTime = isset($data['start_time']) 
+                ? \Carbon\Carbon::parse($data['start_time'])->toIso8601ZuluString()
+                : now()->toIso8601ZuluString();
+
             $response = Http::withToken($token)
-                ->post('https://api.zoom.us/v2/users/me/meetings', [
+                ->post("https://api.zoom.us/v2/users/{$userId}/meetings", [
                     'topic' => $data['topic'] ?? 'Online Lecture',
                     'type' => 2, // Scheduled meeting
-                    'start_time' => $data['start_time'], // Format: yyyy-MM-dd'T'HH:mm:ss'Z'
-                    'duration' => $data['duration'], // Duration in minutes
-                    'timezone' => 'UTC',
+                    'start_time' => $startTime,
+                    'duration' => (int) ($data['duration'] ?? 60),
+                    'timezone' => $data['timezone'] ?? 'Africa/Cairo',
                     'agenda' => $data['agenda'] ?? '',
                     'settings' => [
                         'host_video' => true,
@@ -83,7 +90,7 @@ class ZoomService
                         'waiting_room' => false,
                         'join_before_host' => false,
                         'watermark' => false,
-                        'use_pmi' => false, // يضمن إنشاء غرفة مستقلة ورابط فريد لكل محاضرة
+                        'use_pmi' => false,
                         'approval_type' => 0,
                         'audio' => 'both',
                         'auto_recording' => 'none',
@@ -91,7 +98,9 @@ class ZoomService
                 ]);
 
             if ($response->successful()) {
-                return $response->json();
+                $resData = $response->json();
+                $resData['zoom_meeting_id'] = (string) $resData['id'];
+                return $resData;
             }
 
             Log::error('Failed to create Zoom meeting via API', ['response' => $response->body()]);
@@ -102,6 +111,7 @@ class ZoomService
         $fallbackMeetingId = (string) rand(9100000000, 9999999999);
         return [
             'id' => $fallbackMeetingId,
+            'zoom_meeting_id' => $fallbackMeetingId,
             'join_url' => 'https://zoom.us/j/' . $fallbackMeetingId,
             'start_url' => 'https://zoom.us/s/' . $fallbackMeetingId,
         ];
