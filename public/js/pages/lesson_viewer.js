@@ -94,6 +94,8 @@ function renderLessonPlayer(lesson, level, courseId, levelIdx) {
           <source src="${videoUrl}" type="video/mp4" size="360" />
         </video>
       </div>
+      <!-- العلامة المائية المتحركة بإيميل الطالب -->
+      <div id="lesson-video-watermark" style="position: absolute; top: 10%; left: 10%; color: rgba(255, 40, 40, 0.35); font-size: 15px; font-weight: 800; font-family: 'Cairo', monospace; pointer-events: none; z-index: 10; user-select: none; text-shadow: 0 0 4px rgba(0,0,0,0.3); transition: all 2.8s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; letter-spacing: 0.5px;"></div>
     </div>
 
     <!-- تفاصيل الدرس السفلية مع زر الاختبار المتوقف لحين إكمال الفيديو -->
@@ -236,6 +238,9 @@ function renderLessonPlayer(lesson, level, courseId, levelIdx) {
       `;
       document.head.appendChild(style);
     }
+
+    // تفعيل العلامة المائية المتحركة بإيميل الطالب
+    initLessonWatermark();
 
   }, 100);
 }
@@ -494,6 +499,96 @@ async function markCurrentLessonCompleted(lessonId) {
   }
 }
 
+// ====================================================
+// العلامة المائية المتحركة (Moving Email Watermark)
+// ====================================================
+let lessonWatermarkInterval = null;
+
+function initLessonWatermark() {
+  // إيقاف أي علامة مائية سابقة
+  if (lessonWatermarkInterval) {
+    clearInterval(lessonWatermarkInterval);
+    lessonWatermarkInterval = null;
+  }
+
+  const watermarkEl = document.getElementById('lesson-video-watermark');
+  if (!watermarkEl) return;
+
+  // تنسيق العلامة المائية: أحمر فاتح قليلاً، أكثر وضوحاً، مع ظل قوي لبروز ممتاز فوق أي فيديو
+  watermarkEl.style.cssText = `
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    color: rgba(255, 107, 107, 0.85);
+    font-size: 16px;
+    font-weight: 900;
+    font-family: 'Cairo', monospace;
+    pointer-events: none;
+    z-index: 99;
+    user-select: none;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 3px rgba(255,0,0,0.7);
+    transition: all 2.8s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    display: none;
+  `;
+
+  // جلب إيميل الطالب من بيانات الجلسة
+  const user = ApiClient.getUser();
+  const email = user ? (user.email || user.name || 'student') : 'student';
+  watermarkEl.textContent = email;
+
+  // تحريك العلامة المائية بشكل عشوائي كل 3 ثوانٍ
+  function moveWatermark() {
+    const wrapper = document.getElementById('video-player-main-box');
+    if (!wrapper || !watermarkEl) return;
+
+    const maxTop = 75;
+    const maxLeft = 65;
+    const randomTop = Math.floor(Math.random() * maxTop) + 5;
+    const randomLeft = Math.floor(Math.random() * maxLeft) + 5;
+
+    watermarkEl.style.top = randomTop + '%';
+    watermarkEl.style.left = randomLeft + '%';
+  }
+
+  moveWatermark();
+  lessonWatermarkInterval = setInterval(moveWatermark, 3000);
+
+  // إظهار العلامة المائية فقط عند تشغيل الفيديو (play)، وإخفاؤها عند الإيقاف (pause/ended)، ودعم وضع ملء الشاشة (fullscreen)
+  setTimeout(() => {
+    const plyrContainer = document.querySelector('.plyr');
+    if (plyrContainer && watermarkEl.parentElement !== plyrContainer) {
+      plyrContainer.appendChild(watermarkEl);
+    }
+
+    if (window.mainPlyrPlayer) {
+      window.mainPlyrPlayer.on('play', () => {
+        watermarkEl.style.display = 'block';
+      });
+      window.mainPlyrPlayer.on('pause', () => {
+        watermarkEl.style.display = 'none';
+      });
+      window.mainPlyrPlayer.on('ended', () => {
+        watermarkEl.style.display = 'none';
+      });
+    }
+
+    const videoEl = document.getElementById('plyr-video');
+    if (videoEl) {
+      videoEl.addEventListener('play', () => {
+        watermarkEl.style.display = 'block';
+      });
+      videoEl.addEventListener('pause', () => {
+        watermarkEl.style.display = 'none';
+      });
+      videoEl.addEventListener('ended', () => {
+        watermarkEl.style.display = 'none';
+      });
+    }
+  }, 350);
+}
+
 window.startLessonQuiz = startLessonQuiz;
 window.selectQuizOption = selectQuizOption;
 window.nextQuizQuestion = nextQuizQuestion;
@@ -501,3 +596,4 @@ window.prevQuizQuestion = prevQuizQuestion;
 window.submitQuiz = submitQuiz;
 window.closeQuizModal = closeQuizModal;
 window.markCurrentLessonCompleted = markCurrentLessonCompleted;
+window.initLessonWatermark = initLessonWatermark;

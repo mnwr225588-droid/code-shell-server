@@ -60,8 +60,22 @@ async function loadCourseAndLevelsFromApi(courseId) {
     }
 
     // جلب حالة الاشتراك الحالية لهذا الكورس من السيرفر
-    const subRes = await ApiClient.getSubscriptionStatus(realCourseId).catch(() => ({ is_subscribed: false }));
-    currentCourseData.is_subscribed = Boolean(subRes.is_subscribed);
+    // نحتفظ بحالة الاشتراك الأصلية من بيانات الكورس كقيمة احتياطية
+    const existingSubStatus = Boolean(currentCourseData.is_subscribed);
+    const subRes = await ApiClient.getSubscriptionStatus(realCourseId).catch((err) => {
+      console.warn('Failed to fetch subscription status:', err.message);
+      return null;
+    });
+    if (subRes && subRes.is_subscribed !== undefined) {
+      currentCourseData.is_subscribed = Boolean(subRes.is_subscribed);
+    } else {
+      // إذا فشل طلب حالة الاشتراك، نحتفظ بالقيمة الموجودة في بيانات الكورس
+      currentCourseData.is_subscribed = existingSubStatus;
+    }
+    if (subRes && (subRes.group_name || subRes.group)) {
+      currentCourseData.group_name = subRes.group_name || (subRes.group ? subRes.group.name : '');
+      currentCourseData.group = subRes.group || { name: subRes.group_name };
+    }
 
     const isActive = currentCourseData.is_active !== false;
     const isComingSoon = Boolean(currentCourseData.is_coming_soon);
@@ -152,11 +166,18 @@ function renderLevelsView(courseId) {
     totalLessonsCount += l.lessons ? l.lessons.length : (l.lessons_count || 0);
   });
 
+  const rawGroup = currentCourseData?.group_name || (currentCourseData?.group ? currentCourseData.group.name : '');
+  const groupName = rawGroup || (isSubscribed ? 'المجموعة الأولى' : '');
+
   const subBtnHtml = isSubscribed
-    ? `<div style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ADE80; padding: 10px 20px; border-radius: 14px; font-size: 13.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px;">
-        <i class="fas fa-check-circle"></i> أنت مشترك في الكورس
+    ? `<div style="background: rgba(16, 185, 129, 0.2); border: 1.5px solid rgba(52, 211, 153, 0.6); color: #4ADE80; padding: 12px 24px; border-radius: 18px; font-size: 14px; font-weight: 800; display: inline-flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 8px 24px rgba(16, 185, 129, 0.18); backdrop-filter: blur(12px);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-check-circle" style="font-size: 16px; color: #34D399;"></i>
+          <span>أنت مشترك في الكورس</span>
+        </div>
+        ${groupName ? `<div style="font-size: 13px; color: #A7F3D0; font-weight: 800; margin-top: 4px; background: rgba(0,0,0,0.25); padding: 3px 12px; border-radius: 10px;">👥 مجموعتك: ${groupName}</div>` : ''}
        </div>`
-    : `<button onclick="openCourseSubscriptionModal()" style="background: ${isFree ? 'linear-gradient(135deg, #16A34A, #15803D)' : 'linear-gradient(135deg, #2563EB, #1D4ED8)'}; color: #FFF; border: none; padding: 12px 24px; border-radius: 14px; font-size: 14px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.25); transition: all 0.25s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+    : `<button onclick="openCourseSubscriptionModal()" style="background: ${isFree ? 'linear-gradient(135deg, #16A34A, #15803D)' : 'linear-gradient(135deg, #2563EB, #1D4ED8)'}; color: #FFF; border: none; padding: 14px 28px; border-radius: 16px; font-size: 14px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.25); transition: all 0.25s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
         ${isFree ? '✨ الاشتراك المجاني الآن' : '💳 متابعة الاشتراك والحجز'}
        </button>`;
 
@@ -171,10 +192,15 @@ function renderLevelsView(courseId) {
               💻
             </div>
             <div>
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
                 <span style="background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;">
                   ${priceText}
                 </span>
+                ${groupName ? `
+                  <span style="background: rgba(59, 130, 246, 0.35); border: 1px solid rgba(147, 197, 253, 0.5); color: #BFDBFE; padding: 5px 16px; border-radius: 20px; font-size: 13.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <i class="fas fa-users" style="color: #60A5FA;"></i> مجموعتك الدراسية: ${groupName}
+                  </span>
+                ` : ''}
               </div>
               <h1 style="font-size: 26px; font-weight: 900; margin-bottom: 6px; color: #FFFFFF;">${title}</h1>
               <p style="font-size: 14px; opacity: 0.9; color: #E2E8F0; margin: 0; line-height: 1.5; max-width: 600px;">${desc}</p>
@@ -303,10 +329,12 @@ function renderCinemaPlayerView(lesson) {
       </div>
 
       <!-- إطار مشغل الفيديو الفاخر بتأثير الجلاس مورفيزم متجاوب بالكامل -->
-      <div style="background: #090D16; border-radius: 24px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.12); width: 100%; display: flex; justify-content: center; align-items: center; max-height: 80vh;">
-          <video id="player" playsinline controls style="max-height: 80vh; width: 100%; object-fit: contain; outline: none; background: #000;">
+      <div id="video-player-wrapper" style="background: #090D16; border-radius: 24px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.12); width: 100%; position: relative; max-height: 80vh;">
+          <video id="player" playsinline controls style="max-height: 80vh; width: 100%; object-fit: contain; outline: none; background: #000; display: block;">
             <source src="${videoUrl}" type="video/mp4" />
           </video>
+          <!-- العلامة المائية المتحركة بالإيميل -->
+          <div id="video-watermark" style="position: absolute; top: 10%; left: 10%; color: rgba(255, 40, 40, 0.35); font-size: 15px; font-weight: 800; font-family: 'Cairo', monospace; pointer-events: none; z-index: 10; user-select: none; text-shadow: 0 0 4px rgba(0,0,0,0.3); transition: all 2.8s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; letter-spacing: 0.5px;"></div>
       </div>
 
       <!-- كارت تفاصيل الدرس الحالي والأزرار التفاعلية -->
@@ -366,12 +394,15 @@ function renderCinemaPlayerView(lesson) {
         resetOnEnd: true,
         controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
         settings: ['quality', 'speed'],
-        hideControls: true, // Auto hide controls
+        hideControls: true,
       });
     } catch (e) {
       console.warn('Plyr init:', e);
     }
   }
+
+  // تفعيل العلامة المائية المتحركة بإيميل الطالب
+  initVideoWatermark();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -530,9 +561,104 @@ function openCourseSubscriptionModal() {
   });
 }
 
+// ====================================================
+// 4. العلامة المائية المتحركة (Moving Email Watermark)
+// ====================================================
+let watermarkInterval = null;
+
+function initVideoWatermark() {
+  // إيقاف أي علامة مائية سابقة
+  if (watermarkInterval) {
+    clearInterval(watermarkInterval);
+    watermarkInterval = null;
+  }
+
+  const watermarkEl = document.getElementById('video-watermark');
+  if (!watermarkEl) return;
+
+  // تنسيق العلامة المائية: أحمر فاتح قليلاً، أكثر وضوحاً، مع ظل قوي لبروز ممتاز فوق أي فيديو
+  watermarkEl.style.cssText = `
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    color: rgba(255, 107, 107, 0.85);
+    font-size: 16px;
+    font-weight: 900;
+    font-family: 'Cairo', monospace;
+    pointer-events: none;
+    z-index: 99;
+    user-select: none;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 3px rgba(255,0,0,0.7);
+    transition: all 2.8s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    display: none;
+  `;
+
+  // جلب إيميل الطالب من بيانات الجلسة المحلية
+  const user = ApiClient.getUser();
+  const email = user ? (user.email || user.name || 'student') : 'student';
+  watermarkEl.textContent = email;
+
+  // تحريك العلامة المائية بشكل عشوائي كل 3 ثوانٍ
+  function moveWatermark() {
+    const wrapper = document.getElementById('video-player-wrapper');
+    if (!wrapper || !watermarkEl) return;
+
+    // حساب مواقع عشوائية بحيث لا تخرج خارج حدود الفيديو
+    const maxTop = 75; // نسبة مئوية
+    const maxLeft = 65; // نسبة مئوية
+    const randomTop = Math.floor(Math.random() * maxTop) + 5;
+    const randomLeft = Math.floor(Math.random() * maxLeft) + 5;
+
+    watermarkEl.style.top = randomTop + '%';
+    watermarkEl.style.left = randomLeft + '%';
+  }
+
+  // تحريك أولي فوري
+  moveWatermark();
+
+  // تحريك كل 3 ثوانٍ
+  watermarkInterval = setInterval(moveWatermark, 3000);
+
+  // إظهار العلامة المائية فقط عند تشغيل الفيديو (play)، وإخفاؤها عند الإيقاف (pause/ended)، ودعم وضع ملء الشاشة (fullscreen)
+  setTimeout(() => {
+    const plyrContainer = document.querySelector('.plyr');
+    if (plyrContainer && watermarkEl.parentElement !== plyrContainer) {
+      plyrContainer.appendChild(watermarkEl);
+    }
+
+    if (window.plyrInstance) {
+      window.plyrInstance.on('play', () => {
+        watermarkEl.style.display = 'block';
+      });
+      window.plyrInstance.on('pause', () => {
+        watermarkEl.style.display = 'none';
+      });
+      window.plyrInstance.on('ended', () => {
+        watermarkEl.style.display = 'none';
+      });
+    }
+
+    const videoEl = document.getElementById('player');
+    if (videoEl) {
+      videoEl.addEventListener('play', () => {
+        watermarkEl.style.display = 'block';
+      });
+      videoEl.addEventListener('pause', () => {
+        watermarkEl.style.display = 'none';
+      });
+      videoEl.addEventListener('ended', () => {
+        watermarkEl.style.display = 'none';
+      });
+    }
+  }, 350);
+}
+
 window.startPlayingLesson = startPlayingLesson;
 window.renderCinemaPlayerView = renderCinemaPlayerView;
 window.startLessonQuiz = startLessonQuiz;
 window.submitLessonQuiz = submitLessonQuiz;
 window.renderLevelsView = renderLevelsView;
 window.openCourseSubscriptionModal = openCourseSubscriptionModal;
+window.initVideoWatermark = initVideoWatermark;

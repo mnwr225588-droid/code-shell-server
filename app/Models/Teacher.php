@@ -31,4 +31,9 @@ class Teacher extends Authenticatable
     {
         return $this->hasMany(OnlineLecture::class);
     }
+
+    public function isAdmin(): bool
+    {
+        return false;
+    }
 }

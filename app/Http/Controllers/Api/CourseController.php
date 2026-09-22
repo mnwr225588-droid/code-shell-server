@@ -30,6 +30,7 @@ class CourseController extends Controller
     /// بيستخدم الـ Eager Loading (with category) علشان يقلل عدد استعلامات الداتا بيز (N+1 Query Problem).
     public function index(Request $request)
     {
+        $user = auth('sanctum')->user() ?: $request->user();
         $courses = Course::with(['category', 'groups' => function ($q) {
                 $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
                   ->withCount('students');
@@ -37,6 +38,12 @@ class CourseController extends Controller
             ->where('is_active', true)
             ->orderBy('id', 'desc')
             ->get();
+
+        $courses->transform(function ($course) use ($user) {
+            $data = $course->toArray();
+            $data['is_subscribed'] = $user ? $course->isUserSubscribed($user->id) : false;
+            return $data;
+        });
 
         return response()->json([
             'status' => true,
