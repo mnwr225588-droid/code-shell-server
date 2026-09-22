@@ -9,6 +9,7 @@ let currentLevels = [];
 let currentLevelIndex = 0;
 let currentLessonIndex = 0;
 let plyrInstance = null;
+let lecturesCountdownTimer = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -260,74 +261,86 @@ async function renderLevelsView(courseId) {
       </div>
   `;
 
-  // جمع المحاضرات المباشرة من المستويات أو المجموعات لعرضها ببطاقة احترافية تحت بطاقة المستوى
+  // جلب المحاضرات المباشرة الخاصة بهذا الكورس من السيرفر وعرضها كبطاقة احترافية تحت بطاقة المستوى
   let onlineLecturesList = [];
-  currentLevels.forEach(lvl => {
-    if (lvl.onlineLectures && Array.isArray(lvl.onlineLectures)) {
-      lvl.onlineLectures.forEach(lec => {
-        if (!onlineLecturesList.some(l => String(l.id) === String(lec.id))) {
-          onlineLecturesList.push({
-            ...lec,
-            teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي'
-          });
-        }
-      });
-    }
-  });
-
   try {
-    const groupsRes = await ApiClient.getCourseGroups(courseId).catch(() => []);
-    const groups = Array.isArray(groupsRes) ? groupsRes : (groupsRes.data || []);
-    groups.forEach(g => {
-      if (g.online_lectures && Array.isArray(g.online_lectures)) {
-        g.online_lectures.forEach(lec => {
+    const lecRes = await ApiClient.getCourseOnlineLectures(courseId).catch(() => []);
+    const lectures = Array.isArray(lecRes) ? lecRes : (lecRes.data || []);
+    lectures.forEach(lec => {
+      onlineLecturesList.push({
+        ...lec,
+        teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي',
+        groupName: lec.group ? lec.group.name : ''
+      });
+    });
+  } catch (e) {}
+
+  if (onlineLecturesList.length === 0) {
+    currentLevels.forEach(lvl => {
+      if (lvl.onlineLectures && Array.isArray(lvl.onlineLectures)) {
+        lvl.onlineLectures.forEach(lec => {
           if (!onlineLecturesList.some(l => String(l.id) === String(lec.id))) {
             onlineLecturesList.push({
               ...lec,
-              groupName: g.name,
-              teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : (g.teacher ? (g.teacher.first_name + ' ' + g.teacher.last_name) : 'المدرس الرئيسي')
+              teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي'
             });
           }
         });
       }
     });
-  } catch (e) {}
+  }
 
   if (onlineLecturesList.length > 0) {
     html += `
       <div class="animate-fadeIn" style="margin-top: 36px;">
         <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 20px; color: var(--text-primary); display: flex; align-items: center; gap: 10px;">
-          <span>🎥 المحاضرات المباشرة والأونلاين للمجموعة</span>
+          <span>🎥 المحاضرات المباشرة والأونلاين (تحت بطاقة المستوى)</span>
         </h2>
         <div style="display: flex; flex-direction: column; gap: 16px;">
     `;
 
     onlineLecturesList.forEach(lec => {
       const isLiveNow = lec.status === 'live' || lec.is_active;
-      const statusBadge = isLiveNow 
+      const startTimeIso = lec.start_date_time || lec.scheduled_at || lec.start_time;
+      const startTime = startTimeIso ? new Date(startTimeIso) : new Date(Date.now() + 3600000);
+      const now = new Date();
+      const diffMs = startTime - now;
+
+      let isJoinable = isLiveNow || diffMs <= 10 * 60 * 1000;
+
+      const badgeHtml = isLiveNow
         ? `<span style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #EF4444; animation: pulse 1s infinite;"></span> مباشر الآن</span>`
-        : `<span style="background: rgba(59, 130, 246, 0.15); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800;">📅 محاضرة قادمة</span>`;
+        : (isJoinable
+          ? `<span style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800;">🟢 حان وقت الانضمام</span>`
+          : `<span style="background: rgba(59, 130, 246, 0.15); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800;">📅 محاضرة قادمة</span>`
+        );
+
+      const buttonHtml = isJoinable
+        ? `<button onclick="joinStudentLectureFromViewer('${lec.id}')" class="auth-btn" style="background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; padding: 12px 26px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.3);">
+             🎥 الانضمام للمحاضرة الآن
+           </button>`
+        : `<button disabled id="lecture-btn-${lec.id}" class="auth-btn" style="background: #64748B; opacity: 0.7; border: none; padding: 12px 26px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: not-allowed;">
+             ⏳ تبدأ خلال: <span id="countdown-${lec.id}" style="font-family: monospace;">جاري الحساب...</span>
+           </button>`;
 
       html += `
-        <div style="background: linear-gradient(135deg, var(--bg-card), rgba(37,99,235,0.04)); border: 1.5px solid rgba(37, 99, 235, 0.25); border-radius: 22px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div style="background: linear-gradient(135deg, var(--bg-card), rgba(37,99,235,0.04)); border: 1.5px solid rgba(37, 99, 235, 0.25); border-radius: 22px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;" data-start-time="${startTime.toISOString()}" data-lecture-id="${lec.id}">
           <div style="display: flex; align-items: flex-start; gap: 16px;">
             <div style="width: 56px; height: 56px; border-radius: 18px; background: rgba(37, 99, 235, 0.15); color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;">
               🎥
             </div>
             <div>
-              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
-                ${statusBadge}
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;" id="lecture-badge-${lec.id}">
+                ${badgeHtml}
                 ${lec.groupName ? `<span style="font-size: 12.5px; color: var(--text-muted);">المجموعة: <strong>${lec.groupName}</strong></span>` : ''}
               </div>
               <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">${lec.title || lec.topic || 'محاضرة أونلاين تفاعلية'}</h3>
-              <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">المدرس: <strong>${lec.teacherName}</strong> • الموعد: <strong>${lec.start_time || lec.scheduled_at || 'يحدد عما قريب'}</strong></p>
+              <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0;">المدرس: <strong>${lec.teacherName}</strong> • الموعد المحدد من الأدمن: <strong>${startTime.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}</strong></p>
             </div>
           </div>
 
-          <div>
-            <button onclick="joinStudentLectureFromViewer('${lec.id}')" class="auth-btn" style="background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; padding: 12px 26px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.3);">
-              🎥 الانضمام للمحاضرة
-            </button>
+          <div id="lecture-action-${lec.id}">
+            ${buttonHtml}
           </div>
         </div>
       `;
@@ -341,13 +354,56 @@ async function renderLevelsView(courseId) {
 
   html += `</div>`;
   container.innerHTML = html;
+  startLecturesCountdowns();
+}
+
+function startLecturesCountdowns() {
+  if (lecturesCountdownTimer) {
+    clearInterval(lecturesCountdownTimer);
+    lecturesCountdownTimer = null;
+  }
+
+  lecturesCountdownTimer = setInterval(() => {
+    const cards = document.querySelectorAll('[data-start-time]');
+    cards.forEach(card => {
+      const startTimeStr = card.getAttribute('data-start-time');
+      const lectureId = card.getAttribute('data-lecture-id');
+      if (!startTimeStr || !lectureId) return;
+
+      const startTime = new Date(startTimeStr);
+      const now = new Date();
+      const diffMs = startTime - now;
+
+      const countdownEl = document.getElementById(`countdown-${lectureId}`);
+      const actionEl = document.getElementById(`lecture-action-${lectureId}`);
+      const badgeEl = document.getElementById(`lecture-badge-${lectureId}`);
+
+      if (diffMs <= 10 * 60 * 1000) {
+        if (actionEl && actionEl.querySelector('button').disabled) {
+          actionEl.innerHTML = `
+            <button onclick="joinStudentLectureFromViewer('${lectureId}')" class="auth-btn" style="background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; padding: 12px 26px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(37,99,235,0.3);">
+              🎥 الانضمام للمحاضرة الآن
+            </button>
+          `;
+          if (badgeEl) {
+            badgeEl.innerHTML = `<span style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800;">🟢 حان وقت الانضمام</span>`;
+          }
+        }
+      } else if (countdownEl) {
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+        countdownEl.textContent = `${hours}س : ${minutes}د : ${seconds}ث`;
+      }
+    });
+  }, 1000);
 }
 
 async function joinStudentLectureFromViewer(lectureId) {
   try {
     const res = await ApiClient.joinOnlineLecture(lectureId);
-    if (res.zoom_join_url || res.url || res.join_url) {
-      const zoomUrl = res.zoom_join_url || res.url || res.join_url;
+    const zoomUrl = res.data?.join_url || res.data?.zoom_join_url || res.zoom_join_url || res.join_url || res.url;
+    if (zoomUrl) {
       window.open(zoomUrl, '_blank');
     } else {
       alert('لم يتم العثور على رابط المحاضرة، يرجى التواصل مع المدرس');
@@ -720,9 +776,9 @@ function initVideoWatermark() {
       });
     }
 
-    const videoEl = document.getElementById('player');
-    if (videoEl) {
-      videoEl.addEventListener('play', () => {
+const videoEl = document.getElementById('player');
+  if (videoEl) {
+    videoEl.addEventListener('play', () => {
         watermarkEl.style.display = 'block';
       });
       videoEl.addEventListener('pause', () => {

@@ -18,32 +18,49 @@ async function loadLiveLectures() {
   if (!container) return;
 
   try {
-    // جلب كورسات الطالب ومجموعاته
-    const coursesRes = await ApiClient.getCourses();
-    const courses = Array.isArray(coursesRes) ? coursesRes : (coursesRes.data || []);
-    
     let allLectures = [];
 
-    // جلب مجموعات كل كورس لمحاضرات الأونلاين
-    for (const course of courses) {
-      try {
-        const groupsRes = await ApiClient.getCourseGroups(course.id);
-        const groups = Array.isArray(groupsRes) ? groupsRes : (groupsRes.data || []);
-        
-        for (const group of groups) {
-          if (group.online_lectures && Array.isArray(group.online_lectures)) {
-            group.online_lectures.forEach(lec => {
-              allLectures.push({
-                ...lec,
-                courseName: course.title || course.name,
-                groupName: group.name,
-                teacherName: group.teacher ? (group.teacher.first_name + ' ' + group.teacher.last_name) : 'المدرس الرئيسي'
+    // 1. المحاولة عبر نقطة النهاية المباشرة /my-lectures
+    try {
+      const myRes = await ApiClient.getMyLectures();
+      const list = Array.isArray(myRes) ? myRes : (myRes.data || []);
+      list.forEach(lec => {
+        allLectures.push({
+          ...lec,
+          courseName: lec.course ? (lec.course.title || lec.course.name) : 'كورس برمجي',
+          groupName: lec.group ? lec.group.name : 'المجموعة النشطة',
+          teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : 'المدرس الرئيسي'
+        });
+      });
+    } catch (e) {
+      console.warn('Fallback to courses groups for lectures:', e);
+    }
+
+    // 2. الطريقة الاحتياطية عبر الكورسات والمجموعات
+    if (allLectures.length === 0) {
+      const coursesRes = await ApiClient.getCourses();
+      const courses = Array.isArray(coursesRes) ? coursesRes : (coursesRes.data || []);
+      
+      for (const course of courses) {
+        try {
+          const groupsRes = await ApiClient.getCourseGroups(course.id);
+          const groups = Array.isArray(groupsRes) ? groupsRes : (groupsRes.data || []);
+          
+          for (const group of groups) {
+            if (group.online_lectures && Array.isArray(group.online_lectures)) {
+              group.online_lectures.forEach(lec => {
+                allLectures.push({
+                  ...lec,
+                  courseName: course.title || course.name,
+                  groupName: group.name,
+                  teacherName: lec.teacher ? (lec.teacher.first_name + ' ' + lec.teacher.last_name) : (group.teacher ? (group.teacher.first_name + ' ' + group.teacher.last_name) : 'المدرس الرئيسي')
+                });
               });
-            });
+            }
           }
+        } catch (err) {
+          // Skip
         }
-      } catch (e) {
-        // Skip course without groups
       }
     }
 
@@ -76,10 +93,10 @@ async function loadLiveLectures() {
                 ${statusBadge}
                 <span style="font-size: 13px; font-weight: 700; color: #3B82F6;">${lec.courseName} — ${lec.groupName}</span>
               </div>
-              <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">${lec.title || 'محاضرة أونلاين'}</h3>
+              <h3 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">${lec.title || lec.topic || 'محاضرة أونلاين'}</h3>
               <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 12px;">المدرس المحاضر: <strong>${lec.teacherName}</strong></p>
               <div style="font-size: 13px; color: var(--text-secondary); display: flex; gap: 16px;">
-                <span>⏰ تاريخ البدء: ${lec.start_time || lec.scheduled_at || 'قريباً'}</span>
+                <span>⏰ تاريخ البدء: ${lec.start_time || lec.scheduled_at || lec.start_date_time || 'قريباً'}</span>
               </div>
             </div>
 
@@ -104,8 +121,8 @@ async function loadLiveLectures() {
 async function joinStudentLecture(lectureId) {
   try {
     const res = await ApiClient.joinOnlineLecture(lectureId);
-    if (res.zoom_join_url || res.url || res.join_url) {
-      const zoomUrl = res.zoom_join_url || res.url || res.join_url;
+    const zoomUrl = res.data?.join_url || res.data?.zoom_join_url || res.zoom_join_url || res.join_url || res.url;
+    if (zoomUrl) {
       window.open(zoomUrl, '_blank');
     } else {
       alert('لم يتم العثور على رابط المحاضرة، يرجى التواصل مع المدرس');

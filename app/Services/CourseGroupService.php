@@ -71,15 +71,20 @@ class CourseGroupService
      */
     public static function assignStudentToOpenGroup($user, $courseId)
     {
-        // البحث عن أحدث مجموعة مفتوحة
+        // البحث عن مجموعة مفتوحة أو نشطة
         $group = CourseGroup::where('course_id', $courseId)
-            ->whereIn('status', ['open_for_registration', 'waiting_for_students'])
+            ->whereIn('status', ['open_for_registration', 'waiting_for_students', 'active'])
             ->orderBy('id', 'asc')
             ->first();
             
         if (!$group) {
-            // لا يوجد مجموعة مفتوحة
-            return null;
+            // إنشاء مجموعة أساسية تلقائياً إذا لم توجد أي مجموعة
+            $group = CourseGroup::create([
+                'course_id' => $courseId,
+                'name'      => 'المجموعة الأولى (الأساسية)',
+                'capacity'  => 100,
+                'status'    => 'active'
+            ]);
         }
         
         // إلحاق الطالب بالمجموعة

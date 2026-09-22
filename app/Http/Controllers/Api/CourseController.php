@@ -188,4 +188,37 @@ class CourseController extends Controller
             'data' => $lessons
         ]);
     }
+
+    // جلب المحاضرات المباشرة الخاصة بكورس معين
+    public function getCourseOnlineLectures(Request $request, $course_id)
+    {
+        $userId = auth('sanctum')->id();
+        $user = auth('sanctum')->user();
+        $isAdmin = $user?->isAdmin() ?? false;
+
+        $groupId = null;
+        if ($userId && !$isAdmin) {
+            $subscription = \DB::table('course_subscriptions')
+                ->where('user_id', $userId)
+                ->where('course_id', $course_id)
+                ->first();
+            if ($subscription && $subscription->group_id) {
+                $groupId = $subscription->group_id;
+            }
+        }
+
+        $query = \App\Models\OnlineLecture::where('course_id', $course_id)
+            ->with(['teacher', 'group', 'level']);
+
+        if (!$isAdmin && $groupId) {
+            $query->where('group_id', $groupId);
+        }
+
+        $lectures = $query->orderBy('start_date_time', 'asc')->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $lectures
+        ]);
+    }
 }
