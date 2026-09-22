@@ -175,7 +175,7 @@ class TeacherController extends Controller
     {
         $request->validate([
             'online_lecture_id' => 'required|exists:online_lectures,id',
-            'break_minutes' => 'required|integer|min:1|max:30',
+            'break_minutes' => 'nullable|integer|min:1|max:60',
         ]);
 
         $teacher = $request->user();
@@ -184,20 +184,25 @@ class TeacherController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
+        $lecture->status = 'break';
+        $lecture->save();
+
+        $breakMinutes = $request->break_minutes ?: 15;
+
         // إرسال إشعار لطلاب المجموعة بأنه في بريك
         try {
-            $groupStudents = $lecture->group->students;
+            $groupStudents = $lecture->group?->students ?? [];
             foreach ($groupStudents as $student) {
                 if ($student->fcm_token) {
                     $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $student->fcm_token)
                         ->withNotification(\Kreait\Firebase\Messaging\Notification::create(
                             'استراحة ☕',
-                            "المحاضرة في استراحة لمدة {$request->break_minutes} دقيقة"
+                            "المحاضرة في استراحة لمدة {$breakMinutes} دقيقة"
                         ))
                         ->withData([
                             'type' => 'lecture_break',
                             'lecture_id' => (string) $lecture->id,
-                            'break_minutes' => (string) $request->break_minutes,
+                            'break_minutes' => (string) $breakMinutes,
                         ]);
                     app('firebase.messaging')->send($message);
                 }
@@ -208,8 +213,53 @@ class TeacherController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => "تم بدء استراحة {$request->break_minutes} دقيقة.",
-            'break_minutes' => $request->break_minutes,
+            'message' => "تم بدء الاستراحة بنجاح.",
+            'break_minutes' => $breakMinutes,
+            'data' => $lecture,
+        ]);
+    }
+
+    /**
+     * إنهاء الاستراحة واستئناف المحاضرة برابط زوم جديد.
+     */
+    public function endBreak(Request $request)
+    {
+        $request->validate([
+            'online_lecture_id' => 'required|exists:online_lectures,id',
+        ]);
+
+        $teacher = $request->user();
+
+        $lecture = OnlineLecture::where('id', $request->online_lecture_id)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+
+        // توليد رابط اجتماع زوم جديد عند انتهاء البريك
+        try {
+            $zoomService = new \App\Services\ZoomService();
+            $newMeeting = $zoomService->createMeeting([
+                'topic' => $lecture->title . ' (استئناف بعد البريك)',
+                'start_time' => now()->format('Y-m-d\TH:i:s\Z'),
+                'duration' => $lecture->duration_minutes ?: 60,
+                'agenda' => $lecture->description ?? '',
+            ]);
+
+            if ($newMeeting && isset($newMeeting['id'])) {
+                $lecture->zoom_meeting_id = (string) $newMeeting['id'];
+                $lecture->zoom_join_url = $newMeeting['join_url'];
+                $lecture->zoom_start_url = $newMeeting['start_url'] ?? $newMeeting['join_url'];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Zoom meeting re-creation failed after break: ' . $e->getMessage());
+        }
+
+        $lecture->status = 'live';
+        $lecture->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم إنهاء الاستراحة واستئناف المحاضرة برابط جديد بنجاح.',
+            'data' => $lecture,
         ]);
     }
 
@@ -234,6 +284,31 @@ class TeacherController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'تم بدء المحاضرة بنجاح.',
+            'data' => $lecture,
+        ]);
+    }
+
+    /**
+     * إنهاء المحاضرة الأونلاين.
+     */
+    public function endLecture(Request $request)
+    {
+        $request->validate([
+            'online_lecture_id' => 'required|exists:online_lectures,id',
+        ]);
+
+        $teacher = $request->user();
+
+        $lecture = OnlineLecture::where('id', $request->online_lecture_id)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+
+        $lecture->status = 'ended';
+        $lecture->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم إنهاء المحاضرة بنجاح.',
             'data' => $lecture,
         ]);
     }

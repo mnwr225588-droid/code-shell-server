@@ -50,15 +50,28 @@ class OnlineLectureController extends Controller
             }
         }
 
-        // 2. Verify time (allow if live or within 30 minutes before start time)
-        $now = Carbon::now('UTC');
-        $startTime = Carbon::parse($lecture->start_date_time, 'UTC');
+        // 2. Verify status for students
+        if (!$isAdmin && !$isTeacher) {
+            if ($lecture->status === 'break') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'المحاضرة حالياً في استراحة (بريك). يرجى الانتظار لحين استئناف المحاضرة.'
+                ], 403);
+            }
 
-        if (!$isAdmin && !$isTeacher && $lecture->status !== 'live' && $now->lt($startTime->copy()->subMinutes(30))) {
-            return response()->json([
-                'status' => false,
-                'message' => 'زر الانضمام غير متاح حالياً. يرجى الانتظار حتى اقتراب موعد المحاضرة.'
-            ], 403);
+            if ($lecture->status === 'ended') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'هذه المحاضرة منتهية.'
+                ], 403);
+            }
+
+            if ($lecture->status !== 'live') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'المحاضرة لم تبدأ بعد من المدرس. يرجى الانتظار حتى يقوم المدرس ببدء المحاضرة.'
+                ], 403);
+            }
         }
 
         // 3. Ensure zoom_join_url always exists
@@ -78,10 +91,16 @@ class OnlineLectureController extends Controller
                 'data' => [
                     'role' => 'host',
                     'join_url' => $lecture->zoom_start_url ?: $zoomJoinUrl,
+                    'start_url' => $lecture->zoom_start_url ?: $zoomJoinUrl,
                 ]
             ]);
         } else {
-            $deepLink = 'zoomus://' . str_replace('https://', '', $zoomJoinUrl);
+            $studentName = urlencode($user?->name ?: 'طالب');
+            $meetingId = $lecture->zoom_meeting_id;
+            $deepLink = $meetingId 
+                ? "zoomus://zoom.us/join?confno={$meetingId}&uname={$studentName}" 
+                : 'zoomus://' . str_replace('https://', '', $zoomJoinUrl);
+
             return response()->json([
                 'status' => true,
                 'message' => 'تم التحقق بنجاح',

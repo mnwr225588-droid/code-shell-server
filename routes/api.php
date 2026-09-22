@@ -322,7 +322,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-sessions', [\App\Http\Controllers\Api\TeacherController::class, 'mySessions']);
         Route::get('/sessions/{id}', [\App\Http\Controllers\Api\TeacherController::class, 'sessionDetails']);
         Route::post('/start-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'startLecture']);
+        Route::post('/end-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'endLecture']);
         Route::post('/postpone', [\App\Http\Controllers\Api\TeacherController::class, 'requestPostponement']);
         Route::post('/break', [\App\Http\Controllers\Api\TeacherController::class, 'startBreak']);
+        Route::post('/end-break', [\App\Http\Controllers\Api\TeacherController::class, 'endBreak']);
     });
 });

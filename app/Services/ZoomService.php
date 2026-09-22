@@ -12,9 +12,9 @@ class ZoomService
      */
     private function getAccessToken()
     {
-        $accountId = env('ZOOM_ACCOUNT_ID');
-        $clientId = env('ZOOM_CLIENT_ID');
-        $clientSecret = env('ZOOM_CLIENT_SECRET');
+        $accountId = trim(env('ZOOM_ACCOUNT_ID', ''));
+        $clientId = trim(env('ZOOM_CLIENT_ID', ''));
+        $clientSecret = trim(env('ZOOM_CLIENT_SECRET', ''));
 
         if (!$accountId || !$clientId || !$clientSecret) {
             Log::error('Zoom API credentials are not set.');
@@ -57,13 +57,14 @@ class ZoomService
                 'settings' => [
                     'host_video' => true,
                     'participant_video' => false,
-                    'join_before_host' => false,
                     'mute_upon_entry' => true,
+                    'waiting_room' => false,
+                    'join_before_host' => false,
                     'watermark' => false,
-                    'use_pmi' => false,
+                    'use_pmi' => false, // يضمن إنشاء غرفة مستقلة ورابط فريد لكل محاضرة
                     'approval_type' => 0,
                     'audio' => 'both',
-                    'auto_recording' => 'cloud',
+                    'auto_recording' => 'none',
                 ]
             ]);
 
