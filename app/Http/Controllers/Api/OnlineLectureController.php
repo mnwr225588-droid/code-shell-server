@@ -74,13 +74,12 @@ class OnlineLectureController extends Controller
             }
         }
 
-        // 3. Ensure valid Zoom meeting exists (auto-creates via API or fallback 10-digit ID)
-        $lecture->ensureZoomMeetingExists();
-
-        $meetingId = $lecture->zoom_meeting_id;
         $zoomJoinUrl = $lecture->zoom_join_url;
-        if (empty($zoomJoinUrl) || str_ends_with(trim($zoomJoinUrl), '/j/') || str_ends_with(trim($zoomJoinUrl), '/j')) {
-            $zoomJoinUrl = "https://zoom.us/j/" . $meetingId;
+        if (empty($zoomJoinUrl)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لم يقم المدرس بإضافة رابط اجتماع Zoom لهذه المحاضرة بعد. يرجى الانتظار حتى يضع المدرس الرابط.'
+            ], 400);
         }
 
         // 4. Return appropriate URL based on user role

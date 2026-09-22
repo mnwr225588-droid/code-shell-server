@@ -21,6 +21,11 @@ let currentBaseUrl = API_CONFIG.PROD_URL;
 
 class ApiClient {
   static getBaseUrl() {
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+      if (window.location.hostname.includes('kesug.com')) {
+        return `${window.location.origin}/api`;
+      }
+    }
     return currentBaseUrl;
   }
 
@@ -67,7 +72,8 @@ class ApiClient {
   }
 
   static async request(endpoint, options = {}) {
-    const url = `${currentBaseUrl}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const baseUrl = this.getBaseUrl();
+    const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     const headers = this.getHeaders(options.headers || {});
 
     const config = {
@@ -287,8 +293,32 @@ class ApiClient {
     return await this.request(`/teacher/groups/${groupId}/lectures`);
   }
 
-  static async getTeacherSessions() {
-    return await this.request('/teacher/my-sessions');
+  static async teacherStartLecture(lectureId, zoomUrl = null) {
+    return await this.request('/teacher/start-lecture', {
+      method: 'POST',
+      body: { online_lecture_id: lectureId, zoom_join_url: zoomUrl }
+    });
+  }
+
+  static async teacherUpdateZoomLink(lectureId, zoomUrl) {
+    try {
+      return await this.request('/teacher/update-zoom-link', {
+        method: 'POST',
+        body: { online_lecture_id: lectureId, zoom_join_url: zoomUrl }
+      });
+    } catch (err) {
+      return await this.request('/update-zoom-link', {
+        method: 'POST',
+        body: { online_lecture_id: lectureId, zoom_join_url: zoomUrl }
+      });
+    }
+  }
+
+  static async teacherEndLecture(lectureId) {
+    return await this.request('/teacher/end-lecture', {
+      method: 'POST',
+      body: { online_lecture_id: lectureId }
+    });
   }
 
   static async teacherStartBreak(groupId, durationMinutes) {

@@ -1,14 +1,13 @@
 /* ====================================================
    teacher.js — المنطق الخاص بنظام لوحة المدرس
-   مطابق تماماً لوظائف نظام المدرس في تطبيق Flutter:
-   - مجموعات المدرس
-   - تفاصيل وقائمة طلاب كل مجموعة (اسم، رقم هاتف، تاريخ ميلاد)
-   - انضمام المحاضرة كمدرس (Host Zoom link)
-   - أخذ استراحة (Break timer countdown + Notification)
-   - طلب تأجيل المحاضرة للأدمن (Postpone request)
+   مطابق تماماً 100% لوظائف نظام المدرس في تطبيق Flutter:
+   - TeacherSessionsScreen: جدول المحاضرات، البدء، الانضمام، الاستراحة، طلب التأجيل
+   - TeacherGroupsScreen: قائمة المجموعات المخصصة للمدرس والإحصائيات
+   - TeacherStudentsScreen: قائمة طلاب المجموعة (الاسم، الهاتف، الميلاد، واتساب)
    ==================================================== */
 
 let currentTeacherGroups = [];
+let currentTeacherSessions = [];
 let selectedGroupId = null;
 let breakInterval = null;
 
@@ -30,10 +29,191 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadTeacherData();
+  await loadTeacherSessions();
 });
 
 // ====================================================
-// 1. تحميل مجموعات المدرس والإحصائيات
+// 0. التنقل بين التبويبات (المواعيد | المجموعات)
+// ====================================================
+function switchTeacherTab(tab) {
+  const sessionsSec = document.getElementById('teacher-sessions-section');
+  const groupsSec = document.getElementById('teacher-groups-section');
+  const btnSessions = document.getElementById('tab-btn-sessions');
+  const btnGroups = document.getElementById('tab-btn-groups');
+
+  if (tab === 'sessions') {
+    if (sessionsSec) sessionsSec.style.display = 'block';
+    if (groupsSec) groupsSec.style.display = 'none';
+
+    if (btnSessions) {
+      btnSessions.style.background = '#2563EB';
+      btnSessions.style.color = '#FFFFFF';
+      btnSessions.style.border = 'none';
+    }
+    if (btnGroups) {
+      btnGroups.style.background = 'var(--bg-card)';
+      btnGroups.style.color = 'var(--text-primary)';
+      btnGroups.style.border = '1px solid var(--border-color)';
+    }
+  } else if (tab === 'groups') {
+    if (sessionsSec) sessionsSec.style.display = 'none';
+    if (groupsSec) groupsSec.style.display = 'block';
+
+    if (btnGroups) {
+      btnGroups.style.background = '#2563EB';
+      btnGroups.style.color = '#FFFFFF';
+      btnGroups.style.border = 'none';
+    }
+    if (btnSessions) {
+      btnSessions.style.background = 'var(--bg-card)';
+      btnSessions.style.color = 'var(--text-primary)';
+      btnSessions.style.border = '1px solid var(--border-color)';
+    }
+  }
+}
+
+// ====================================================
+// 1. تحميل جدول المحاضرات والمواعيد (TeacherSessionsScreen)
+// ====================================================
+async function loadTeacherSessions() {
+  const container = document.getElementById('teacher-sessions-container');
+  if (!container) return;
+
+  try {
+    const res = await ApiClient.getTeacherSessions().catch(() => null);
+    let sessions = Array.isArray(res) ? res : (res && (res.data || res.sessions) ? (res.data || res.sessions) : []);
+
+    currentTeacherSessions = sessions;
+
+    if (sessions.length === 0) {
+      container.innerHTML = `
+        <div style="background: var(--bg-card); border-radius: 20px; padding: 40px; text-align: center; border: 1px dashed var(--border-color);">
+          <div style="font-size: 40px; margin-bottom: 12px;">📡</div>
+          <h4 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">لا توجد جلسات أو محاضرات مجدولة حالياً</h4>
+          <p style="font-size: 13px; color: var(--text-muted);">عند قيام الأدمن ببرمجة محاضرة أونلاين جديدة ستظهر هنا مع أدوات التحكم مباشرة.</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+    sessions.forEach(session => {
+      const title = session.title || 'محاضرة أونلاين';
+      const groupName = session.group ? session.group.name : (session.group_name || 'مجموعة دراسية');
+      const courseTitle = session.course ? (session.course.title || session.course.name) : 'كورس برمجي';
+      const scheduledAt = session.start_time || session.scheduled_at || session.created_at || 'محددة من الأدمن';
+
+      const isLive = session.status === 'live' || session.is_live;
+      const isBreak = session.status === 'break';
+      const isPostponed = session.status === 'postponed';
+      const isEnded = session.status === 'ended';
+
+      let statusBadge = `<span style="background: rgba(59, 130, 246, 0.15); color: #3B82F6; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700;">⏳ قيد الانتظار</span>`;
+      if (isLive) {
+        statusBadge = `<span style="background: rgba(34, 197, 94, 0.2); color: #22C55E; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800; animation: pulse 2s infinite;">🔴 جارية الآن</span>`;
+      } else if (isBreak) {
+        statusBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 800;">☕ في استراحة</span>`;
+      } else if (isPostponed) {
+        statusBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700;">📅 مؤجلة</span>`;
+      } else if (isEnded) {
+        statusBadge = `<span style="background: rgba(148, 163, 184, 0.2); color: #94A3B8; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 700;">🏁 انتهت</span>`;
+      }
+
+      let actionButtons = '';
+      if (!isLive && !isBreak && !isEnded) {
+        // المحاضرة مجدولة (لم تبدأ بعد)
+        actionButtons = `
+          <button onclick="hostStartLecture(${session.id})" class="auth-btn" style="background: linear-gradient(135deg, #10B981, #059669); border: none; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 800;">
+            ▶️ بدء المحاضرة (تفعيل الانضمام للطلاب)
+          </button>
+          <button onclick="openPostponeModal(${session.id})" class="auth-btn" style="background: linear-gradient(135deg, #6B7280, #4B5563); border: none; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 800;">
+            📅 طلب تأجيل
+          </button>
+        `;
+      } else if (isLive) {
+        // المحاضرة جارية الآن
+        actionButtons = `
+          <button onclick="openBreakModal(${session.id})" class="auth-btn" style="background: linear-gradient(135deg, #D97706, #B45309); border: none; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 800;">
+            ☕ أخذ استراحة (Break)
+          </button>
+          <button onclick="hostEndLecture(${session.id})" class="auth-btn" style="background: linear-gradient(135deg, #DC2626, #991B1B); border: none; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 800;">
+            🛑 إنهاء المحاضرة
+          </button>
+        `;
+      } else if (isBreak) {
+        // المحاضرة في استراحة
+        actionButtons = `
+          <button onclick="teacherEndBreakAction(${session.id})" class="auth-btn" style="background: linear-gradient(135deg, #10B981, #059669); border: none; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 800;">
+            ▶️ إنهاء البريك واستئناف المحاضرة
+          </button>
+          <button onclick="hostEndLecture(${session.id})" class="auth-btn" style="background: linear-gradient(135deg, #DC2626, #991B1B); border: none; padding: 10px 18px; font-size: 13px; border-radius: 12px; font-weight: 800;">
+            🛑 إنهاء المحاضرة
+          </button>
+        `;
+      } else if (isEnded) {
+        actionButtons = `
+          <span style="font-size: 13px; color: var(--text-muted); padding: 10px;">المحاضرة منتهية</span>
+        `;
+      }
+
+      // التحقق مما إذا كان الرابط قد تم إدخاله وحفظه مخصصاً من قبل المدرس (وليس رابط عشوائي افتراضي)
+      const rawUrl = (session.zoom_join_url || '').trim();
+      const isCustomSaved = Boolean(session.is_custom_link || (rawUrl && !rawUrl.includes('rand') && !session.zoom_meeting_id?.startsWith('9')));
+      const displayUrl = isCustomSaved ? rawUrl : '';
+      const hasUrl = Boolean(isCustomSaved && rawUrl);
+
+      const btnText = hasUrl ? '🔄 استبدال الرابط' : '📤 إرسال الرابط للطلاب';
+      const btnStyle = hasUrl 
+        ? 'background: linear-gradient(135deg, #D97706, #B45309);' 
+        : 'background: linear-gradient(135deg, #2563EB, #1D4ED8);';
+      const inputDisabled = hasUrl ? 'disabled' : '';
+
+      const zoomLinkBoxHtml = !isEnded ? `
+        <div style="margin-top: 14px; background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 14px; padding: 12px 16px;">
+          <label style="font-size: 13px; font-weight: 700; color: var(--text-primary); display: block; margin-bottom: 6px;">🔗 رابط اجتماع Zoom الخاص بك لهذه المحاضرة:</label>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="url" id="teacher-zoom-input-${session.id}" value="${displayUrl}" ${inputDisabled} placeholder="ضع رابط اجتماع Zoom الخاص بك هنا (مثال: https://zoom.us/j/...)" style="flex: 1; min-width: 240px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 13px; background: var(--bg-body); color: var(--text-primary);" />
+            <button id="teacher-zoom-btn-${session.id}" data-has-url="${hasUrl}" data-editing="false" onclick="toggleOrSaveTeacherZoomLink(${session.id})" class="auth-btn" style="${btnStyle} border: none; padding: 10px 18px; font-size: 13px; border-radius: 10px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              ${btnText}
+            </button>
+          </div>
+        </div>
+      ` : '';
+
+      html += `
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: transform 0.2s;" class="animate-fadeIn">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                ${statusBadge}
+                <span style="font-size: 12.5px; color: #3B82F6; font-weight: 700; background: rgba(59, 130, 246, 0.1); padding: 3px 10px; border-radius: 10px;">${courseTitle} — ${groupName}</span>
+              </div>
+              <h3 style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;">${title}</h3>
+              <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                <span>⏰ الموعد:</span>
+                <strong style="color: var(--text-secondary);">${scheduledAt}</strong>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              ${actionButtons}
+            </div>
+          </div>
+          ${zoomLinkBoxHtml}
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+
+  } catch (err) {
+    console.error('Error loading teacher sessions:', err);
+    container.innerHTML = `<div style="color: #ef4444; padding: 20px; text-align: center;">حدث خطأ أثناء تحميل جدول المحاضرات والمواعيد.</div>`;
+  }
+}
+
+// ====================================================
+// 2. تحميل مجموعات المدرس والإحصائيات (TeacherGroupsScreen)
 // ====================================================
 async function loadTeacherData() {
   const container = document.getElementById('teacher-groups-container');
@@ -51,9 +231,13 @@ async function loadTeacherData() {
       totalLectures += g.online_lectures ? g.online_lectures.length : 0;
     });
 
-    document.getElementById('stat-groups-count').textContent = currentTeacherGroups.length;
-    document.getElementById('stat-students-count').textContent = totalStudents;
-    document.getElementById('stat-lectures-count').textContent = totalLectures;
+    const statGroups = document.getElementById('stat-groups-count');
+    const statStudents = document.getElementById('stat-students-count');
+    const statLectures = document.getElementById('stat-lectures-count');
+
+    if (statGroups) statGroups.textContent = currentTeacherGroups.length;
+    if (statStudents) statStudents.textContent = totalStudents;
+    if (statLectures) statLectures.textContent = totalLectures;
 
     if (currentTeacherGroups.length === 0) {
       container.innerHTML = `
@@ -108,7 +292,7 @@ async function loadTeacherData() {
 }
 
 // ====================================================
-// 2. عرض تفاصيل المجموعة المحددة (الطلاب والمحاضرات)
+// 3. عرض تفاصيل المجموعة المحددة (TeacherStudentsScreen)
 // ====================================================
 async function selectGroupDetails(groupId) {
   selectedGroupId = groupId;
@@ -138,7 +322,6 @@ async function selectGroupDetails(groupId) {
       students.forEach((std, idx) => {
         const fullName = `${std.first_name || std.name || ''} ${std.middle_name || ''} ${std.last_name || ''}`.trim();
         const phone = std.phone || 'غير مسجل';
-        // استخراج تاريخ الميلاد فقط بدون ساعات ISO أو أصفار الملي ثانية
         const birthDate = std.birth_date ? (std.birth_date.split('T')[0].split(' ')[0]) : 'غير محدد';
         const email = std.email || 'غير مسجل';
 
@@ -227,44 +410,113 @@ function closeGroupDetails() {
 }
 
 // ====================================================
-// 3. أفعال المدرس التفاعلية (Host Join, Break, Postpone)
+// 4. أفعال المدرس التفاعلية (Host Join, Break, Postpone)
 // ====================================================
 
-// 1. الانضمام كمدرس
-async function hostJoinLecture(lectureId) {
+// 0. حفظ أو استبدال وإرسال رابط زوم الخاص بالمدرس
+async function toggleOrSaveTeacherZoomLink(lectureId) {
+  const input = document.getElementById(`teacher-zoom-input-${lectureId}`);
+  const btn = document.getElementById(`teacher-zoom-btn-${lectureId}`);
+  if (!input || !btn) return;
+
+  const isEditing = btn.getAttribute('data-editing') === 'true';
+  const hasSavedUrl = btn.getAttribute('data-has-url') === 'true';
+
+  // إذا كان الرابط محفوظاً بالفعل والمدرس يضغط "استبدال الرابط"
+  if (!isEditing && hasSavedUrl) {
+    input.disabled = false;
+    input.focus();
+    input.select();
+    btn.setAttribute('data-editing', 'true');
+    btn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+    btn.innerHTML = '📤 إرسال الرابط الجديد للطلاب';
+    return;
+  }
+
+  // تنفيذ حفظ / استبدال الرابط
+  const zoomUrl = input.value.trim();
+  if (!zoomUrl) {
+    alert('⚠️ يرجى إدخال رابط اجتماع زوم أولاً قبل الحفظ والإرسال');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = 'جاري الإرسال... ⏳';
+
   try {
-    const res = await ApiClient.joinOnlineLecture(lectureId);
-    const hostUrl = res.zoom_host_url || res.zoom_join_url || res.url;
-    if (hostUrl) {
-      window.open(hostUrl, '_blank');
-    } else {
-      alert('لم يتم العثور على رابط المدرس كمضيف، يتم تحويلك لرابط الانضمام العام');
-      window.open(res.zoom_join_url || res.url, '_blank');
+    await ApiClient.teacherUpdateZoomLink(lectureId, zoomUrl);
+    alert('✅ تم إرسال وحفظ رابط زوم الجديد للطلاب بنجاح!');
+
+    input.disabled = true;
+    btn.disabled = false;
+    btn.setAttribute('data-editing', 'false');
+    btn.setAttribute('data-has-url', 'true');
+    btn.style.background = 'linear-gradient(135deg, #D97706, #B45309)';
+    btn.innerHTML = '🔄 استبدال الرابط';
+
+    // إعادة تحميل المحاضرات لتثبيت التحديث نهائياً في التخزين بقاعدة البيانات
+    if (typeof loadTeacherSessions === 'function') {
+      await loadTeacherSessions();
     }
   } catch (error) {
-    alert(error.message || 'فشل فتح المحاضرة كمدرس');
+    btn.disabled = false;
+    btn.style.background = isEditing ? 'linear-gradient(135deg, #10B981, #059669)' : (hasSavedUrl ? 'linear-gradient(135deg, #D97706, #B45309)' : 'linear-gradient(135deg, #2563EB, #1D4ED8)');
+    btn.innerHTML = hasSavedUrl ? '🔄 استبدال الرابط' : '📤 إرسال الرابط للطلاب';
+    alert(error.message || 'فشل إرسال وتأكيد حفظ الرابط');
   }
 }
 
-// 2. إدارة الاستراحة Break
-function openBreakModal(groupId) {
-  document.getElementById('break-group-id').value = groupId;
-  document.getElementById('break-modal').classList.add('active');
+window.toggleOrSaveTeacherZoomLink = toggleOrSaveTeacherZoomLink;
+
+// 1. بدء المحاضرة كمدرس (تحويل الحالة لمباشر وتفعيل زوم للطلاب)
+async function hostStartLecture(lectureId) {
+  const input = document.getElementById(`teacher-zoom-input-${lectureId}`);
+  const zoomUrl = input ? input.value.trim() : '';
+
+  try {
+    await ApiClient.teacherStartLecture(lectureId, zoomUrl);
+    alert('🟢 تم بدء المحاضرة وتفعيل زر الانضمام للطلاب بنجاح!');
+    await loadTeacherSessions();
+  } catch (error) {
+    alert(error.message || 'تعذر بدء المحاضرة حالياً');
+  }
+}
+
+// 3. إنهاء المحاضرة
+async function hostEndLecture(lectureId) {
+  if (!confirm('هل أنت تأكد من إنهاء هذه المحاضرة؟ سيظهر للطلاب أن المحاضرة قد انتهت.')) return;
+  try {
+    await ApiClient.teacherEndLecture(lectureId);
+    alert('تم إنهاء المحاضرة بنجاح!');
+    await loadTeacherSessions();
+  } catch (error) {
+    alert(error.message || 'تعذر إنهاء المحاضرة');
+  }
+}
+
+// 4. إدارة الاستراحة Break
+function openBreakModal(lectureId) {
+  const el = document.getElementById('break-group-id');
+  if (el) el.value = lectureId;
+  const modal = document.getElementById('break-modal');
+  if (modal) modal.classList.add('active');
 }
 
 function closeBreakModal() {
-  document.getElementById('break-modal').classList.remove('active');
+  const modal = document.getElementById('break-modal');
+  if (modal) modal.classList.remove('active');
 }
 
 async function startBreakTimer(durationMinutes) {
-  const groupId = document.getElementById('break-group-id').value;
+  const lectureId = document.getElementById('break-group-id').value;
   closeBreakModal();
 
   try {
-    await ApiClient.teacherStartBreak(groupId, durationMinutes);
-    alert(`تم إرسال إشعار استراحة لمدة ${durationMinutes} دقائق لجميع طلاب المجموعة بنجاح!`);
+    await ApiClient.teacherStartBreak(lectureId, durationMinutes);
+    alert(`تم تحويل المحاضرة لوضع الاستراحة وإرسال إشعار بريك لمدة ${durationMinutes} دقيقة للطلاب!`);
+    await loadTeacherSessions();
   } catch (e) {
-    // Continue timer on screen regardless
+    alert(e.message || 'فشل تفعيل الاستراحة');
   }
 
   // تفعيل المؤقت التنازلي على الشاشة
@@ -282,7 +534,7 @@ async function startBreakTimer(durationMinutes) {
     if (secondsRemaining <= 0) {
       clearInterval(breakInterval);
       endBreakTimer();
-      alert('انتهت فترة الاستراحة! يمكنك استكمال المحاضرة الآن.');
+      alert('انتهت فترة الاستراحة! يمكنك استئناف المحاضرة الآن برابط جديد.');
       return;
     }
 
@@ -292,6 +544,17 @@ async function startBreakTimer(durationMinutes) {
       countdownText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
   }, 1000);
+}
+
+async function teacherEndBreakAction(lectureId) {
+  try {
+    await ApiClient.teacherEndBreak(lectureId);
+    alert('تم إنهاء الاستراحة وتوليد رابط زوم جديد للمحاضرة بنجاح!');
+    endBreakTimer();
+    await loadTeacherSessions();
+  } catch (e) {
+    alert(e.message || 'حدث خطأ أثناء استئناف المحاضرة');
+  }
 }
 
 function endBreakTimer() {
@@ -330,9 +593,15 @@ async function submitPostponeForm(event) {
   }
 }
 
+window.switchTeacherTab = switchTeacherTab;
+window.loadTeacherSessions = loadTeacherSessions;
+window.loadTeacherData = loadTeacherData;
 window.selectGroupDetails = selectGroupDetails;
 window.closeGroupDetails = closeGroupDetails;
-window.hostJoinLecture = hostJoinLecture;
+window.hostStartLecture = hostStartLecture;
+window.hostJoinLecture = typeof hostJoinLecture !== 'undefined' ? hostJoinLecture : function(){};
+window.hostEndLecture = hostEndLecture;
+window.teacherEndBreakAction = teacherEndBreakAction;
 window.openBreakModal = openBreakModal;
 window.closeBreakModal = closeBreakModal;
 window.startBreakTimer = startBreakTimer;

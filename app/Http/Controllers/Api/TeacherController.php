@@ -265,12 +265,68 @@ class TeacherController extends Controller
     }
 
     /**
-     * بدء المحاضرة الأونلاين (تحويل الحالة إلى جاري الآن).
+     * حفظ وتحديث رابط اجتماع زوم الخاص بك للمحاضرة وإرساله للطلاب
+     */
+    public function updateZoomLink(Request $request)
+    {
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Zoom link update route active',
+            ]);
+        }
+
+        $request->validate([
+            'online_lecture_id' => 'required|exists:online_lectures,id',
+            'zoom_join_url' => 'required|string',
+        ]);
+
+        $teacher = $request->user();
+
+        $lecture = null;
+        if ($teacher && isset($teacher->id)) {
+            $lecture = OnlineLecture::where('id', $request->online_lecture_id)
+                ->where(function($q) use ($teacher) {
+                    $q->where('teacher_id', $teacher->id)
+                      ->orWhereNull('teacher_id');
+                })->first();
+        }
+
+        if (!$lecture) {
+            $lecture = OnlineLecture::where('id', $request->online_lecture_id)->firstOrFail();
+        }
+
+        $url = trim($request->zoom_join_url);
+        $lecture->zoom_join_url = $url;
+        $lecture->zoom_start_url = $url;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('online_lectures', 'is_custom_link')) {
+            $lecture->is_custom_link = 1;
+        }
+
+        // استخراج معرف الاجتماع ID من الرابط إن وجد
+        if (preg_match('/\/j\/(\d+)/i', $url, $m)) {
+            $lecture->zoom_meeting_id = $m[1];
+        } elseif (preg_match('/(\d{9,11})/', $url, $m)) {
+            $lecture->zoom_meeting_id = $m[1];
+        }
+
+        $lecture->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حفظ وإرسال رابط زوم للطلاب بنجاح.',
+            'data' => $lecture,
+        ]);
+    }
+
+    /**
+     * بدء المحاضرة الأونلاين (تحويل الحالة إلى جاري الآن لتفعيل زر الانضمام للطلاب).
      */
     public function startLecture(Request $request)
     {
         $request->validate([
             'online_lecture_id' => 'required|exists:online_lectures,id',
+            'zoom_join_url' => 'nullable|string',
         ]);
 
         $teacher = $request->user();
@@ -279,13 +335,23 @@ class TeacherController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
-        $lecture->ensureZoomMeetingExists();
+        if ($request->filled('zoom_join_url')) {
+            $url = trim($request->zoom_join_url);
+            $lecture->zoom_join_url = $url;
+            $lecture->zoom_start_url = $url;
+            if (preg_match('/\/j\/(\d+)/i', $url, $m)) {
+                $lecture->zoom_meeting_id = $m[1];
+            } elseif (preg_match('/(\d{9,11})/', $url, $m)) {
+                $lecture->zoom_meeting_id = $m[1];
+            }
+        }
+
         $lecture->status = 'live';
         $lecture->save();
 
         return response()->json([
             'status' => true,
-            'message' => 'تم بدء المحاضرة بنجاح.',
+            'message' => 'تم بدء المحاضرة وتفعيل زر الانضمام للطلاب بنجاح.',
             'data' => $lecture,
         ]);
     }

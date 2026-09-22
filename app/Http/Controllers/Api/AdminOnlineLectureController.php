@@ -70,23 +70,6 @@ class AdminOnlineLectureController extends Controller
             $startDateTimeUTC = now()->addDay();
         }
 
-        // Try to Create Zoom Meeting gracefully
-        $zoomMeeting = null;
-        try {
-            $zoomMeeting = $this->zoomService->createMeeting([
-                'topic' => $request->title,
-                'start_time' => $startDateTimeUTC->format('Y-m-d\TH:i:s\Z'),
-                'duration' => (int) $request->duration_minutes,
-                'agenda' => $request->description ?? '',
-            ]);
-        } catch (\Throwable $e) {
-            Log::warning('Zoom Meeting creation failed: ' . $e->getMessage());
-        }
-
-        $zoomMeetingId = isset($zoomMeeting['id']) ? (string) $zoomMeeting['id'] : null;
-        $zoomJoinUrl = $zoomMeeting['join_url'] ?? null;
-        $zoomStartUrl = $zoomMeeting['start_url'] ?? null;
-
         // تأكيد وجود المجموعة قبل الإنشاء لتجنب رسالة "selected group id is invalid"
         $group = \App\Models\CourseGroup::find($request->group_id);
         if (!$group) {
@@ -105,13 +88,11 @@ class AdminOnlineLectureController extends Controller
             'start_date_time' => $startDateTimeUTC,
             'timezone' => $timezone,
             'duration_minutes' => (int) $request->duration_minutes,
-            'zoom_meeting_id' => $zoomMeetingId,
-            'zoom_join_url' => $zoomJoinUrl,
-            'zoom_start_url' => $zoomStartUrl,
+            'zoom_meeting_id' => null,
+            'zoom_join_url' => null,
+            'zoom_start_url' => null,
             'status' => 'scheduled',
         ]);
-
-        $lecture->ensureZoomMeetingExists();
 
         return response()->json([
             'status' => true,

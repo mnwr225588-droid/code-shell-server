@@ -54,6 +54,10 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
+// Public fallback aliases for teacher zoom link update
+Route::match(['get', 'post'], '/teacher/update-zoom-link', [\App\Http\Controllers\Api\TeacherController::class, 'updateZoomLink']);
+Route::match(['get', 'post'], '/update-zoom-link', [\App\Http\Controllers\Api\TeacherController::class, 'updateZoomLink']);
+
 // Admin Login Route
 /// API: POST /api/admin/login
 /// الهدف: تسجيل دخول تطبيق الإدارة. 
@@ -322,6 +326,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-sessions', [\App\Http\Controllers\Api\TeacherController::class, 'mySessions']);
         Route::get('/sessions/{id}', [\App\Http\Controllers\Api\TeacherController::class, 'sessionDetails']);
         Route::post('/start-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'startLecture']);
+        Route::post('/update-zoom-link', [\App\Http\Controllers\Api\TeacherController::class, 'updateZoomLink']);
         Route::post('/end-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'endLecture']);
         Route::post('/postpone', [\App\Http\Controllers\Api\TeacherController::class, 'requestPostponement']);
         Route::post('/break', [\App\Http\Controllers\Api\TeacherController::class, 'startBreak']);
