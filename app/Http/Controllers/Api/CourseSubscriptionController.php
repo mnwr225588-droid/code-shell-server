@@ -112,8 +112,12 @@ class CourseSubscriptionController extends Controller
         $assignedGroup = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $courseId);
 
         if (!$assignedGroup) {
-            // إذا لم يكن هناك مجموعة، يشترك بدون مجموعة
-            $user->subscribedCourses()->syncWithoutDetaching([$courseId]);
+            // 🔒 منع الاشتراك بدون مجموعة مفتوحة — يجب أن تكون هناك مجموعة متاحة
+            return response()->json([
+                'status'  => false,
+                'message' => 'لا توجد مجموعة دراسية مفتوحة حالياً لهذا الكورس. يرجى الانتظار حتى يتم فتح مجموعة جديدة.',
+                'no_group' => true,
+            ], 422);
         }
 
         return response()->json([

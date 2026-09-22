@@ -52,9 +52,14 @@ class CourseController extends Controller
                   ->withCount('students');
             }])->findOrFail($id);
 
+        // إضافة حالة الاشتراك للمستخدم الحالي ضمن بيانات الكورس مباشرة
+        $user = $request->user();
+        $courseData = $course->toArray();
+        $courseData['is_subscribed'] = $user ? $course->isUserSubscribed($user->id) : false;
+
         return response()->json([
             'status' => true,
-            'data'   => $course
+            'data'   => $courseData
         ]);
     }
 
