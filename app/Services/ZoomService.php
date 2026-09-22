@@ -17,22 +17,38 @@ class ZoomService
         $clientSecret = trim(env('ZOOM_CLIENT_SECRET', ''));
 
         if (!$accountId || !$clientId || !$clientSecret) {
-            Log::error('Zoom API credentials are not set.');
+            Log::error('Zoom API credentials are missing in .env file.');
             return null;
         }
 
+        $url = 'https://zoom.us/oauth/token?grant_type=account_credentials&account_id=' . urlencode($accountId);
+
         $response = Http::withBasicAuth($clientId, $clientSecret)
+            ->withHeaders([
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            ])
+            ->post($url);
+
+        if ($response->successful()) {
+            return $response->json('access_token');
+        }
+
+        // Try alternative POST body format if URL params returned error
+        $responseAlt = Http::withBasicAuth($clientId, $clientSecret)
             ->asForm()
             ->post('https://zoom.us/oauth/token', [
                 'grant_type' => 'account_credentials',
                 'account_id' => $accountId,
             ]);
 
-        if ($response->successful()) {
-            return $response->json('access_token');
+        if ($responseAlt->successful()) {
+            return $responseAlt->json('access_token');
         }
 
-        Log::error('Failed to get Zoom Access Token', ['response' => $response->body()]);
+        Log::error('Failed to get Zoom Access Token', [
+            'status' => $response->status(),
+            'body' => $response->body()
+        ]);
         return null;
     }
 

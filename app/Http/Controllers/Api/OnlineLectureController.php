@@ -74,14 +74,29 @@ class OnlineLectureController extends Controller
             }
         }
 
-        // 3. Ensure zoom_join_url always exists
-        $zoomJoinUrl = $lecture->zoom_join_url;
-        if (empty($zoomJoinUrl)) {
-            $meetingId = $lecture->zoom_meeting_id ?? rand(100000000, 999999999);
-            $zoomJoinUrl = "https://zoom.us/j/" . $meetingId;
-            $lecture->zoom_join_url = $zoomJoinUrl;
-            $lecture->save();
+        // 3. Ensure valid Zoom meeting exists (auto-create real meeting if missing or dummy < 10 digits)
+        if (empty($lecture->zoom_meeting_id) || strlen((string)$lecture->zoom_meeting_id) < 10) {
+            try {
+                $zoomService = new \App\Services\ZoomService();
+                $newMeeting = $zoomService->createMeeting([
+                    'topic' => $lecture->title,
+                    'start_time' => now()->format('Y-m-d\TH:i:s\Z'),
+                    'duration' => $lecture->duration_minutes ?: 60,
+                    'agenda' => $lecture->description ?? '',
+                ]);
+
+                if ($newMeeting && isset($newMeeting['id'])) {
+                    $lecture->zoom_meeting_id = (string) $newMeeting['id'];
+                    $lecture->zoom_join_url = $newMeeting['join_url'];
+                    $lecture->zoom_start_url = $newMeeting['start_url'] ?? $newMeeting['join_url'];
+                    $lecture->save();
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Zoom meeting auto-creation failed on join: ' . $e->getMessage());
+            }
         }
+
+        $zoomJoinUrl = $lecture->zoom_join_url ?: ("https://zoom.us/j/" . $lecture->zoom_meeting_id);
 
         // 4. Return appropriate URL based on user role
         if ($isAdmin || $isTeacher) {
@@ -97,9 +112,9 @@ class OnlineLectureController extends Controller
         } else {
             $studentName = urlencode($user?->name ?: 'طالب');
             $meetingId = $lecture->zoom_meeting_id;
-            $deepLink = $meetingId 
+            $deepLink = ($meetingId && strlen((string)$meetingId) >= 10)
                 ? "zoomus://zoom.us/join?confno={$meetingId}&uname={$studentName}" 
-                : 'zoomus://' . str_replace('https://', '', $zoomJoinUrl);
+                : $zoomJoinUrl;
 
             return response()->json([
                 'status' => true,

@@ -83,9 +83,9 @@ class AdminOnlineLectureController extends Controller
             Log::warning('Zoom Meeting creation failed: ' . $e->getMessage());
         }
 
-        $zoomMeetingId = $zoomMeeting['id'] ?? (string) rand(100000000, 999999999);
-        $zoomJoinUrl = $zoomMeeting['join_url'] ?? ("https://zoom.us/j/" . $zoomMeetingId);
-        $zoomStartUrl = $zoomMeeting['start_url'] ?? $zoomJoinUrl;
+        $zoomMeetingId = isset($zoomMeeting['id']) ? (string) $zoomMeeting['id'] : null;
+        $zoomJoinUrl = $zoomMeeting['join_url'] ?? null;
+        $zoomStartUrl = $zoomMeeting['start_url'] ?? null;
 
         // تأكيد وجود المجموعة قبل الإنشاء لتجنب رسالة "selected group id is invalid"
         $group = \App\Models\CourseGroup::find($request->group_id);
