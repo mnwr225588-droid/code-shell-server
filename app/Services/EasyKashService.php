@@ -1,278 +1,125 @@
 <?php
 
-/**
- * ====================================================
- * اسم الملف: EasyKashService.php
- * المسار: app/Services/EasyKashService.php
- * 
- * الوصف والمهمة الرئيسية:
- * هذا الملف مسؤول عن التواصل المباشر مع API بوابة الدفع EasyKash وتوليد التوقيعات الرقمية (HMAC-SHA256).
- * 
- * وظائف الملف التفصيلية:
- * 1. createPaymentUrl: إنشاء طلب جلسة دفع جديدة لدى EasyKash وتجهيز التوقيع ورابط الدفع.
- * 2. validateSignature: التحقق من صحة التوقيع الرقمي (HMAC) في إشعارات الـ Callback لمنع التلاعب.
- * 3. verifyTransaction: الاستعلام السيرفري المباشر من EasyKash للتحقق من حالة العملية (Server-Side Verification).
- * ====================================================
- */
+namespace App\Http\Controllers\Api;
 
-namespace App\Services;
-
+use App\Http\Controllers\Controller;
+use App\Models\CourseUser;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\Http;
+use App\Services\EasyKashService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class EasyKashService
+class EasyKashController extends Controller
 {
-    /** مفتاح API الخاص ببوابة EasyKash */
-    protected string $apiKey;
+    protected EasyKashService $easyKashService;
 
-    /** المفتاح السري لتوقيع HMAC */
-    protected string $secretKey;
-
-    /** رابط الـ REST API لبوابة EasyKash */
-    protected string $baseUrl;
-
-    /** رابط الـ Callback الاسترجاعي */
-    protected string $callbackUrl;
-
-    /** وضع التشغيل (sandbox أو live) */
-    protected string $mode;
-
-    /**
-     * البناء الأولي وقراءة الإعدادات من ملفات التهيئة
-     */
-    public function __construct()
+    public function __construct(EasyKashService $easyKashService)
     {
-        $this->apiKey = (string) config('payment.easykash.api_key', config('easykash.api_key', ''));
-        $this->secretKey = (string) config('payment.easykash.secret_key', config('easykash.secret_key', ''));
-        $this->baseUrl = rtrim((string) config('payment.easykash.base_url', config('easykash.base_url', 'https://dev.easykash.net')), '/');
-        $this->callbackUrl = (string) config('payment.easykash.callback_url', config('easykash.callback_url', 'https://code-shell-server-production.up.railway.app/api/payments/easykash/callback'));
-        $this->mode = (string) config('payment.easykash.mode', config('easykash.mode', 'sandbox'));
+        $this->easyKashService = $easyKashService;
     }
 
     /**
-     * إنشاء جلسة دفع جديدة لدى EasyKash وإرجاع رابط تحويل الطالب
-     *
-     * @param Transaction $transaction المعاملة المالية المحلية
-     * @param string $returnUrl رابط العودة بعد الدفع
-     * @return array{payment_url: string, gateway_transaction_id: string, payload: array}
+     * استقبال طلب العودة/الـ Callback من بوابة EasyKash وتسجيل اشتراك الطالب
      */
-    public function createPaymentUrl(Transaction $transaction, string $returnUrl): array
+    public function handleCallback(Request $request)
     {
-        // بناء معرف فريد للطلب (Order ID)
-        $orderId = 'CS-TX-' . $transaction->id . '-' . time();
-        $callbackUrl = $this->callbackUrl ?: url('/api/payments/easykash/callback');
-        $finalRedirectUrl = $returnUrl ?: $callbackUrl;
+        $data = $request->all();
+        Log::info('EasyKash Callback Payload Received:', $data);
 
-        // استخراج النطاق الأساسي لمنع تكرار المسارات مثل /pay/pay/
-        $parsedUrl = parse_url($this->baseUrl);
-        $scheme = $parsedUrl['scheme'] ?? 'https';
-        $host = $parsedUrl['host'] ?? 'dev.easykash.net';
-        $domainUrl = $scheme . '://' . $host;
+        // رابط العودة إلى واجهة المستخدم الفرونت إند
+        $frontendUrl = env('FRONTEND_COURSES_URL', 'https://codeshell.kesug.com/courses.html');
 
-        // استخراج وتأمين بيانات المستخدم لمنع إرسال قيم فارغة
-        $userName = trim((string) ($transaction->user?->name ?? 'Student'));
-        if (empty($userName)) {
-            $userName = 'Student';
+        // 1. استخراج مرجع الطلب (مرسل بـ customerReference أو merchant_order_id)
+        $orderRef = $request->input('customerReference') 
+                 ?? $request->input('merchant_order_id') 
+                 ?? $request->input('order_id');
+
+        $transactionId = null;
+        if ($orderRef && preg_match('/CS-TX-(\d+)-/', $orderRef, $matches)) {
+            $transactionId = (int) $matches[1];
         }
 
-        $userEmail = trim((string) ($transaction->user?->email ?? 'student@codeshell.com'));
-        if (empty($userEmail) || !filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-            $userEmail = 'student@codeshell.com';
+        // البحث عن المعاملة في قاعدة البيانات
+        $transaction = null;
+        if ($transactionId) {
+            $transaction = Transaction::find($transactionId);
         }
 
-        $userPhone = trim((string) ($transaction->user?->phone ?? $transaction->user?->mobile ?? '01000000000'));
-        if (empty($userPhone)) {
-            $userPhone = '01000000000';
+        if (!$transaction && $orderRef) {
+            $transaction = Transaction::where('gateway_transaction_id', $orderRef)->first();
         }
 
-        // إسناد معرف الطلب الفريد لضمان عدم تكرار مرجع العميل بين المعاملات المختلفة
-        $customerReference = $orderId;
-
-        // معالجة القيمة المالية والتأكد من أنها أكبر من 1 لتلبية متطلبات EasyKash
-        $amount = (float) $transaction->amount;
-        if ($amount <= 1) {
-            $amount = 1.01;
+        if (!$transaction) {
+            Log::error('EasyKash Callback: Transaction not found for reference ' . ($orderRef ?? 'N/A'));
+            return redirect($frontendUrl . '?status=failed&message=' . urlencode('المعاملة غير مسجلة بالنظام'));
         }
 
-        // تجهيز بيانات الطلب الموجه إلى EasyKash متضمناً الحقول الإلزامية المطلوبة
-        $requestData = [
-            'merchant_order_id' => $orderId,
-            'amount'            => $amount,
-            'currency'          => strtoupper($transaction->currency_code ?: 'EGP'),
-            
-            // الحقول الإلزامية الصريحة المطلوبة بـ EasyKash REST API
-            'name'              => $userName,
-            'email'             => $userEmail,
-            'mobile'            => $userPhone,
-            'redirectUrl'       => $finalRedirectUrl,
-            'customerReference' => $customerReference,
+        // 2. التحقق من صحة التوقيع الرقمي HMAC (اختياري/مرن مع الاستعلام السيرفري)
+        $signature = $request->input('signature') ?? $request->input('hmac');
+        $isValidSignature = $this->easyKashService->validateSignature($data, $signature);
 
-            // الحقول الإضافية لضمان التوافق مع مختلف إصدارات الـ API
-            'customer'          => [
-                'name'  => $userName,
-                'email' => $userEmail,
-                'phone' => $userPhone,
-            ],
-            'description'       => 'Course Subscription #' . $transaction->course_id,
-            'callback_url'      => $callbackUrl,
-            'redirect_url'      => $finalRedirectUrl,
-        ];
+        if (!$isValidSignature) {
+            Log::warning('EasyKash Callback: Invalid HMAC Signature for Transaction ID #' . $transaction->id);
+        }
 
-        // حساب التوقيع الرقمي HMAC-SHA256
-        $dataToSign = $orderId . '|' . $requestData['amount'] . '|' . $requestData['currency'];
-        $signature = hash_hmac('sha256', $dataToSign, $this->secretKey);
-        $requestData['signature'] = $signature;
+        // 3. التحقق من حالة الدفع القادمة من EasyKash
+        $rawStatus = strtoupper((string) ($request->input('status') ?? $request->input('payment_status') ?? ''));
 
-        try {
-            // بناء رابط الـ Endpoint تلقائياً (يدعم الرابط المباشر أو الـ Base URL)
-            $endpoint = (str_contains($this->baseUrl, '/api/')) 
-                ? $this->baseUrl 
-                : $domainUrl . '/api/v1/payments';
+        // في حالة عدم وضوح الحالة أو الشك، يتم الاستعلام المباشر من API بوابة EasyKash
+        $isPaid = in_array($rawStatus, ['PAID', 'SUCCESS', 'COMPLETED', 'SUCCESSFUL']);
+        
+        if (!$isPaid && $orderRef) {
+            $verification = $this->easyKashService->verifyTransaction($orderRef);
+            if (($verification['status'] ?? '') === 'completed') {
+                $isPaid = true;
+            }
+        }
 
-            // إرسال الطلب إلى API بوابة EasyKash
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
-            ])->timeout(15)->post($endpoint, $requestData);
+        // 4. معالجة حالة الدفع الناجحة
+        if ($isPaid) {
+            DB::beginTransaction();
+            try {
+                // تحديث حالة المعاملة المالية
+                $transaction->update([
+                    'status'                 => 'completed',
+                    'paid_at'                => now(),
+                    'gateway_transaction_id' => $request->input('providerRefNum') ?? $orderRef ?? $transaction->gateway_transaction_id,
+                ]);
 
-            if ($response->successful()) {
-                $body = $response->json();
-                $gatewayTxId = (string) ($body['gateway_transaction_id'] ?? $body['id'] ?? $body['transaction_id'] ?? ($body['data']['id'] ?? $orderId));
-                
-                $paymentUrl = $body['payment_url'] 
-                    ?? $body['redirect_url'] 
-                    ?? $body['url'] 
-                    ?? $body['checkout_url'] 
-                    ?? $body['pay_url']
-                    ?? $body['redirectUrl']
-                    ?? $body['paymentUrl']
-                    ?? ($body['data']['payment_url'] ?? null)
-                    ?? ($body['data']['redirect_url'] ?? null)
-                    ?? ($body['data']['url'] ?? null);
-
-                if (!empty($paymentUrl)) {
-                    return [
-                        'payment_url'            => (string) $paymentUrl,
-                        'gateway_transaction_id' => $gatewayTxId,
-                        'payload'                => array_merge($requestData, ['response' => $body]),
-                    ];
+                // تفعيل اشتراك الطالب في الكورس
+                if ($transaction->user_id && $transaction->course_id) {
+                    CourseUser::updateOrCreate(
+                        [
+                            'user_id'   => $transaction->user_id,
+                            'course_id' => $transaction->course_id,
+                        ],
+                        [
+                            'status'        => 'active',
+                            'subscribed_at' => now(),
+                            'updated_at'    => now(),
+                        ]
+                    );
                 }
+
+                DB::commit();
+
+                Log::info('EasyKash Payment Completed Successfully for Transaction #' . $transaction->id);
+
+                // إعادة توجيه الطالب إلى الموقع للبدء بمشاهدة الكورس
+                return redirect($frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id);
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                Log::error('EasyKash Callback Fulfillment Error: ' . $e->getMessage());
+                return redirect($frontendUrl . '?status=failed&message=' . urlencode('حدث خطأ أثناء تفعيل الاشتراك'));
             }
-            Log::warning('EasyKash response not successful: ' . $response->status() . ' Body: ' . $response->body());
-        } catch (\Throwable $e) {
-            Log::warning('EasyKash API connection error: ' . $e->getMessage());
         }
 
-        // في بيئة الاختبار التلقائي (PHPUnit / Feature Tests)
-        if (app()->environment('testing')) {
-            $fallbackTxId = $orderId;
-            return [
-                'payment_url'            => $callbackUrl . '?gateway_transaction_id=' . $fallbackTxId . '&status=completed',
-                'gateway_transaction_id' => $fallbackTxId,
-                'payload'                => array_merge($requestData, ['mode' => 'test_environment']),
-            ];
-        }
+        // 5. في حالة فشل أو إلغاء عملية الدفع
+        $transaction->update(['status' => 'failed']);
+        Log::warning('EasyKash Payment Failed/Cancelled for Transaction #' . $transaction->id);
 
-        // إذا فشل الاتصال أو لم ترجع EasyKash رابط دفع صالح، ارفع استثناء واضحاً بدلاً من التوجيه لرابط 404 ميت
-        throw new \RuntimeException('تعذر الاتصال ببوابة الدفع الإلكتروني. يرجى المحاولة لاحقاً.');
-    }
-
-    /**
-     * التحقق من توقيع HMAC القادم في طلب الـ Callback لمنع أي تلاعب
-     * 
-     * @param array $data البارامترات القادمة في الطلب
-     * @param string|null $receivedSignature التوقيع المستلم
-     * @return bool true إذا كان التوقيع صحيحًا ومطابقًا
-     */
-    public function validateSignature(array $data, ?string $receivedSignature): bool
-    {
-        if (empty($receivedSignature)) {
-            $receivedSignature = $data['signature'] ?? $data['hmac'] ?? null;
-        }
-
-        if (empty($receivedSignature)) {
-            return false;
-        }
-
-        $secret = $this->secretKey;
-
-        // 1. مطابقة التوقيع بصيغة المعاملة القياسية
-        $orderId = $data['merchant_order_id'] ?? $data['order_id'] ?? $data['transaction_id'] ?? '';
-        $amount = $data['amount'] ?? '';
-        $currency = $data['currency'] ?? $data['currency_code'] ?? '';
-        $status = $data['status'] ?? '';
-
-        $stringToHash1 = $orderId . '|' . $amount . '|' . $currency . '|' . $status;
-        $hash1 = hash_hmac('sha256', $stringToHash1, $secret);
-
-        if (hash_equals($hash1, $receivedSignature)) {
-            return true;
-        }
-
-        $stringToHash2 = $orderId . '|' . $amount . '|' . $currency;
-        $hash2 = hash_hmac('sha256', $stringToHash2, $secret);
-
-        if (hash_equals($hash2, $receivedSignature)) {
-            return true;
-        }
-
-        // 2. مطابقة التوقيع للبيانات الكاملة كـ JSON
-        $hash3 = hash_hmac('sha256', (string) json_encode($data, JSON_UNESCAPED_SLASHES), $secret);
-        if (hash_equals($hash3, $receivedSignature)) {
-            return true;
-        }
-
-        // في وضع Sandbox التجريبي للتطوير المحلي
-        if ($this->mode === 'sandbox' && $receivedSignature === $secret) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * الاستعلام السيرفري المباشر من EasyKash للتحقق من حالة المعاملة (Server-Side Verification)
-     *
-     * @param string $gatewayTransactionId معرف المعاملة لدى البوابة
-     * @return array{status: 'completed'|'failed'|'pending', amount: float, currency: string, raw_payload: array}
-     */
-    public function verifyTransaction(string $gatewayTransactionId): array
-    {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'Accept'        => 'application/json',
-            ])->timeout(10)->get($this->baseUrl . '/api/v1/payments/verify/' . $gatewayTransactionId);
-
-            if ($response->successful()) {
-                $body = $response->json();
-                $statusRaw = strtolower((string) ($body['status'] ?? 'pending'));
-                
-                $status = match ($statusRaw) {
-                    'paid', 'completed', 'success', 'successful' => 'completed',
-                    'failed', 'declined', 'error'                 => 'failed',
-                    'cancelled', 'canceled'                     => 'cancelled',
-                    default                                     => 'pending',
-                };
-
-                return [
-                    'status'      => $status,
-                    'amount'      => (float) ($body['amount'] ?? 0),
-                    'currency'    => (string) ($body['currency'] ?? 'EGP'),
-                    'raw_payload' => $body,
-                ];
-            }
-        } catch (\Throwable $e) {
-            Log::warning('EasyKash verification request fallback: ' . $e->getMessage());
-        }
-
-        return [
-            'status'      => 'pending',
-            'amount'      => 0.0,
-            'currency'    => 'EGP',
-            'raw_payload' => ['verification_attempted' => true],
-        ];
+        return redirect($frontendUrl . '?status=failed&message=' . urlencode('لم تم عملية الدفع بنجاح'));
     }
 }
