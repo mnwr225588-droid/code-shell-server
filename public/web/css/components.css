@@ -488,18 +488,23 @@
   justify-content: space-between;
   gap: 16px;
   margin: 0;
-  width: 100%;
   box-shadow: 0 4px 20px rgba(30, 64, 175, 0.25);
   color: #FFFFFF;
-  position: sticky;
+  position: fixed;
   top: 0;
+  right: var(--sidebar-width);
+  left: 0;
   z-index: 1020;
-  transition: all 0.3s ease;
+  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
 }
 
-/* --- حاوية محتوى الصفحات تحت الشريط العلوي --- */
+.sidebar-collapsed .top-navbar {
+  right: var(--sidebar-collapsed-width);
+}
+
+/* --- حاوية محتوى الصفحات تحت الشريط العلوي الثابت --- */
 #main-page-container {
-  padding: 28px 32px 32px;
+  padding: 95px 32px 32px;
 }
 
 /* --- الجزء الأيمن: عنوان الصفحة --- */
@@ -752,69 +757,75 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
 }
 
 @media (max-width: 768px) {
-  /* تعديل تخطيط الصفحة للشاشات الصغرى */
+  /* === إصلاح شامل لتخطيط الصفحة في الهاتف === */
+  .app-layout {
+    overflow-x: hidden;
+  }
+
   .main-content {
     margin-right: 0 !important;
     padding-top: 0;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
   }
 
-  /* زر القائمة الجانبية للشاشات الصغيرة */
-  .mobile-menu-btn {
-    display: flex !important;
-    position: fixed;
-    top: 14px;
-    right: 14px;
-    z-index: 1005;
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
-    color: #FFFFFF;
-    border: none;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
-    cursor: pointer;
-  }
-
-  /* القائمة الجانبية كدروار منزلق على الهاتف (Full Mobile Slide Drawer) */
+  /* === القائمة الجانبية كدروار منزلق (Full Mobile Slide Drawer) === */
   .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    right: -290px !important;
     width: 280px !important;
-    right: -300px;
-    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
-    z-index: 1010;
+    height: 100vh !important;
+    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3) !important;
+    z-index: 1050 !important;
     transform: none !important;
+  }
+
+  .sidebar.collapsed {
+    width: 280px !important;
+    right: -290px !important;
   }
 
   .sidebar.mobile-open {
     right: 0 !important;
   }
 
-  /* إظهار النصوص في الموبايل عند فتح القائمة */
   .sidebar.mobile-open .sidebar-brand,
   .sidebar.mobile-open .nav-item-text,
-  .sidebar.mobile-open .sidebar-toggle span {
+  .sidebar.mobile-open .sidebar-toggle span,
+  .sidebar.collapsed.mobile-open .sidebar-brand,
+  .sidebar.collapsed.mobile-open .nav-item-text,
+  .sidebar.collapsed.mobile-open .sidebar-toggle span {
     display: inline !important;
   }
 
-  .sidebar.mobile-open .sidebar-header {
+  .sidebar.mobile-open .sidebar-header,
+  .sidebar.collapsed.mobile-open .sidebar-header {
     justify-content: center !important;
     padding: 24px 20px 16px !important;
   }
 
-  .sidebar.mobile-open .nav-item {
+  .sidebar.mobile-open .nav-item,
+  .sidebar.collapsed.mobile-open .nav-item {
     justify-content: flex-start !important;
     padding: 14px 20px !important;
   }
 
+  .sidebar.collapsed.mobile-open .nav-sub-item {
+    display: block !important;
+  }
+
+  /* === الأوفرلاي (الخلفية الداكنة) === */
   .sidebar-overlay {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 1008;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    z-index: 1040 !important;
     animation: fadeIn 0.25s ease;
   }
 
@@ -822,69 +833,167 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
     display: block !important;
   }
 
-  /* تعديل الهيدر العلوي في الهاتف */
+  /* === الشريط العلوي (Top Navbar) — ثابت بالأعلى ومناسب للهاتف === */
   .top-navbar {
-    padding: 14px 16px;
-    gap: 10px;
-    align-items: center;
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 14px !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    z-index: 1020 !important;
   }
 
   .top-nav-right {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-right: 0; /* زر الموبايل مندمج بشكل أفق */
+    gap: 8px;
+    margin-right: 0;
+    flex-shrink: 0;
   }
 
+  /* === زر الهامبرغر داخل الشريط العلوي === */
   .mobile-menu-btn {
     display: flex !important;
-    position: static !important; /* وضع طبيعي داخل الشريط العلوي */
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    position: static !important;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     color: #FFFFFF;
-    border: none;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.25);
+    box-shadow: none;
     cursor: pointer;
     flex-shrink: 0;
   }
 
   .top-nav-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
   }
 
+  /* === البحث ينزل على سطر منفصل === */
   .top-nav-center {
     order: 3;
     width: 100%;
     max-width: 100%;
     margin-top: 4px;
+    flex-basis: 100%;
   }
 
   .top-nav-search input {
-    height: 40px;
+    height: 38px;
     font-size: 13px;
+    border-radius: 12px;
   }
 
+  /* === أزرار اليسار (إشعارات + ثيم + أفاتار) === */
   .top-nav-left {
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-right: auto;
   }
 
-  /* تعديل الحاويات الرئيسية للكروت بالهاتف */
+  .top-nav-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .top-nav-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .theme-single-btn {
+    width: 58px !important;
+    height: 32px !important;
+    min-width: 58px !important;
+  }
+
+  .avatar-circle {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* === الحاوية الرئيسية للمحتوى تحت الشريط العلوي الثابت === */
   #main-page-container {
-    padding: 16px 12px 32px !important;
+    padding-top: 115px !important;
+    padding-right: 14px !important;
+    padding-left: 14px !important;
+    padding-bottom: 32px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  /* كروت الإحصائيات بالصفحة الرئيسية — عمود واحد */
+  /* === كروت الإحصائيات — عمود واحد بعرض كامل === */
   .dashboard-top-cards,
   .dashboard-bottom-grid {
     grid-template-columns: 1fr !important;
   }
 
-  /* inline grid overrides for home page stats and bottom sections */
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .dashboard-stat-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: 18px 16px !important;
+  }
+
+  .stat-card-val {
+    font-size: 26px !important;
+  }
+
+  .stat-card-title {
+    font-size: 15px !important;
+  }
+
+  .stat-card-desc {
+    font-size: 12px !important;
+  }
+
+  .stat-card-watermark {
+    right: -20px !important;
+    bottom: -20px !important;
+  }
+
+  .stat-card-watermark svg {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  /* === القسم السفلي (تقدم + رسم بياني) — عمود واحد === */
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .dashboard-progress-card,
+  .dashboard-chart-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 20px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  /* === inline grid overrides === */
   div[style*="grid-template-columns: repeat(auto-fit"] {
     grid-template-columns: 1fr !important;
   }
@@ -893,14 +1002,14 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
     grid-template-columns: 1fr !important;
   }
 
-  /* كروت اللغات البرمجية */
+  /* === كروت اللغات البرمجية === */
   .courses-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
 
   .language-card {
-    min-height: 190px !important;
+    min-height: 180px !important;
     padding: 16px 12px !important;
     border-radius: 20px !important;
   }
@@ -913,7 +1022,7 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
     font-size: 10.5px !important;
   }
 
-  /* بانر أساسيات الحاسوب في صفحة الكورسات — تحسين للهاتف */
+  /* === بانرات الكورسات === */
   div[style*="display: flex; align-items: center; justify-content: space-between; gap: 24px"] {
     flex-direction: column !important;
     text-align: center !important;
@@ -924,7 +1033,6 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
     text-align: center !important;
   }
 
-  /* كارت كورساتي الحالية — عمود واحد */
   div[style*="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap"] {
     flex-direction: column !important;
     text-align: center !important;
@@ -933,18 +1041,212 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
   div[style*="min-width: 260px; justify-content: flex-end"] {
     justify-content: center !important;
     flex-wrap: wrap !important;
+    min-width: auto !important;
   }
 
-  /* الأزرار العائمة */
+  /* === الأزرار العائمة === */
   div[style*="position: fixed; bottom: 24px"] {
     bottom: 16px !important;
     left: 16px !important;
   }
+
+  /* === المحاضرات المباشرة والمدرس === */
+  .live-card,
+  .cv-lecture-card,
+  .teacher-session-card {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .live-card > div,
+  .cv-lecture-card > div {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .live-card button,
+  .cv-lecture-card button,
+  .teacher-session-card button {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 12px 16px !important;
+    font-size: 13.5px !important;
+  }
+
+  /* === صندوق إدخال رابط Zoom === */
+  div[style*="background: rgba(37, 99, 235, 0.05)"] {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  div[style*="background: rgba(37, 99, 235, 0.05)"] > div {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  div[style*="background: rgba(37, 99, 235, 0.05)"] input {
+    width: 100% !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  div[style*="background: rgba(37, 99, 235, 0.05)"] button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* === كورس أساسيات الحاسوب === */
+  #cb-subscription-box > div {
+    flex-direction: column !important;
+    text-align: center !important;
+    padding: 16px !important;
+  }
+
+  #cb-subscription-box a,
+  #cb-subscription-box button {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .cb-lesson-item {
+    padding: 14px 16px !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+
+  .cb-lesson-item > div:first-child {
+    width: 100% !important;
+  }
+
+  .cb-lesson-item > div:last-child {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  /* === أزرار الأفعال === */
+  div[style*="display: flex; gap: 10px; flex-wrap: wrap"] {
+    width: 100% !important;
+  }
+
+  /* === الجداول === */
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+  }
+
+  /* === المودالات === */
+  .modal-container,
+  .modal-content {
+    width: 92% !important;
+    max-width: 92% !important;
+    margin: 10px auto !important;
+    padding: 20px 16px !important;
+    border-radius: 20px !important;
+  }
+
+  /* === هيدر الصفحات === */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .page-header-right {
+    width: 100% !important;
+  }
+
+  .page-title {
+    font-size: 20px !important;
+  }
+
+  /* === أي عنصر بعرض ثابت inline يتجاوز الشاشة === */
+  div[style*="min-width: 280px"] {
+    min-width: auto !important;
+    width: 100% !important;
+  }
+
+  div[style*="min-width: 300px"] {
+    min-width: auto !important;
+    width: 100% !important;
+  }
+
+  /* === ضمان أن كل العناصر المباشرة لا تتجاوز الشاشة === */
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  img, video, iframe, canvas, svg {
+    max-width: 100% !important;
+    height: auto;
+  }
 }
 
+/* === شاشات أصغر (480px وأقل) === */
 @media (max-width: 480px) {
   #main-page-container {
-    padding: 12px 10px 24px !important;
+    padding-top: 75px !important;
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+    padding-bottom: 24px !important;
+  }
+
+  .top-navbar {
+    padding: 10px 10px;
+    gap: 6px;
+  }
+
+  .top-nav-title {
+    font-size: 14px !important;
+    max-width: 100px;
+  }
+
+  .top-nav-center {
+    display: none !important; /* إخفاء البحث في الشاشات الصغيرة جداً */
+  }
+
+  .mobile-menu-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 8px !important;
+  }
+
+  .top-nav-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+  }
+
+  .theme-single-btn {
+    width: 50px !important;
+    height: 28px !important;
+    min-width: 50px !important;
+  }
+
+  .theme-single-btn .theme-icon-sun,
+  .theme-single-btn .theme-icon-moon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .theme-single-btn::after {
+    width: 22px !important;
+    height: 22px !important;
+    top: 2px !important;
+    right: 2px !important;
+  }
+
+  html[data-theme="dark"] .theme-single-btn::after {
+    transform: translateX(-22px) !important;
+  }
+
+  .avatar-circle {
+    width: 32px !important;
+    height: 32px !important;
   }
 
   .dashboard-stats-grid,
@@ -958,54 +1260,95 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
   .dashboard-stat-card {
     width: 100% !important;
     border-radius: 16px !important;
-    padding: 16px !important;
+    padding: 14px 12px !important;
+  }
+
+  .stat-card-val {
+    font-size: 22px !important;
+  }
+
+  .stat-card-title {
+    font-size: 14px !important;
+  }
+
+  .stat-card-icon {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
   }
 
   .dashboard-progress-card,
   .dashboard-chart-card {
     width: 100% !important;
-    border-radius: 18px !important;
-    padding: 18px 14px !important;
+    border-radius: 16px !important;
+    padding: 16px 12px !important;
+  }
+
+  .progress-circle-outer {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .progress-circle-inner {
+    width: 76px !important;
+    height: 76px !important;
+    font-size: 18px !important;
   }
 
   .courses-grid {
-    grid-template-columns: 1fr !important; /* كارت كامل بعرض الشاشة في الموبايل */
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
   }
 
   .language-card {
     width: 100% !important;
+    min-height: 160px !important;
+    padding: 14px 10px !important;
+    border-radius: 16px !important;
     box-sizing: border-box !important;
   }
 
   .language-card-icon {
-    width: 52px !important;
-    height: 52px !important;
+    width: 46px !important;
+    height: 46px !important;
   }
 
   .language-card-icon img {
-    width: 30px !important;
-    height: 30px !important;
+    width: 26px !important;
+    height: 26px !important;
   }
 
-  /* تحسين بانر أساسيات الحاسوب */
+  .language-card-name {
+    font-size: 12.5px !important;
+  }
+
+  .language-card-desc {
+    font-size: 10px !important;
+  }
+
+  /* === تحسين بانرات متنوعة === */
   div[style*="padding: 32px 28px"] {
-    padding: 18px 14px !important;
-    border-radius: 18px !important;
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
     width: 100% !important;
   }
 
   div[style*="font-size: 24px; font-weight: 800; color: #FFFFFF"] {
-    font-size: 17px !important;
+    font-size: 16px !important;
   }
 
-  /* تحسين الهيدر العلوي */
-  .top-nav-title {
-    font-size: 15px !important;
+  .chart-container {
+    height: 180px !important;
   }
 
-  .theme-single-btn {
-    width: 54px !important;
-    height: 32px !important;
+  .chart-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .chart-legend {
+    font-size: 11px !important;
+    gap: 10px !important;
   }
 }
-

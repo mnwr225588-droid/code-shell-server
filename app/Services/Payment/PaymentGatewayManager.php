@@ -13,7 +13,8 @@ class PaymentGatewayManager
 {
     /** @var array<string, class-string<PaymentGatewayInterface>> */
     private const GATEWAYS = [
-        'sandbox' => SandboxGateway::class,
+        'sandbox'  => SandboxGateway::class,
+        'easykash' => \App\Services\Payment\Gateways\EasyKashGateway::class,
         // 'paymob' => \App\Services\Payment\Gateways\PaymobGateway::class,
         // 'stripe' => \App\Services\Payment\Gateways\StripeGateway::class,
         // 'tap'    => \App\Services\Payment\Gateways\TapGateway::class,

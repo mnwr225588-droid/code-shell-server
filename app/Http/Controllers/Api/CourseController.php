@@ -12,8 +12,8 @@
  * 1. index: عرض كل الكورسات المتاحة والقادمة قريباً مرتبة.
  * 2. show: جلب تفاصيل كورس معين بواسطة ID.
  * 3. getGroups: جلب المجموعات الدراسية التابعة لكورس معين.
- * 4. getLevels: جلب المستويات والدروس الخاصة بالطالب مع قفل الدروس التالية بناءً على التقدم وإظهار حالة الانتظار للمجموعة.
- * 5. getLessonsForLevel: جلب دروس مستوى محدد.
+ * 4. getLevels: جلب المستويات والدروس الخاصة بالطالب مع قفل المحتوى إذا لم يمتلك اشتراكاً نَشِطاً.
+ * 5. getLessonsForLevel: جلب دروس مستوى محدد بحماية الاشتراك.
  * ====================================================
  */
 
@@ -26,8 +26,6 @@ use Illuminate\Http\Request;
 class CourseController extends Controller
 {
     /// API: GET /api/courses
-    /// بيجيب كل الكورسات المنشورة (وممكن تكون قريباً is_coming_soon).
-    /// بيستخدم الـ Eager Loading (with category) علشان يقلل عدد استعلامات الداتا بيز (N+1 Query Problem).
     public function index(Request $request)
     {
         $user = auth('sanctum')->user() ?: $request->user();
@@ -59,8 +57,7 @@ class CourseController extends Controller
                   ->withCount('students');
             }])->findOrFail($id);
 
-        // إضافة حالة الاشتراك للمستخدم الحالي ضمن بيانات الكورس مباشرة
-        $user = $request->user();
+        $user = auth('sanctum')->user() ?: $request->user();
         $courseData = $course->toArray();
         $courseData['is_subscribed'] = $user ? $course->isUserSubscribed($user->id) : false;
 
@@ -80,16 +77,25 @@ class CourseController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $groups
+            'data'   => $groups
         ]);
     }
 
-    // جلب المستويات، الدروس، والمحاضرات للكورس
+    // جلب المستويات، الدروس، والمحاضرات للكورس مع الحماية السيرفرية الصارمة
     public function getLevels(Request $request, $course_id)
     {
-        $userId = auth('sanctum')->id();
-        $isAdmin = auth('sanctum')->user()?->isAdmin() ?? false;
+        $user = auth('sanctum')->user() ?: $request->user();
+        $userId = $user?->id;
+        $isAdmin = $user?->isAdmin() ?? false;
         $course = Course::findOrFail($course_id);
+
+        // 🔒 حماية أمنية صارمة: يمنع منعيًا إرجاع المحتوى لمستخدم غير مسجل الدخول أو لا يملك اشتراكاً فعالاً
+        if (!$isAdmin && (!$user || !$course->isUserSubscribed($userId))) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'عذراً، لا يمكنك الوصول لمحتويات هذا الكورس بدون اشتراك مؤكد وفعال.',
+            ], 403);
+        }
 
         // إذا كان يوزر عادي، نجيب الـ Group الخاص به
         $groupId = null;
@@ -107,7 +113,7 @@ class CourseController extends Controller
             }
         }
 
-        // إذا كان اليوزر مسجل في مجموعة غير مفعلة بعد من الأدمن (ليست active)
+        // إذا كان اليوزر مسجل في مجموعة غير مفعلة بعد من الأدمن
         if ($userId && !$isAdmin && $groupStatus && $groupStatus !== 'active') {
             return response()->json([
                 'status'       => true,
@@ -118,13 +124,12 @@ class CourseController extends Controller
             ]);
         }
 
-        // إتاحة الوصول للمستويات والدروس عند تفعيل المجموعة
+        // إتاحة الوصول للمستويات والدروس عند تفعيل المجموعة والاشتراك
         $levels = \App\Models\Level::where('course_id', $course_id)
             ->orderBy('order_num', 'asc')
             ->with(['lessons' => function($q) {
                 $q->orderBy('order_num', 'asc')->with('questions.options');
             }])
-            // نجيب المحاضرات الخاصة بهالمجموعة بس أو كلها لو أدمن
             ->with(['onlineLectures' => function($q) use ($groupId, $isAdmin) {
                 if (!$isAdmin && $groupId) {
                     $q->where('group_id', $groupId);
@@ -168,16 +173,31 @@ class CourseController extends Controller
         }
 
         return response()->json([
-            'status' => true,
-            'data'   => $levels,
-            'is_waiting' => false,
+            'status'       => true,
+            'data'         => $levels,
+            'is_waiting'   => false,
             'group_status' => $groupStatus,
         ]);
     }
 
-    // جلب الدروس لمستوى معين (للوحة التحكم)
-    public function getLessonsForLevel($level_id)
+    // جلب الدروس لمستوى معين محمي بالاشتراك
+    public function getLessonsForLevel(Request $request, $level_id)
     {
+        $user = auth('sanctum')->user() ?: $request->user();
+        $userId = $user?->id;
+        $isAdmin = $user?->isAdmin() ?? false;
+
+        $level = \App\Models\Level::findOrFail($level_id);
+        $course = \App\Models\Course::findOrFail($level->course_id);
+
+        // 🔒 حماية أمنية صارمة: يمنع الوصول لدروس المستوى دون اشتراك فعال
+        if (!$isAdmin && (!$user || !$course->isUserSubscribed($userId))) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'عذراً، يجب وجود اشتراك مؤكد وفعال للوصول إلى دروس هذا المستوى.',
+            ], 403);
+        }
+
         $lessons = \App\Models\Lesson::with('questions.options')
             ->where('level_id', $level_id)
             ->orderBy('order_num', 'asc')
@@ -185,16 +205,25 @@ class CourseController extends Controller
             
         return response()->json([
             'status' => true,
-            'data' => $lessons
+            'data'   => $lessons
         ]);
     }
 
     // جلب المحاضرات المباشرة الخاصة بكورس معين
     public function getCourseOnlineLectures(Request $request, $course_id)
     {
-        $userId = auth('sanctum')->id();
-        $user = auth('sanctum')->user();
+        $user = auth('sanctum')->user() ?: $request->user();
+        $userId = $user?->id;
         $isAdmin = $user?->isAdmin() ?? false;
+        $course = Course::findOrFail($course_id);
+
+        // 🔒 حماية أمنية: يمنع الحصول على محاضرات الكورس دون اشتراك
+        if (!$isAdmin && (!$user || !$course->isUserSubscribed($userId))) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'عذراً، يجب وجود اشتراك مؤكد وفعال للوصول للمحاضرات المباشرة.',
+            ], 403);
+        }
 
         $groupId = null;
         if ($userId && !$isAdmin) {
@@ -218,7 +247,7 @@ class CourseController extends Controller
 
         return response()->json([
             'status' => true,
-            'data' => $lectures
+            'data'   => $lectures
         ]);
     }
 }

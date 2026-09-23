@@ -21,6 +21,8 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -34,6 +36,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   position: relative;
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
@@ -49,11 +53,11 @@ a:hover {
   color: var(--primary-hover);
 }
 
-/* --- الصور — عشان ماتفيضش عن الحاوية --- */
-img {
+/* --- الصور والعناصر المرئية — ضمان التنسيق وعدم الخروج من حدود الشاشة --- */
+img, svg, video, canvas, iframe {
   max-width: 100%;
   height: auto;
-  display: block;
+  box-sizing: border-box;
 }
 
 /* --- القوائم — شيل البوليتات --- */
@@ -223,4 +227,3 @@ input, textarea, select {
 .sidebar-overlay.active {
   display: block;
 }
-

@@ -71,6 +71,10 @@ Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 // بدون مصادقة Sanctum — الحماية عبر التحقق من توقيع الطلب داخل الـ Controller.
 Route::post('/payment/webhook', [PaymentController::class, 'webhook']);
 
+// EasyKash GET Callback Endpoint (المسار الرسمي لـ Callback عبر HTTP GET)
+Route::get('/payments/easykash/callback', [PaymentController::class, 'easykashCallback']);
+Route::get('/payment/easykash/callback', [PaymentController::class, 'easykashCallback']);
+
 // مسار فحص التحديثات (متاح لجميع المستخدمين للتأكد من وجود إصدار جديد للتطبيق)
 Route::get('/check-version', [AppUpdateController::class, 'checkVersion']);
 
@@ -233,12 +237,6 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 /// ⚠️ مهم: الـ Logic الداخلي (زي ما هنشوف تحت) بيتحكم في مين يشوف إيه، وهل الدرس مقفول ولا مفتوح
 /// بناءً على التقدم (Progress) بتاع الطالب وحالة تسجيل الدخوله.
 
-// جلب المستويات، الدروس، والمحاضرات للكورس
-Route::get('/levels/{course_id}', [CourseController::class, 'getLevels']);
-
-// جلب دروس مستوى معين
-Route::get('/levels/{level_id}/lessons', [CourseController::class, 'getLessonsForLevel']);
-
 // جلب المجموعات המتاحة لكورس معين
 Route::get('/courses/{id}/groups', [CourseController::class, 'getGroups']);
 
@@ -267,6 +265,10 @@ Route::get('/server-logs', function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    // 🔒 جلب المستويات، الدروس، والمحاضرات للكورس محمي بالتوكن والاشتراك
+    Route::get('/levels/{course_id}', [CourseController::class, 'getLevels']);
+    Route::get('/levels/{level_id}/lessons', [CourseController::class, 'getLessonsForLevel']);
 
     Route::get('/online-lectures/{id}/join', [\App\Http\Controllers\Api\OnlineLectureController::class, 'join']);
     Route::get('/my-lectures', [\App\Http\Controllers\Api\OnlineLectureController::class, 'myLectures']);

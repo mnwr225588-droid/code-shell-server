@@ -23,7 +23,7 @@ return new class extends Migration
                 DB::statement("ALTER TABLE online_lectures DROP CONSTRAINT IF EXISTS online_lectures_status_check");
                 DB::statement("ALTER TABLE online_lectures ADD CONSTRAINT online_lectures_status_check CHECK (status::text = ANY (ARRAY['scheduled'::text, 'live'::text, 'ended'::text, 'cancelled'::text, 'break'::text]))");
             }
-        } else {
+        } elseif ($driver === 'mysql') {
             // MySQL: modify column to include 'break'
             DB::statement("ALTER TABLE online_lectures MODIFY COLUMN status ENUM('scheduled', 'live', 'ended', 'cancelled', 'break') DEFAULT 'scheduled'");
         }
@@ -39,7 +39,7 @@ return new class extends Migration
         if ($driver === 'pgsql') {
             DB::statement("ALTER TABLE online_lectures DROP CONSTRAINT IF EXISTS online_lectures_status_check");
             DB::statement("ALTER TABLE online_lectures ADD CONSTRAINT online_lectures_status_check CHECK (status::text = ANY (ARRAY['scheduled'::text, 'live'::text, 'ended'::text, 'cancelled'::text]))");
-        } else {
+        } elseif ($driver === 'mysql') {
             DB::statement("ALTER TABLE online_lectures MODIFY COLUMN status ENUM('scheduled', 'live', 'ended', 'cancelled') DEFAULT 'scheduled'");
         }
     }

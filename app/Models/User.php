@@ -95,7 +95,11 @@ class User extends Authenticatable
     public function subscribedCourses()
     {
         return $this->belongsToMany(Course::class, 'course_subscriptions', 'user_id', 'course_id')
-            ->withPivot('group_id')
+            ->where(function ($query) {
+                $query->whereNull('course_subscriptions.subscription_status')
+                      ->orWhere('course_subscriptions.subscription_status', 'active');
+            })
+            ->withPivot(['group_id', 'subscription_status', 'payment_status', 'amount'])
             ->withTimestamps();
     }
 }

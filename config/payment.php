@@ -46,6 +46,14 @@ return [
         'session_ttl_minutes' => 30,
     ],
 
+    'easykash' => [
+        'api_key' => env('EASYKASH_API_KEY', ''),
+        'secret_key' => env('EASYKASH_SECRET_KEY', env('EASYKASH_HMAC_SECRET', '')),
+        'base_url' => env('EASYKASH_BASE_URL', 'https://dev.easykash.net'),
+        'callback_url' => env('EASYKASH_CALLBACK_URL', ''),
+        'mode' => env('EASYKASH_MODE', 'sandbox'),
+    ],
+
     'paymob' => [
         'api_key' => env('PAYMOB_API_KEY', ''),
         'integration_id' => env('PAYMOB_INTEGRATION_ID', ''),

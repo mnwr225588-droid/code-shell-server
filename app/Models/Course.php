@@ -85,11 +85,21 @@ class Course extends Model
      */
     public function isUserSubscribed($userId): bool
     {
+        if (!$userId) {
+            return false;
+        }
         $user = \App\Models\User::find($userId);
         if ($user && $user->isAdmin()) {
             return true;
         }
-        return $this->subscribedUsers()->where('user_id', $userId)->exists();
+        return \DB::table('course_subscriptions')
+            ->where('user_id', $userId)
+            ->where('course_id', $this->id)
+            ->where(function ($q) {
+                $q->whereNull('subscription_status')
+                  ->orWhere('subscription_status', 'active');
+            })
+            ->exists();
     }
 
     public function getLevelsCountAttribute()
@@ -230,7 +240,13 @@ class Course extends Model
 
     public function subscribedUsers()
     {
-        return $this->belongsToMany(User::class, 'course_subscriptions', 'course_id', 'user_id')->withTimestamps();
+        return $this->belongsToMany(User::class, 'course_subscriptions', 'course_id', 'user_id')
+            ->where(function ($query) {
+                $query->whereNull('course_subscriptions.subscription_status')
+                      ->orWhere('course_subscriptions.subscription_status', 'active');
+            })
+            ->withPivot(['group_id', 'subscription_status', 'payment_status', 'amount'])
+            ->withTimestamps();
     }
 
     public function getReservationsCountAttribute()
