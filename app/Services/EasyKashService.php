@@ -63,6 +63,12 @@ class EasyKashService
         $orderId = 'CS-TX-' . $transaction->id . '-' . time();
         $callbackUrl = $this->callbackUrl ?: url('/api/payments/easykash/callback');
 
+        // استخراج النطاق الأساسي لمنع تكرار المسارات مثل /pay/pay/
+        $parsedUrl = parse_url($this->baseUrl);
+        $scheme = $parsedUrl['scheme'] ?? 'https';
+        $host = $parsedUrl['host'] ?? 'dev.easykash.net';
+        $domainUrl = $scheme . '://' . $host;
+
         // تجهيز بيانات الطلب الموجه إلى EasyKash
         $requestData = [
             'merchant_order_id' => $orderId,
@@ -87,7 +93,7 @@ class EasyKashService
             // بناء رابط الـ Endpoint تلقائياً (يدعم الرابط المباشر أو الـ Base URL)
             $endpoint = (str_contains($this->baseUrl, '/api/')) 
                 ? $this->baseUrl 
-                : $this->baseUrl . '/api/v1/payments';
+                : $domainUrl . '/api/v1/payments';
 
             // إرسال الطلب إلى API بوابة EasyKash
             $response = Http::withHeaders([
@@ -98,8 +104,8 @@ class EasyKashService
 
             if ($response->successful()) {
                 $body = $response->json();
-                $gatewayTxId = $body['gateway_transaction_id'] ?? $body['id'] ?? $orderId;
-                $paymentUrl = $body['payment_url'] ?? $body['redirect_url'] ?? ($this->baseUrl . '/pay/' . $gatewayTxId);
+                $gatewayTxId = $body['gateway_transaction_id'] ?? $body['id'] ?? $body['transaction_id'] ?? $orderId;
+                $paymentUrl = $body['payment_url'] ?? $body['redirect_url'] ?? $body['url'] ?? $body['checkout_url'] ?? ($domainUrl . '/pay/' . $gatewayTxId);
 
                 return [
                     'payment_url'            => $paymentUrl,
@@ -107,13 +113,14 @@ class EasyKashService
                     'payload'                => array_merge($requestData, ['response' => $body]),
                 ];
             }
+            Log::warning('EasyKash response not 200: ' . $response->status() . ' Body: ' . $response->body());
         } catch (\Throwable $e) {
             Log::warning('EasyKash API connection note: ' . $e->getMessage());
         }
 
-        // رابط بديل محاكي في بيئة التجربة (Fallback Checkout URL)
+        // رابط بديل محاكي في بيئة التجربة أو عند الفشل (Fallback Checkout URL)
         $fallbackTxId = $orderId;
-        $fallbackUrl = $this->baseUrl . '/pay/checkout/' . $fallbackTxId . '?callback=' . urlencode($callbackUrl);
+        $fallbackUrl = $domainUrl . '/pay/checkout/' . $fallbackTxId . '?callback=' . urlencode($callbackUrl);
 
         return [
             'payment_url'            => $fallbackUrl,
