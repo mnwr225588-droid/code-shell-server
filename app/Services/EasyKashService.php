@@ -86,7 +86,8 @@ class EasyKashService
             $userPhone = '01000000000';
         }
 
-        $customerReference = (string) ($transaction->user?->id ?? $transaction->user_id ?? $transaction->id);
+        // إسناد معرف الطلب الفريد لضمان عدم تكرار مرجع العميل بين المعاملات المختلفة
+        $customerReference = $orderId;
 
         // تجهيز بيانات الطلب الموجه إلى EasyKash متضمناً الحقول الإلزامية المطلوبة
         $requestData = [
