@@ -89,10 +89,16 @@ class EasyKashService
         // إسناد معرف الطلب الفريد لضمان عدم تكرار مرجع العميل بين المعاملات المختلفة
         $customerReference = $orderId;
 
+        // معالجة القيمة المالية والتأكد من أنها أكبر من 1 لتلبية متطلبات EasyKash
+        $amount = (float) $transaction->amount;
+        if ($amount <= 1) {
+            $amount = 1.01;
+        }
+
         // تجهيز بيانات الطلب الموجه إلى EasyKash متضمناً الحقول الإلزامية المطلوبة
         $requestData = [
             'merchant_order_id' => $orderId,
-            'amount'            => (float) $transaction->amount,
+            'amount'            => $amount,
             'currency'          => strtoupper($transaction->currency_code ?: 'EGP'),
             
             // الحقول الإلزامية الصريحة المطلوبة بـ EasyKash REST API
