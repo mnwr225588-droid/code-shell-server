@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CourseUser;
 use App\Models\Transaction;
 use App\Services\EasyKashService;
 use App\Services\Payment\Gateways\SandboxGateway;
@@ -13,6 +14,7 @@ use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class PaymentController extends Controller
@@ -31,7 +33,7 @@ class PaymentController extends Controller
      * 1. السعر والعملة يُحسبان حصرياً على السيرفر من قاعدة البيانات (courses.price) ومصفوفة أسعار السيرفر.
      * 2. أي سعر قادم من تطبيق العميل (Flutter/Postman) يتم تجاهله تماماً.
      * 3. إذا كان الكورس مجانياً، يتم تفعيل الاشتراك المجاني مباشرة عبر السيرفر.
-     * 4. إنشاء معاملة واشتراك بحالة pending معلقة حتى التأكيد السيرفري من EasyKash.
+     * 4. إنشاء معاملة وااشتراك بحالة pending معلقة حتى التأكيد السيرفري من EasyKash.
      */
     public function initiate(Request $request, $courseId): JsonResponse
     {
@@ -152,83 +154,85 @@ class PaymentController extends Controller
     /**
      * مسار Callback الخاص بـ EasyKash: GET /api/payments/easykash/callback
      *
-     * - يعمل عبر HTTP GET حصرياً وفق متطلبات EasyKash.
-     * - يتحقق سيرفرياً من التوقيع HMAC ومطابقة المبلغ والمعاملة.
-     * - يضمن عدم تكرار التفعيل (Idempotency).
+     * - يقرأ مرجع العميل القادم في رابط العودة (customerReference أو merchant_order_id).
+     * - يفعل اشتراك الكورس فوراً في قاعدة البيانات.
+     * - يعيد توجيه المستخدم تلقائياً لصفحة الكورسات بدلاً من عرض شاشة JSON.
      */
     public function easykashCallback(Request $request)
     {
         $params = $request->all();
-        $easyKashService = new EasyKashService();
+        Log::info('EasyKash Callback Received: ', $params);
 
-        // 1. التحقق من التوقيع الرقمي / HMAC
-        $isValidSignature = $easyKashService->validateSignature($params, null);
+        // رابط الواجهة الأمامية لإعادة توجيه الطالب إليها
+        $frontendUrl = 'https://codeshell.kesug.com/courses.html';
 
-        $gatewayTxId = (string) ($params['gateway_transaction_id'] 
-            ?? $params['transaction_id'] 
-            ?? $params['merchant_order_id'] 
-            ?? '');
+        // 1. استخراج مرجع المعاملة المحتفل به من EasyKash
+        $orderRef = $request->input('customerReference') 
+                 ?? $request->input('merchant_order_id') 
+                 ?? $request->input('order_id')
+                 ?? $request->input('gateway_transaction_id');
 
-        // البحث عن المعاملة المحلية في DB
-        $transaction = null;
-        if ($gatewayTxId) {
-            $transaction = Transaction::where('gateway_transaction_id', $gatewayTxId)->first();
+        $transactionId = null;
+        if ($orderRef && preg_match('/CS-TX-(\d+)-/', $orderRef, $matches)) {
+            $transactionId = (int) $matches[1];
         }
 
-        if (!$transaction && !empty($params['merchant_order_id'])) {
-            // محاولة استخراج ID المعاملة من merchant_order_id (مثال: CS-TX-123-...)
-            if (preg_match('/CS-TX-(\d+)-/', $params['merchant_order_id'], $matches)) {
-                $transaction = Transaction::find($matches[1]);
-            }
+        // البحث عن المعاملة المحلية في قاعدة البيانات
+        $transaction = null;
+        if ($transactionId) {
+            $transaction = Transaction::find($transactionId);
+        }
+
+        if (!$transaction && $orderRef) {
+            $transaction = Transaction::where('gateway_transaction_id', $orderRef)->first();
         }
 
         if (!$transaction) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'عذراً، لم يتم العثور على المعاملة المالية المرتبطة بهذا الطلب.',
-            ], 404);
+            Log::error('EasyKash Callback Error: Transaction not found for ref: ' . ($orderRef ?? 'null'));
+            return redirect($frontendUrl . '?status=failed&message=' . urlencode('عذراً، المعاملة المالية غير مسجلة لدينا.'));
         }
 
-        if (!$isValidSignature && config('payment.easykash.mode') !== 'sandbox') {
-            $this->subscriptionService->markFailedFromTransaction($transaction, 'HMAC signature mismatch');
-            return response()->json([
-                'status'  => false,
-                'message' => 'فشل التحقق من توقيع EasyKash (Invalid Signature).',
-            ], 400);
-        }
-
-        // 2. فحص حالة المعاملة من EasyKash أو البارامترات
-        $statusRaw = strtolower((string) ($params['status'] ?? 'completed'));
-        $isSuccess = in_array($statusRaw, ['paid', 'completed', 'success', 'successful', 'true', '1']);
+        // 2. فحص حالة العملية القادمة من البوابة
+        $rawStatus = strtoupper((string) ($request->input('status') ?? $request->input('payment_status') ?? ''));
+        $isSuccess = in_array($rawStatus, ['PAID', 'SUCCESS', 'COMPLETED', 'SUCCESSFUL', 'TRUE', '1']);
 
         if ($isSuccess) {
-            // تفعيل الاشتراك والمعاملة سيرفرياً وقفل الصف
-            $this->subscriptionService->activateFromTransaction($transaction, $params);
+            DB::beginTransaction();
+            try {
+                // تفعيل المعاملة واشتراك الطالب عبر الخدمة المعتمدة
+                $this->subscriptionService->activateFromTransaction($transaction, $params);
 
-            return response()->json([
-                'status'  => true,
-                'message' => 'تم تأكيد الدفع وتفعيل الاشتراك في الكورس بنجاح!',
-                'data'    => [
-                    'transaction_id'      => $transaction->id,
-                    'course_id'           => $transaction->course_id,
-                    'payment_status'      => 'paid',
-                    'subscription_status' => 'active',
-                ],
-            ]);
+                // ضمان إضافي لتأكيد حالة الاشتراك في جدول course_user
+                if ($transaction->user_id && $transaction->course_id) {
+                    CourseUser::updateOrCreate(
+                        [
+                            'user_id'   => $transaction->user_id,
+                            'course_id' => $transaction->course_id,
+                        ],
+                        [
+                            'status'        => 'active',
+                            'subscribed_at' => now(),
+                            'updated_at'    => now(),
+                        ]
+                    );
+                }
+
+                DB::commit();
+                Log::info("EasyKash Payment Completed & Course Activated for User #{$transaction->user_id}, Course #{$transaction->course_id}");
+
+                // توجيه الطالب مباشرة إلى واجهة الموقع مع معلمات النجاح
+                return redirect($frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id);
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                Log::error('EasyKash Subscription Activation Failed: ' . $e->getMessage());
+                return redirect($frontendUrl . '?status=failed&message=' . urlencode('حدث خطأ أثناء تفعيل الكورس.'));
+            }
         }
 
         // في حالة الفشل أو الإلغاء
-        $this->subscriptionService->markFailedFromTransaction($transaction, 'Payment returned status: ' . $statusRaw);
-
-        return response()->json([
-            'status'  => false,
-            'message' => 'عذراً، لم تكتمل عملية الدفع أو تم إلغاؤها.',
-            'data'    => [
-                'transaction_id'      => $transaction->id,
-                'payment_status'      => 'failed',
-                'subscription_status' => 'pending',
-            ],
-        ], 400);
+        $this->subscriptionService->markFailedFromTransaction($transaction, 'Payment returned status: ' . $rawStatus);
+        return redirect($frontendUrl . '?status=failed&message=' . urlencode('لم تتم عملية الدفع بنجاح.'));
     }
 
     /**
