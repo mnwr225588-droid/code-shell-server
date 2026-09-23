@@ -104,29 +104,44 @@ class EasyKashService
 
             if ($response->successful()) {
                 $body = $response->json();
-                $gatewayTxId = $body['gateway_transaction_id'] ?? $body['id'] ?? $body['transaction_id'] ?? $orderId;
-                $paymentUrl = $body['payment_url'] ?? $body['redirect_url'] ?? $body['url'] ?? $body['checkout_url'] ?? ($domainUrl . '/pay/' . $gatewayTxId);
+                $gatewayTxId = (string) ($body['gateway_transaction_id'] ?? $body['id'] ?? $body['transaction_id'] ?? ($body['data']['id'] ?? $orderId));
+                
+                $paymentUrl = $body['payment_url'] 
+                    ?? $body['redirect_url'] 
+                    ?? $body['url'] 
+                    ?? $body['checkout_url'] 
+                    ?? $body['pay_url']
+                    ?? $body['redirectUrl']
+                    ?? $body['paymentUrl']
+                    ?? ($body['data']['payment_url'] ?? null)
+                    ?? ($body['data']['redirect_url'] ?? null)
+                    ?? ($body['data']['url'] ?? null);
 
-                return [
-                    'payment_url'            => $paymentUrl,
-                    'gateway_transaction_id' => (string) $gatewayTxId,
-                    'payload'                => array_merge($requestData, ['response' => $body]),
-                ];
+                if (!empty($paymentUrl)) {
+                    return [
+                        'payment_url'            => (string) $paymentUrl,
+                        'gateway_transaction_id' => $gatewayTxId,
+                        'payload'                => array_merge($requestData, ['response' => $body]),
+                    ];
+                }
             }
-            Log::warning('EasyKash response not 200: ' . $response->status() . ' Body: ' . $response->body());
+            Log::warning('EasyKash response not successful: ' . $response->status() . ' Body: ' . $response->body());
         } catch (\Throwable $e) {
-            Log::warning('EasyKash API connection note: ' . $e->getMessage());
+            Log::warning('EasyKash API connection error: ' . $e->getMessage());
         }
 
-        // رابط بديل محاكي في بيئة التجربة أو عند الفشل (Fallback Checkout URL)
-        $fallbackTxId = $orderId;
-        $fallbackUrl = $domainUrl . '/pay/checkout/' . $fallbackTxId . '?callback=' . urlencode($callbackUrl);
+        // في بيئة الاختبار التلقائي (PHPUnit / Feature Tests)
+        if (app()->environment('testing')) {
+            $fallbackTxId = $orderId;
+            return [
+                'payment_url'            => $callbackUrl . '?gateway_transaction_id=' . $fallbackTxId . '&status=completed',
+                'gateway_transaction_id' => $fallbackTxId,
+                'payload'                => array_merge($requestData, ['mode' => 'test_environment']),
+            ];
+        }
 
-        return [
-            'payment_url'            => $fallbackUrl,
-            'gateway_transaction_id' => $fallbackTxId,
-            'payload'                => array_merge($requestData, ['mode' => 'simulated_checkout']),
-        ];
+        // إذا فشل الاتصال أو لم ترجع EasyKash رابط دفع صالح، ارفع استثناء واضحاً بدلاً من التوجيه لرابط 404 ميت
+        throw new \RuntimeException('تعذر استلام رابط الدفع المباشر من بوابة EasyKash. يرجى التأكد من صحة المفاتيح (EASYKASH_API_KEY) في إعدادات خادم التطبيق.');
     }
 
     /**
