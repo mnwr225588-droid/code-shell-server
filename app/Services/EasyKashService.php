@@ -62,6 +62,7 @@ class EasyKashService
         // بناء معرف فريد للطلب (Order ID)
         $orderId = 'CS-TX-' . $transaction->id . '-' . time();
         $callbackUrl = $this->callbackUrl ?: url('/api/payments/easykash/callback');
+        $finalRedirectUrl = $returnUrl ?: $callbackUrl;
 
         // استخراج النطاق الأساسي لمنع تكرار المسارات مثل /pay/pay/
         $parsedUrl = parse_url($this->baseUrl);
@@ -69,19 +70,46 @@ class EasyKashService
         $host = $parsedUrl['host'] ?? 'dev.easykash.net';
         $domainUrl = $scheme . '://' . $host;
 
-        // تجهيز بيانات الطلب الموجه إلى EasyKash
+        // استخراج وتأمين بيانات المستخدم لمنع إرسال قيم فارغة
+        $userName = trim((string) ($transaction->user?->name ?? 'Student'));
+        if (empty($userName)) {
+            $userName = 'Student';
+        }
+
+        $userEmail = trim((string) ($transaction->user?->email ?? 'student@codeshell.com'));
+        if (empty($userEmail) || !filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+            $userEmail = 'student@codeshell.com';
+        }
+
+        $userPhone = trim((string) ($transaction->user?->phone ?? $transaction->user?->mobile ?? '01000000000'));
+        if (empty($userPhone)) {
+            $userPhone = '01000000000';
+        }
+
+        $customerReference = (string) ($transaction->user?->id ?? $transaction->user_id ?? $transaction->id);
+
+        // تجهيز بيانات الطلب الموجه إلى EasyKash متضمناً الحقول الإلزامية المطلوبة
         $requestData = [
             'merchant_order_id' => $orderId,
             'amount'            => (float) $transaction->amount,
-            'currency'          => strtoupper($transaction->currency_code),
+            'currency'          => strtoupper($transaction->currency_code ?: 'EGP'),
+            
+            // الحقول الإلزامية الصريحة المطلوبة بـ EasyKash REST API
+            'name'              => $userName,
+            'email'             => $userEmail,
+            'mobile'            => $userPhone,
+            'redirectUrl'       => $finalRedirectUrl,
+            'customerReference' => $customerReference,
+
+            // الحقول الإضافية لضمان التوافق مع مختلف إصدارات الـ API
             'customer'          => [
-                'name'  => $transaction->user?->name ?: 'Student',
-                'email' => $transaction->user?->email ?: 'student@codeshell.com',
-                'phone' => $transaction->user?->phone ?: '01000000000',
+                'name'  => $userName,
+                'email' => $userEmail,
+                'phone' => $userPhone,
             ],
             'description'       => 'Course Subscription #' . $transaction->course_id,
             'callback_url'      => $callbackUrl,
-            'redirect_url'      => $returnUrl ?: $callbackUrl,
+            'redirect_url'      => $finalRedirectUrl,
         ];
 
         // حساب التوقيع الرقمي HMAC-SHA256
@@ -141,7 +169,7 @@ class EasyKashService
         }
 
         // إذا فشل الاتصال أو لم ترجع EasyKash رابط دفع صالح، ارفع استثناء واضحاً بدلاً من التوجيه لرابط 404 ميت
-        throw new \RuntimeException('تعذر استلام رابط الدفع المباشر من بوابة EasyKash. يرجى التأكد من صحة المفاتيح (EASYKASH_API_KEY) في إعدادات خادم التطبيق.');
+        throw new \RuntimeException('تعذر الاتصال ببوابة الدفع الإلكتروني. يرجى المحاولة لاحقاً.');
     }
 
     /**
