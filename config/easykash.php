@@ -48,7 +48,7 @@ return [
     |--------------------------------------------------------------------------
     | الرابط الذي تقوم بوابة EasyKash بتوجيه الطالب إليه أو إرسال الإشعار بعد الدفع
     */
-    'callback_url' => env('EASYKASH_CALLBACK_URL', ''),
+    'callback_url' => env('EASYKASH_CALLBACK_URL', 'https://code-shell-server-production.up.railway.app/api/payments/easykash/callback'),
 
     /*
     |--------------------------------------------------------------------------

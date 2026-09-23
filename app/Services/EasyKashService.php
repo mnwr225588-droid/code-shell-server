@@ -46,7 +46,7 @@ class EasyKashService
         $this->apiKey = (string) config('payment.easykash.api_key', config('easykash.api_key', ''));
         $this->secretKey = (string) config('payment.easykash.secret_key', config('easykash.secret_key', ''));
         $this->baseUrl = rtrim((string) config('payment.easykash.base_url', config('easykash.base_url', 'https://dev.easykash.net')), '/');
-        $this->callbackUrl = (string) config('payment.easykash.callback_url', config('easykash.callback_url', ''));
+        $this->callbackUrl = (string) config('payment.easykash.callback_url', config('easykash.callback_url', 'https://code-shell-server-production.up.railway.app/api/payments/easykash/callback'));
         $this->mode = (string) config('payment.easykash.mode', config('easykash.mode', 'sandbox'));
     }
 
@@ -80,16 +80,21 @@ class EasyKashService
 
         // حساب التوقيع الرقمي HMAC-SHA256
         $dataToSign = $orderId . '|' . $requestData['amount'] . '|' . $requestData['currency'];
-        $signature = hash_hmac('sha256', $dataToSign, $this->secretKey ?: 'easykash_default_secret');
+        $signature = hash_hmac('sha256', $dataToSign, $this->secretKey);
         $requestData['signature'] = $signature;
 
         try {
+            // بناء رابط الـ Endpoint تلقائياً (يدعم الرابط المباشر أو الـ Base URL)
+            $endpoint = (str_contains($this->baseUrl, '/api/')) 
+                ? $this->baseUrl 
+                : $this->baseUrl . '/api/v1/payments';
+
             // إرسال الطلب إلى API بوابة EasyKash
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Accept'        => 'application/json',
                 'Content-Type'  => 'application/json',
-            ])->timeout(15)->post($this->baseUrl . '/api/v1/payments', $requestData);
+            ])->timeout(15)->post($endpoint, $requestData);
 
             if ($response->successful()) {
                 $body = $response->json();
@@ -134,7 +139,7 @@ class EasyKashService
             return false;
         }
 
-        $secret = $this->secretKey ?: 'easykash_default_secret';
+        $secret = $this->secretKey;
 
         // 1. مطابقة التوقيع بصيغة المعاملة القياسية
         $orderId = $data['merchant_order_id'] ?? $data['order_id'] ?? $data['transaction_id'] ?? '';

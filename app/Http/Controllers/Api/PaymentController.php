@@ -120,7 +120,7 @@ class PaymentController extends Controller
         $this->subscriptionService->initiatePaymentSubscription($user, $course, $transaction);
 
         try {
-            $returnUrl = (string) config('payment.easykash.callback_url', config('payment.return_url', ''));
+            $returnUrl = (string) config('payment.easykash.callback_url', config('payment.return_url', 'https://code-shell-server-production.up.railway.app/api/payments/easykash/callback'));
             $created = $gateway->createPayment($transaction, $returnUrl);
         } catch (\Throwable $e) {
             $transaction->update([
