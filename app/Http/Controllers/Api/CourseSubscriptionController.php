@@ -37,32 +37,16 @@ class CourseSubscriptionController extends Controller
 
         $group = null;
         if ($isSubscribed && $user) {
-            $group = $user->groups()->where('course_id', $course->id)->first();
-            if (!$group) {
-                $pivot = \DB::table('course_user')
-                    ->where('user_id', $user->id)
-                    ->where('course_id', $course->id)
-                    ->first();
-                if ($pivot && !empty($pivot->group_id)) {
-                    $group = \App\Models\CourseGroup::find($pivot->group_id);
-                }
+            $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+            
+            if ($subscription && $subscription->group_id) {
+                $group = \App\Models\CourseGroup::find($subscription->group_id);
             }
+
             if (!$group) {
-                $group = \App\Models\CourseGroup::where('course_id', $course->id)->first();
-                if (!$group) {
-                    $group = \App\Models\CourseGroup::create([
-                        'course_id' => $course->id,
-                        'name'      => 'المجموعة الأولى (الأساسية)',
-                        'capacity'  => 30,
-                        'status'    => 'active'
-                    ]);
-                }
-                if ($group) {
-                    \DB::table('course_user')
-                        ->where('user_id', $user->id)
-                        ->where('course_id', $course->id)
-                        ->update(['group_id' => $group->id]);
-                }
+                $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
             }
         }
 
@@ -90,6 +74,18 @@ class CourseSubscriptionController extends Controller
     {
         $course = Course::findOrFail($courseId);
         $user = $request->user();
+
+        // التحقق من توفر مجموعة غير مفعلة للتسجيل
+        $availableGroup = \App\Models\CourseGroup::where('course_id', $courseId)
+            ->whereNotIn('status', ['active', 'completed'])
+            ->exists();
+
+        if (!$availableGroup) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'عذراً، لا توجد مجموعات متاحة للتسجيل حالياً في هذا الكورس. المجموعات الحالية مفعلة بالكامل أو غير متوفرة.',
+            ], 422);
+        }
 
         // ══════════════════════════════════════════════════════
         // 🔒 حماية: منع الاشتراك المباشر في الكورسات المدفوعة

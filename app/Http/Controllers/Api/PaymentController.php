@@ -33,6 +33,18 @@ class PaymentController extends Controller
         $user = $request->user();
         $course = Course::findOrFail($courseId);
 
+        // التحقق من توفر مجموعة غير مفعلة للتسجيل
+        $availableGroup = \App\Models\CourseGroup::where('course_id', $course->id)
+            ->whereNotIn('status', ['active', 'completed'])
+            ->exists();
+
+        if (!$availableGroup) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'عذراً، لا توجد مجموعات متاحة للتسجيل حالياً في هذا الكورس. المجموعات الحالية مفعلة بالكامل أو غير متوفرة.',
+            ], 422);
+        }
+
         // 1. الكورسات المجانية: إنشاء اشتراك مجاني فعال عبر السيرفر دون استدعاء EasyKash
         if ($course->is_free || (float)$course->price === 0.0) {
             $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
@@ -206,34 +218,6 @@ class PaymentController extends Controller
                         $this->subscriptionService->activateFromTransaction($transaction, $params);
                     } catch (\Throwable $subEx) {
                         Log::warning('SubscriptionService activation warning: ' . $subEx->getMessage());
-                    }
-                }
-
-                // إضافة القيد المباشر في جدول course_user باستخدام DB query لتجنب خطأ الكلاس المفقود
-                if ($transaction->user_id && $transaction->course_id) {
-                    $exists = DB::table('course_user')
-                        ->where('user_id', $transaction->user_id)
-                        ->where('course_id', $transaction->course_id)
-                        ->first();
-
-                    if ($exists) {
-                        DB::table('course_user')
-                            ->where('user_id', $transaction->user_id)
-                            ->where('course_id', $transaction->course_id)
-                            ->update([
-                                'status'        => 'active',
-                                'subscribed_at' => now(),
-                                'updated_at'    => now(),
-                            ]);
-                    } else {
-                        DB::table('course_user')->insert([
-                            'user_id'       => $transaction->user_id,
-                            'course_id'     => $transaction->course_id,
-                            'status'        => 'active',
-                            'subscribed_at' => now(),
-                            'created_at'    => now(),
-                            'updated_at'    => now(),
-                        ]);
                     }
                 }
 
