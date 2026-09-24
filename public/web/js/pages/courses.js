@@ -4,7 +4,9 @@
    - عرض حالة الاشتراك الحقيقية (مجاني / مدفوع / قريباً / مشترك)
    - تقييد تكرار الاشتراك بحيث يكون الاشتراك في الكورس مرة واحدة فقط
    - واجهة حجز الكورس (Reservation) قبل بدء الدفعة
-   - زر إلغاء الاشتراك يتطلب أدخال كلمة مرور الحساب للتحقق والأمان
+   - تفعيل الشروط والأحكام لكل نافذة منبثقة لعملية الاشتراك
+   - تفعيل الخصم من المحفظة أو بوابة الدفع
+   - إلغاء الاشتراك المباشر مع إعادة قيمة الكورس للمحفظة
    ==================================================== */
 
 // عند تحميل عناصر DOM بالكامل، ابدأ جلب البيانات وتفعيل البحث
@@ -14,18 +16,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   const returnCourseId = urlParams.get('course_id') || urlParams.get('courseId') || urlParams.get('id');
 
   if (paymentStatus === 'success' && returnCourseId) {
+    // 1. تفريغ أي كاش محلي قديم وتحديث ذاكرة الاشتراكات
     if (typeof saveLocalSubscription === 'function') {
       saveLocalSubscription(returnCourseId);
     }
     localStorage.setItem(`cs_subscribed_${returnCourseId}`, 'true');
 
+    // 2. إرسال طلب استعلام مباشر للباك إند بهيدر التوثيق (Bearer Token) للتأكد من السيرفر
     try {
       await ApiClient.getSubscriptionStatus(returnCourseId).catch(() => null);
     } catch (e) {}
 
+    // 3. جلب الكورسات وتحديث الرسم فوراً (Re-render)
     initCoursesSearch();
     await loadCoursesFromApi();
 
+    // 4. إظهار التهنئة وتنظيف رابط الـ URL
     alert('🎉 تهانينا! تمت عملية الدفع بنجاح وتفعيل اشتراكك في الكورس.');
     window.history.replaceState({}, document.title, window.location.pathname);
   } else {
@@ -77,6 +83,12 @@ async function loadCoursesFromApi() {
 
     if (courses.length === 0) return;
 
+    // إزالة كورس أساسيات الحاسوب من شبكة اللغات البرمجية لإبقائه في البانر العلوي المميز فقط
+    courses = courses.filter(c => {
+      const titleLower = (c.title || c.name || '').toLowerCase();
+      return String(c.id) !== '1' && !titleLower.includes('computer basics') && !titleLower.includes('أساسيات الحاسوب');
+    });
+
     // ترتيب الكورسات: المتاحة والمشترك بها تظهر أولاً
     courses.sort((a, b) => {
       const aAvailable = (a.is_active !== false) && !Boolean(a.is_coming_soon);
@@ -107,13 +119,20 @@ async function loadCoursesFromApi() {
       const iconUrl = getCourseIcon(course);
       const courseId = course.id;
 
+      const groupName = course.group ? (course.group.name || course.group.title) : (course.group_name || '');
+      const groupTagHtml = (isSubscribed && groupName) ? `
+        <div style="font-size: 11.5px; color: #60A5FA; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); padding: 3px 10px; border-radius: 8px; margin-top: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+          👥 ${groupName}
+        </div>
+      ` : '';
+
       let badgeHtml = '';
       let isAvailable = isActive && !isComingSoon;
 
       if (!isAvailable) {
         badgeHtml = `<div class="language-card-badge badge-coming">قريباً ⏳</div>`;
       } else if (isSubscribed) {
-        badgeHtml = `<div class="language-card-badge" style="background: rgba(34, 197, 94, 0.2); color: #34D399; border-color: rgba(34, 197, 94, 0.3);">مشترك فيه ✅</div>`;
+        badgeHtml = `<div class="language-card-badge" style="background: rgba(34, 197, 94, 0.2); color: #34D399; border-color: rgba(34, 197, 94, 0.3);">مشترك فيه ✅ ${groupName ? `(${groupName})` : ''}</div>`;
       } else if (isFree) {
         badgeHtml = `<div class="language-card-badge" style="background: rgba(34, 197, 94, 0.2); color: #34D399; border-color: rgba(34, 197, 94, 0.3);">مجاني 🎁</div>`;
       } else {
@@ -121,8 +140,8 @@ async function loadCoursesFromApi() {
       }
 
       html += `
-        <div onclick="onCourseCardClicked('${courseId}')" style="cursor: pointer; text-decoration: none; color: inherit; display: block; height: 100%;">
-          <div class="language-card animate-fadeIn" style="background: linear-gradient(135deg, #1E40AF, #1E293B); box-shadow: 0 10px 28px rgba(30, 64, 175, 0.3); height: 100%;">
+        <div onclick="onCourseCardClicked('${courseId}')" style="cursor: pointer; text-decoration: none; color: inherit; display: block; height: 100%; position: relative;">
+          <div class="language-card animate-fadeIn" style="background: linear-gradient(135deg, #1E40AF, #1E293B); box-shadow: 0 10px 28px rgba(30, 64, 175, 0.3); height: 100%; position: relative;">
             <div class="language-card-circle-1"></div>
             <div class="language-card-circle-2"></div>
             <div class="language-card-icon">
@@ -130,7 +149,8 @@ async function loadCoursesFromApi() {
             </div>
             <div class="language-card-body">
               <div class="language-card-name">${title}</div>
-              <div class="language-card-desc">${description}</div>
+              ${groupTagHtml}
+              <div class="language-card-desc" style="margin-top: 4px;">${description}</div>
             </div>
             ${badgeHtml}
           </div>
@@ -148,7 +168,7 @@ async function loadCoursesFromApi() {
 /**
  * ====================================================
  * دالة الضغط على بطاقة الكورس
- * تفتح نافذة الاشتراك المنبثقة المطابقة للتطبيق
+ * تدفق مباشر للكورس إذا كان مشتركاً، أو فتح نافذة الاشتراك
  * ====================================================
  */
 async function onCourseCardClicked(courseId) {
@@ -173,14 +193,19 @@ async function onCourseCardClicked(courseId) {
     }
   } catch (e) {}
 
-  // عرض نافذة الاشتراك أو دخول الكورس إذا كان مشترِكاً بالفعل
-  showCourseSubscriptionModal(course, isSubscribed);
+  // إذا كان مشترِكاً بالفعل، يدخل مباشرة للكورس دون فتح نافذة الاشتراك
+  if (isSubscribed) {
+    window.location.href = `course-viewer.html?courseId=${course.id}`;
+    return;
+  }
+
+  // عرض نافذة الاشتراك للمستخدم غير المشترك
+  showCourseSubscriptionModal(course, false);
 }
 
 /**
  * ====================================================
- * دالة بناء النافذة المنبثقة للاشتراك والحجز وإلغاء الاشتراك
- * نسخة طبق الأصل من تطبيق Flutter (CourseSubscriptionDialog)
+ * دالة بناء النافذة المنبثقة للااشتراك والحجز وإلغاء الاشتراك
  * ====================================================
  */
 function showCourseSubscriptionModal(course, isSubscribed) {
@@ -243,28 +268,45 @@ function showCourseSubscriptionModal(course, isSubscribed) {
             <span>شهادة إتمام معتمدة عند اجتياز الامتحانات</span>
           </div>
         </div>
+
+        ${!isSubscribed ? `
+          <!-- خيار الموافقة على الشروط والأحكام قبل الاشتراك -->
+          <div class="terms-checkbox-wrapper" style="margin-top: 15px; margin-bottom: 10px; background: rgba(16, 185, 129, 0.12); border: 1.5px solid #10B981; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="modal-terms-check" onchange="toggleModalSubscribeBtn()" style="width: 18px; height: 18px; accent-color: #10B981; cursor: pointer;">
+            <label for="modal-terms-check" style="color: #E2E8F0; font-size: 13px; font-weight: 600; margin: 0; cursor: pointer;">
+              أوافق على <a href="terms.html" target="_blank" style="color: #38BDF8; text-decoration: underline; font-weight: 700;">الشروط والأحكام</a> واتفاقية شراء الكورس في منصة كود شيل.
+            </label>
+          </div>
+        ` : ''}
       </div>
 
       <!-- الفوتر والأزرار التفاعلية -->
       <div class="course-modal-footer">
         
         ${isSubscribed ? `
-          <!-- زر الدخول المباشر إذا كان مشترِكاً بالفعل (الاشتراك يكون مرة واحدة فقط) -->
+          <!-- زر الدخول المباشر للكورس -->
           <button onclick="window.location.href='course-viewer.html?courseId=${course.id}'" class="btn-action-primary subscribed">
             <span>🚀 أنت مشترك بالفعل - دخول للكورس</span>
           </button>
 
-          <!-- زر إلغاء الاشتراك بشرط إدخال كلمة المرور -->
-          <button onclick="openCancelSubscriptionPasswordPrompt('${course.id}', '${title}')" class="btn-action-cancel">
-            ❌ إلغاء الاشتراك في الكورس
+          <!-- زر إلغاء الاشتراك المباشر مع استرداد المبلغ للمحفظة -->
+          <button onclick="handleDirectCancelSubscription('${course.id}', '${title}')" class="btn-action-cancel" style="background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); margin-top: 10px; padding: 12px; border-radius: 12px; width: 100%; font-weight: 700; cursor: pointer;">
+            ❌ إلغاء الاشتراك في الكورس (استرداد الرصيد للمحفظة)
           </button>
         ` : `
-          <!-- زر الاشتراك في الكورس المجاني أو المدفوع -->
-          <button id="modal-subscribe-btn" onclick="handleSubscribeClick('${course.id}', ${isFree})" class="btn-action-primary">
-            <span>${isFree ? 'اشترك في الكورس الآن مجاناً 🎁' : `اشتراك مدفوع — ${priceText} 💳`}</span>
+          <!-- زر الاشتراك الإلكتروني عبر البوابة -->
+          <button id="modal-subscribe-btn" disabled onclick="handleSubscribeClick('${course.id}', ${isFree})" class="btn-action-primary" style="margin-bottom: 8px;">
+            <span>${isFree ? 'اشترك في الكورس الآن مجاناً 🎁' : `اشتراك عبر بوابة الدفع — ${priceText} 💳`}</span>
           </button>
 
-          <!-- زر حجز مقعد في الكورس قبل انطلاق الدفعة (Reservation) -->
+          ${!isFree ? `
+            <!-- زر الخصم والدفع المباشر من محفظة الطالب -->
+            <button id="modal-wallet-pay-btn" disabled onclick="handleWalletPayClick('${course.id}')" style="background: linear-gradient(135deg, #1E3A8A, #2563EB); color: #FFF; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: 700; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              💳 الدفع من محفظة كود شيل
+            </button>
+          ` : ''}
+
+          <!-- زر حجز مقعد في الكورس -->
           <button id="modal-reserve-btn" onclick="handleReserveClick('${course.id}')" class="btn-action-reserve">
             📌 حجز مقعد في الدفعة القادمة
           </button>
@@ -277,33 +319,120 @@ function showCourseSubscriptionModal(course, isSubscribed) {
   document.body.appendChild(modal);
 }
 
+/** تفعيل أزرار الاشتراك عند التأشير على الشروط والأحكام */
+function toggleModalSubscribeBtn() {
+  const check = document.getElementById('modal-terms-check');
+  const btn = document.getElementById('modal-subscribe-btn');
+  const walletBtn = document.getElementById('modal-wallet-pay-btn');
+
+  const isChecked = check ? check.checked : false;
+  if (btn) btn.disabled = !isChecked;
+  if (walletBtn) walletBtn.disabled = !isChecked;
+}
+
+/** الدفع المباشر للاشتراك في الكورس باستخدام رصيد المحفظة */
+async function handleWalletPayClick(courseId) {
+  const check = document.getElementById('modal-terms-check');
+  if (check && !check.checked) {
+    alert('⚠️ يرجى الموافقة على الشروط والأحكام أولاً لإتمام العملية.');
+    return;
+  }
+
+  const walletBtn = document.getElementById('modal-wallet-pay-btn');
+  if (walletBtn) {
+    walletBtn.disabled = true;
+    walletBtn.innerHTML = '<span>⏳ جاري الخصم والتفعيل من المحفظة...</span>';
+  }
+
+  try {
+    const res = await ApiClient.payWithWallet(courseId);
+    if (res && res.status) {
+      if (typeof saveLocalSubscription === 'function') saveLocalSubscription(courseId);
+      alert('🎉 ' + (res.message || 'تم الخصم من المحفظة وتفعيل اشتراكك في الكورس بنجاح!'));
+      const modal = document.getElementById('course-subscription-modal');
+      if (modal) modal.remove();
+      await loadCoursesFromApi();
+      window.location.href = `course-viewer.html?courseId=${courseId}`;
+    } else {
+      alert('⚠️ ' + (res.message || 'فشلت عملية الاشتراك بالمحفظة.'));
+      if (walletBtn) {
+        walletBtn.disabled = false;
+        walletBtn.innerHTML = '💳 الدفع من محفظة كود شيل';
+      }
+    }
+  } catch (err) {
+    alert('⚠️ ' + (err.message || 'تعذر الاتصال بالمحفظة. يرجى التأكد من توفر الرصيد الكافي.'));
+    if (walletBtn) {
+      walletBtn.disabled = false;
+      walletBtn.innerHTML = '💳 الدفع من محفظة كود شيل';
+    }
+  }
+}
+
+/** إلغاء الاشتراك المباشر وإعادة المبلغ إلى المحفظة بدون التواصل مع الدعم */
+async function handleDirectCancelSubscription(courseId, courseTitle) {
+  const confirmCancel = confirm(`هل أنت متأكد من إلغاء اشتراكك في كورس "${courseTitle}"؟\n\nسيتم إلغاء الاشتراك وإعادة كامل مبلغ الكورس إلى محفظتك الإلكترونية فوراً.`);
+  if (!confirmCancel) return;
+
+  try {
+    const res = await ApiClient.cancelSubscription(courseId);
+    if (res && res.status) {
+      localStorage.removeItem(`cs_subscribed_${courseId}`);
+      alert(res.message || 'تم إلغاء الاشتراك وإعادة المبلغ إلى محفظتك بنجاح!');
+      const modal = document.getElementById('course-subscription-modal');
+      if (modal) modal.remove();
+      await loadCoursesFromApi();
+    } else {
+      alert('⚠️ ' + (res.message || 'تعذر إلغاء الاشتراك.'));
+    }
+  } catch (err) {
+    alert('⚠️ ' + (err.message || 'حدث خطأ أثناء إلغاء الاشتراك.'));
+  }
+}
+
 /**
  * ====================================================
  * دالة تنفيذ الاشتراك (Free or Paid)
  * ====================================================
  */
 async function handleSubscribeClick(courseId, isFree) {
+  if (typeof isStudentEmailVerified === 'function' && !isStudentEmailVerified()) {
+    alert('⚠️ يجب تأكيد بريدك الإلكتروني أولاً لتتمكن من الاشتراك في الكورسات.\n\nيرجى الضغط على زر "إرسال بريد التأكيد" في أعلى الصفحة.');
+    const banner = document.getElementById('email-verification-banner');
+    if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
   const btn = document.getElementById('modal-subscribe-btn');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = 'جاري تسجيل اشتراكك بالسيرفر... ⏳';
+    btn.innerHTML = '<span>⏳ جاري الاشتراك...</span>';
   }
 
   try {
     if (isFree) {
       await ApiClient.subscribeCourse(courseId);
+      if (typeof saveLocalSubscription === 'function') saveLocalSubscription(courseId);
       alert('🎉 تهانينا! تم اشتراكك في الكورس بنجاح.');
       const modal = document.getElementById('course-subscription-modal');
       if (modal) modal.remove();
       window.location.href = `course-viewer.html?courseId=${courseId}`;
     } else {
-      await ApiClient.initiatePayment(courseId);
-      alert('جاري توجيهك لبوابة الدفع الإلكتروني تماشياً مع السيرفر...');
-      window.location.href = `course-viewer.html?courseId=${courseId}`;
+      const res = await ApiClient.initiatePayment(courseId);
+      if (res && res.data && res.data.payment_url) {
+        window.location.href = res.data.payment_url;
+      } else {
+        alert('تم تجهيز جلسة الدفع الإلكتروني بنجاح.');
+        window.location.href = `course-viewer.html?courseId=${courseId}`;
+      }
     }
   } catch (err) {
     console.error('[Subscription Error]:', err);
-    alert('⚠️ ' + (err.message || 'تعذر إتمام عملية الاشتراك، يرجى المحاولة لاحقاً.'));
+    // عرض رسالة خطأ واضحة للمستخدم دون ذكر تفاصيل تقنية
+    const userMsg = isFree
+      ? 'تعذر إتمام عملية الاشتراك، يرجى المحاولة مرة أخرى.'
+      : 'تعذر الاتصال ببوابة الدفع. يرجى التأكد من اتصالك بالإنترنت والمحاولة مرة أخرى.';
+    alert('⚠️ ' + userMsg);
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = `<span>${isFree ? 'اشترك في الكورس الآن مجاناً 🎁' : 'متابعة عملية الدفع 💳'}</span>`;
@@ -317,6 +446,13 @@ async function handleSubscribeClick(courseId, isFree) {
  * ====================================================
  */
 async function handleReserveClick(courseId) {
+  if (typeof isStudentEmailVerified === 'function' && !isStudentEmailVerified()) {
+    alert('⚠️ يجب تأكيد بريدك الإلكتروني أولاً لتتمكن من حجز الكورسات.\n\nيرجى الضغط على زر "إرسال بريد التأكيد" في أعلى الصفحة.');
+    const banner = document.getElementById('email-verification-banner');
+    if (banner) banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
   const btn = document.getElementById('modal-reserve-btn');
   if (btn) {
     btn.disabled = true;
@@ -333,110 +469,6 @@ async function handleReserveClick(courseId) {
     alert('⚠️ ' + (err.message || 'تم تسجيل طلب حجزك بنجاح.'));
     const modal = document.getElementById('course-subscription-modal');
     if (modal) modal.remove();
-  }
-}
-
-/**
- * ====================================================
- * دالة فتح نافذة إلغاء الاشتراك مع طلب كلمة المرور للأمان
- * ====================================================
- */
-function openCancelSubscriptionPasswordPrompt(courseId, courseTitle) {
-  const existingPrompt = document.getElementById('password-prompt-modal');
-  if (existingPrompt) existingPrompt.remove();
-
-  const promptModal = document.createElement('div');
-  promptModal.id = 'password-prompt-modal';
-  promptModal.className = 'password-prompt-modal show';
-
-  promptModal.innerHTML = `
-    <div class="password-prompt-card">
-      <div style="font-size: 36px; margin-bottom: 12px;">🔐</div>
-      <h3 style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
-        تأكيد إلغاء الاشتراك
-      </h3>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6;">
-        هل أنت متأكد من إلغاء اشتراكك في كورس <strong>"${courseTitle}"</strong>؟<br/>
-        لأمان حسابك، يرجى أدخال كلمة المرور الحالية لتأكيد الإلغاء.
-      </p>
-
-      <div id="cancel-pass-error" style="display:none; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #EF4444; padding: 10px; border-radius: 10px; font-size: 12.5px; margin-bottom: 14px; font-weight:700;"></div>
-
-      <form id="cancel-pass-form" onsubmit="confirmCancelSubscription(event, '${courseId}')">
-        <div style="margin-bottom: 18px; text-align: right;">
-          <label style="display: block; font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">كلمة المرور الحالية</label>
-          <input type="password" id="cancel-password-input" style="width: 100%; height: 44px; background: var(--bg-body); border: 1px solid var(--border-light); border-radius: 12px; padding: 0 14px; font-size: 14px; color: var(--text-primary); outline: none;" placeholder="أدخل كلمة مرور حسابك" required />
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <button type="submit" id="cancel-confirm-submit-btn" style="flex: 1; height: 44px; background: #EF4444; color: #FFFFFF; border: none; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer;">
-            تأكيد إلغاء الاشتراك
-          </button>
-          <button type="button" onclick="document.getElementById('password-prompt-modal').remove()" style="background: var(--bg-body); border: 1px solid var(--border-light); color: var(--text-primary); padding: 0 18px; border-radius: 12px; font-size: 13.5px; font-weight: 700; cursor: pointer;">
-            إلغاء
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  document.body.appendChild(promptModal);
-}
-
-/**
- * ====================================================
- * دالة تأكيد إلغاء الاشتراك بالسيرفر بعد التأكد من كلمة المرور
- * ====================================================
- */
-async function confirmCancelSubscription(event, courseId) {
-  event.preventDefault();
-
-  const passwordInput = document.getElementById('cancel-password-input');
-  const errorDiv = document.getElementById('cancel-pass-error');
-  const submitBtn = document.getElementById('cancel-confirm-submit-btn');
-
-  if (errorDiv) errorDiv.style.display = 'none';
-
-  const password = passwordInput ? passwordInput.value.trim() : '';
-  if (!password) {
-    if (errorDiv) {
-      errorDiv.textContent = 'يرجى كتابة كلمة المرور الحالية.';
-      errorDiv.style.display = 'block';
-    }
-    return;
-  }
-
-  try {
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'جاري التحقق والإلغاء... ⏳';
-    }
-
-    // إرسال طلب إلغاء الاشتراك مرفقاً بكلمة المرور للتحقق
-    await ApiClient.cancelSubscription(courseId, password);
-
-    alert('تم إلغاء الاشتراك في الكورس بنجاح.');
-    
-    // إغلاق النوافذ المنبثقة وإعادة تحميل القائمة لتحديث الحالة
-    const promptModal = document.getElementById('password-prompt-modal');
-    if (promptModal) promptModal.remove();
-
-    const mainModal = document.getElementById('course-subscription-modal');
-    if (mainModal) mainModal.remove();
-
-    await loadCoursesFromApi();
-
-  } catch (err) {
-    console.error('[Cancel Subscription Error]:', err);
-    if (errorDiv) {
-      errorDiv.textContent = err.message || 'كلمة المرور غير صحيحة أو تعذر إلغاء الاشتراك.';
-      errorDiv.style.display = 'block';
-    }
-  } finally {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'تأكيد إلغاء الاشتراك';
-    }
   }
 }
 
@@ -463,6 +495,3 @@ function initCoursesSearch() {
 // تصدير الدوال على مستوى النافذة العامة لتمكين الاستدعاء من العناصر
 window.onCourseCardClicked = onCourseCardClicked;
 window.handleSubscribeClick = handleSubscribeClick;
-window.handleReserveClick = handleReserveClick;
-window.openCancelSubscriptionPasswordPrompt = openCancelSubscriptionPasswordPrompt;
-window.confirmCancelSubscription = confirmCancelSubscription;

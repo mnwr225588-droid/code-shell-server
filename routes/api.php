@@ -311,9 +311,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{id}/subscribe', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'subscribe']);
     Route::post('/courses/{id}/cancel', [\App\Http\Controllers\Api\CourseSubscriptionController::class, 'cancel']);
 
-    // 💳 Payment Gateway (نظام الدفع الإلكتروني)
+    // 💳 Payment Gateway & Wallet (نظام الدفع الإلكتروني والمحفظة)
     Route::post('/courses/{id}/pay', [PaymentController::class, 'initiate']);
+    Route::post('/courses/{id}/pay-with-wallet', [PaymentController::class, 'payWithWallet']);
     Route::get('/courses/{id}/payment-status', [PaymentController::class, 'paymentStatus']);
+    Route::get('/wallet/balance', [\App\Http\Controllers\Api\WalletController::class, 'getBalance']);
+    Route::post('/wallet/topup', [\App\Http\Controllers\Api\WalletController::class, 'topup']);
 
     // 🌐 Telegram Integration Routes (مهمة لربط التطبيق بالبوت)
     Route::get('/telegram/bind-url', [TelegramWebhookController::class, 'getBindUrl']);

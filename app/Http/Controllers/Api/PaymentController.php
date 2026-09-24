@@ -305,6 +305,104 @@ class PaymentController extends Controller
     }
 
     /**
+     * ====================================================
+     * الدفع المباشر ورسم الاشتراك في الكورس باستخدام رصيد المحفظة
+     * المسار: POST /api/courses/{id}/pay-with-wallet
+     * ====================================================
+     */
+    public function payWithWallet(Request $request, $courseId): JsonResponse
+    {
+        $user = $request->user();
+        $course = Course::findOrFail($courseId);
+
+        // 1. الكورسات المجانية لا تحتاج خصم من المحفظة
+        if ($course->is_free || (float)$course->price === 0.0) {
+            $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
+            return response()->json([
+                'status'        => true,
+                'message'       => 'الكورس مجاني وتم تفعيل اشتراكك بنجاح!',
+                'is_subscribed' => true,
+            ]);
+        }
+
+        // 2. فحص ما إذا كان المستخدم مشتركاً بالفعل
+        if ($course->isUserSubscribed($user->id)) {
+            return response()->json([
+                'status'             => false,
+                'message'            => 'أنت مشترك بالفعل في هذا الكورس.',
+                'already_subscribed' => true,
+            ], 422);
+        }
+
+        // 3. حساب سعر الكورس بناءً على دولة المستخدم
+        $prices = $course->prices ?? [];
+        if (empty($prices)) {
+            $prices = PricingService::defaults();
+        }
+        $pricing = PricingService::priceFor($user->country, $prices);
+        $amount = (float) $pricing['price'];
+
+        // 4. التحقق من كفاية رصيد المحفظة لدى المستخدم
+        if ((float) $user->wallet_balance < $amount) {
+            return response()->json([
+                'status'          => false,
+                'message'         => 'عذراً، رصيد المحفظة الحالي غير كافٍ للاشتراك. يرجى شحن المحفظة أولاً.',
+                'wallet_balance'  => (float) $user->wallet_balance,
+                'required_amount' => $amount,
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 5. خصم المبلغ المالي من رصيد المحفظة
+            $user->wallet_balance = (float) $user->wallet_balance - $amount;
+            $user->save();
+
+            // 6. تسجيل حركة المحفظة المخصومة
+            \App\Models\WalletTransaction::create([
+                'user_id'       => $user->id,
+                'type'          => 'course_purchase',
+                'amount'        => $amount,
+                'balance_after' => (float) $user->wallet_balance,
+                'reference_id'  => (string) $course->id,
+                'description'   => "شراء كورس ({$course->title}) خصماً من رصيد المحفظة",
+            ]);
+
+            // 7. إنشاء المعاملة المالية المحلية
+            $transaction = new Transaction([
+                'user_id'         => $user->id,
+                'course_id'       => $course->id,
+                'amount'          => $amount,
+                'currency_code'   => $pricing['currency_code'] ?? 'EGP',
+                'payment_gateway' => 'wallet',
+                'status'          => Transaction::STATUS_COMPLETED,
+                'paid_at'         => now(),
+            ]);
+            $transaction->save();
+
+            // 8. تفعيل الاشتراك وإلحاق الطالب بمجموعة كورس مفتوحة
+            $this->subscriptionService->activateFromTransaction($transaction);
+
+            DB::commit();
+
+            return response()->json([
+                'status'         => true,
+                'message'        => 'تم الاشتراك في الكورس بنجاح وخصم المبلغ من محفظتك!',
+                'is_subscribed'  => true,
+                'wallet_balance' => (float) $user->wallet_balance,
+            ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Wallet Course Payment Failed: ' . $e->getMessage());
+            return response()->json([
+                'status'  => false,
+                'message' => 'فشلت عملية الاشتراك بالمحفظة: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * حالة آخر معاملة للمستخدم على كورس معين: GET /api/courses/{id}/payment-status
      */
     public function paymentStatus(Request $request, $courseId): JsonResponse

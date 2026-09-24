@@ -263,6 +263,12 @@ class ApiClient {
     });
   }
 
+  static async payWithWallet(courseId) {
+    return await this.request(`/courses/${courseId}/pay-with-wallet`, {
+      method: 'POST'
+    });
+  }
+
   // ====================================================
   // 4. المحاضرات المباشرة والـ Zoom (Online Lectures)
   // ====================================================

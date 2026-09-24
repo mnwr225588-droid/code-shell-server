@@ -131,33 +131,88 @@ class CourseSubscriptionController extends Controller
     }
 
     /**
-     * إلغاء اشتراك المستخدم الحالي في كورس معين.
-     *
-     * أمان: الكورسات المدفوعة لا يمكن إلغاء اشتراكها عبر API مباشرة
-     * لمنع إساءة الاستخدام (إلغاء ثم إعادة الاشتراك مجاناً).
+     * إلغاء اشتراك المستخدم في كورس مع إرجاع كامل المبلغ إلى محفظته تلقائياً.
      */
     public function cancel(Request $request, $courseId): JsonResponse
     {
         $course = Course::findOrFail($courseId);
         $user = $request->user();
 
-        // 🔒 منع إلغاء اشتراك كورس مدفوع عبر API
-        if (!$course->is_free) {
+        // التأكد من أن المستخدم مشترك حالياً في الكورس
+        $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+            ->where('course_id', $courseId)
+            ->first();
+
+        if (!$subscription && !$course->isUserSubscribed($user->id)) {
             return response()->json([
                 'status'  => false,
-                'message' => 'لا يمكن إلغاء اشتراك كورس مدفوع. تواصل مع الدعم.',
-            ], 403);
+                'message' => 'أنت غير مشترك في هذا الكورس بالأساس.',
+            ], 422);
         }
 
-        // إزالة ربط المستخدم بالكورس من جدول الاشتراكات
-        $user->subscribedCourses()->detach($courseId);
+        \DB::beginTransaction();
+        try {
+            // احتساب المبلغ المسترد
+            $refundAmount = 0.00;
+            if ($subscription && (float)$subscription->amount > 0) {
+                $refundAmount = (float) $subscription->amount;
+            } elseif (!$course->is_free) {
+                $refundAmount = (float) $course->price;
+            }
 
-        return response()->json([
-            'status'        => true,
-            'success'       => true,
-            'message'       => 'تم إلغاء الاشتراك في الكورس بنجاح!',
-            'is_subscribed' => false,
-            'students_count'=> $course->subscribedUsers()->count() + 120,
-        ]);
+            // 1. تحديث حالة الاشتراك إلى ملغى
+            if ($subscription) {
+                $subscription->subscription_status = \App\Models\CourseSubscription::STATUS_CANCELLED;
+                $subscription->payment_status = \App\Models\CourseSubscription::PAYMENT_CANCELLED;
+                $subscription->cancelled_at = now();
+                $subscription->save();
+            }
+
+            \DB::table('course_subscriptions')
+                ->where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->update([
+                    'subscription_status' => 'cancelled',
+                    'updated_at' => now(),
+                ]);
+
+            // 2. إذا كان الكورس مدفوعاً، أضف المبلغ المحسوب إلى محفظة المستخدم
+            if ($refundAmount > 0) {
+                $user->wallet_balance = (float) $user->wallet_balance + $refundAmount;
+                $user->save();
+
+                \App\Models\WalletTransaction::create([
+                    'user_id'       => $user->id,
+                    'type'          => 'course_refund',
+                    'amount'        => $refundAmount,
+                    'balance_after' => (float) $user->wallet_balance,
+                    'reference_id'  => (string) $course->id,
+                    'description'   => "استرداد قيمة كورس ({$course->title}) بعد إلغاء الاشتراك",
+                ]);
+            }
+
+            \DB::commit();
+
+            $msg = $refundAmount > 0 
+                ? "تم إلغاء الاشتراك بنجاح وإضافة {$refundAmount} ج.م إلى محفظتك!"
+                : "تم إلغاء الاشتراك في الكورس بنجاح!";
+
+            return response()->json([
+                'status'         => true,
+                'success'        => true,
+                'message'        => $msg,
+                'refund_amount'  => $refundAmount,
+                'wallet_balance' => (float) $user->wallet_balance,
+                'is_subscribed'  => false,
+                'students_count' => max(0, $course->subscribedUsers()->count() + 120),
+            ]);
+
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            return response()->json([
+                'status'  => false,
+                'message' => 'حدث خطأ أثناء إلغاء الاشتراك: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

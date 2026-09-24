@@ -36,6 +36,7 @@ class User extends Authenticatable
         'telegram_chat_id',
         'telegram_username',
         'fcm_token',
+        'wallet_balance',
     ];
 
     protected $hidden = [
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'birth_date' => 'date',
             'is_active' => 'boolean',
             'is_admin' => 'boolean',
+            'wallet_balance' => 'decimal:2',
             'password' => 'hashed',
         ];
     }
