@@ -33,18 +33,6 @@ class PaymentController extends Controller
         $user = $request->user();
         $course = Course::findOrFail($courseId);
 
-        // التحقق من توفر مجموعة غير مفعلة للتسجيل
-        $availableGroup = \App\Models\CourseGroup::where('course_id', $course->id)
-            ->whereNotIn('status', ['active', 'completed'])
-            ->exists();
-
-        if (!$availableGroup) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'عذراً، لا توجد مجموعات متاحة للتسجيل حالياً في هذا الكورس. المجموعات الحالية مفعلة بالكامل أو غير متوفرة.',
-            ], 422);
-        }
-
         // 1. الكورسات المجانية: إنشاء اشتراك مجاني فعال عبر السيرفر دون استدعاء EasyKash
         if ($course->is_free || (float)$course->price === 0.0) {
             $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
@@ -167,15 +155,21 @@ class PaymentController extends Controller
         // رابط الواجهة الأمامية لإعادة توجيه الطالب إليها
         $frontendUrl = 'https://codeshell.kesug.com/courses.html';
 
-        // 1. استخراج مرجع المعاملة
+        // 1. استخراج مرجع المعاملة بكافة الخيارات المتوقعة من البوابة
         $orderRef = $request->input('customerReference') 
                  ?? $request->input('merchant_order_id') 
                  ?? $request->input('order_id')
-                 ?? $request->input('gateway_transaction_id');
+                 ?? $request->input('orderRef')
+                 ?? $request->input('reference')
+                 ?? $request->input('ref')
+                 ?? $request->input('gateway_transaction_id')
+                 ?? $request->input('tx');
 
         $transactionId = null;
         if ($orderRef && preg_match('/CS-TX-(\d+)-/', $orderRef, $matches)) {
             $transactionId = (int) $matches[1];
+        } elseif (is_numeric($orderRef)) {
+            $transactionId = (int) $orderRef;
         }
 
         // البحث عن المعاملة المحلية في قاعدة البيانات
@@ -186,6 +180,11 @@ class PaymentController extends Controller
 
         if (!$transaction && $orderRef) {
             $transaction = Transaction::where('gateway_transaction_id', $orderRef)->first();
+        }
+
+        if (!$transaction) {
+            // كخيار أخير: جلب أحدث معاملة معلقة
+            $transaction = Transaction::where('status', Transaction::STATUS_PENDING)->latest()->first();
         }
 
         if (!$transaction) {
@@ -212,17 +211,38 @@ class PaymentController extends Controller
                     'gateway_transaction_id' => $request->input('providerRefNum') ?? $orderRef ?? $transaction->gateway_transaction_id,
                 ]);
 
-                // تفعيل الاشتراك عبر خدمة الاشتراكات
+                // تفعيل الاشتراك صراحة عبر خدمة الاشتراكات
                 if (isset($this->subscriptionService)) {
-                    try {
-                        $this->subscriptionService->activateFromTransaction($transaction, $params);
-                    } catch (\Throwable $subEx) {
-                        Log::warning('SubscriptionService activation warning: ' . $subEx->getMessage());
-                    }
+                    $this->subscriptionService->activateFromTransaction($transaction, $params);
                 }
+
+                // ضمان إضافي مباشر لحفظ الاشتراك في قاعدة البيانات
+                DB::table('course_subscriptions')->updateOrInsert(
+                    ['user_id' => $transaction->user_id, 'course_id' => $transaction->course_id],
+                    [
+                        'subscription_status' => 'active',
+                        'payment_status'      => 'paid',
+                        'amount'              => $transaction->amount,
+                        'currency_code'       => $transaction->currency_code ?? 'EGP',
+                        'payment_gateway'     => $transaction->payment_gateway ?? 'easykash',
+                        'paid_at'             => now(),
+                        'updated_at'          => now(),
+                    ]
+                );
 
                 DB::commit();
                 Log::info("EasyKash Payment Completed & Course Activated for User #{$transaction->user_id}, Course #{$transaction->course_id}");
+
+                if ($request->wantsJson() || $request->expectsJson()) {
+                    return response()->json([
+                        'status' => true,
+                        'message' => 'تم تفعيل الاشتراك بنجاح',
+                        'data'   => [
+                            'payment_status'      => 'paid',
+                            'subscription_status' => 'active',
+                        ],
+                    ]);
+                }
 
                 // توجيه الطالب مباشرة إلى واجهة الموقع مع معلمات النجاح
                 return redirect($frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id);
@@ -230,6 +250,9 @@ class PaymentController extends Controller
             } catch (\Throwable $e) {
                 DB::rollBack();
                 Log::error('EasyKash Subscription Activation Failed: ' . $e->getMessage());
+                if ($request->wantsJson() || $request->expectsJson()) {
+                    return response()->json(['status' => false, 'message' => 'حدث خطأ أثناء تفعيل الكورس.'], 500);
+                }
                 return redirect($frontendUrl . '?status=failed&message=' . urlencode('حدث خطأ أثناء تفعيل الكورس.'));
             }
         }

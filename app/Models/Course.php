@@ -249,6 +249,13 @@ class Course extends Model
             ->withTimestamps();
     }
 
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'course_subscriptions', 'course_id', 'user_id')
+            ->withPivot(['group_id', 'subscription_status', 'payment_status', 'amount'])
+            ->withTimestamps();
+    }
+
     public function getReservationsCountAttribute()
     {
         if ($this->relationLoaded('reservedUsers')) {

@@ -71,9 +71,9 @@ Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
 // بدون مصادقة Sanctum — الحماية عبر التحقق من توقيع الطلب داخل الـ Controller.
 Route::post('/payment/webhook', [PaymentController::class, 'webhook']);
 
-// EasyKash GET Callback Endpoint (المسار الرسمي لـ Callback عبر HTTP GET)
-Route::get('/payments/easykash/callback', [PaymentController::class, 'easykashCallback']);
-Route::get('/payment/easykash/callback', [PaymentController::class, 'easykashCallback']);
+// EasyKash Callback Endpoint (المسار الرسمي لـ Callback عبر HTTP GET & POST)
+Route::match(['get', 'post'], '/payments/easykash/callback', [PaymentController::class, 'easykashCallback']);
+Route::match(['get', 'post'], '/payment/easykash/callback', [PaymentController::class, 'easykashCallback']);
 
 // مسار فحص التحديثات (متاح لجميع المستخدمين للتأكد من وجود إصدار جديد للتطبيق)
 Route::get('/check-version', [AppUpdateController::class, 'checkVersion']);

@@ -9,8 +9,29 @@
 
 // عند تحميل عناصر DOM بالكامل، ابدأ جلب البيانات وتفعيل البحث
 document.addEventListener('DOMContentLoaded', async () => {
-  initCoursesSearch();
-  await loadCoursesFromApi();
+  const urlParams = new URLSearchParams(window.location.search);
+  const paymentStatus = urlParams.get('status');
+  const returnCourseId = urlParams.get('course_id') || urlParams.get('courseId') || urlParams.get('id');
+
+  if (paymentStatus === 'success' && returnCourseId) {
+    if (typeof saveLocalSubscription === 'function') {
+      saveLocalSubscription(returnCourseId);
+    }
+    localStorage.setItem(`cs_subscribed_${returnCourseId}`, 'true');
+
+    try {
+      await ApiClient.getSubscriptionStatus(returnCourseId).catch(() => null);
+    } catch (e) {}
+
+    initCoursesSearch();
+    await loadCoursesFromApi();
+
+    alert('🎉 تهانينا! تمت عملية الدفع بنجاح وتفعيل اشتراكك في الكورس.');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else {
+    initCoursesSearch();
+    await loadCoursesFromApi();
+  }
 });
 
 // قائمة الكورسات العامة لحفظ الحالة الحالية في الذاكرة

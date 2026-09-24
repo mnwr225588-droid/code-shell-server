@@ -102,4 +102,23 @@ class User extends Authenticatable
             ->withPivot(['group_id', 'subscription_status', 'payment_status', 'amount'])
             ->withTimestamps();
     }
+
+    /**
+     * علاقة الكورسات العامة للمستخدم (على جدول course_subscriptions)
+     */
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'course_subscriptions', 'user_id', 'course_id')
+            ->withPivot(['group_id', 'subscription_status', 'payment_status', 'amount'])
+            ->withTimestamps();
+    }
+
+    /**
+     * المجموعات الدراسية التابع لها المستخدم (عبر جدول course_subscriptions)
+     */
+    public function groups()
+    {
+        return $this->belongsToMany(CourseGroup::class, 'course_subscriptions', 'user_id', 'group_id')
+            ->withTimestamps();
+    }
 }
