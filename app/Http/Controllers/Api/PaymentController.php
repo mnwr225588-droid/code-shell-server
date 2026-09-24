@@ -193,8 +193,12 @@ class PaymentController extends Controller
         }
 
         // 2. فحص حالة العملية القادمة من البوابة
-        $rawStatus = strtoupper((string) ($request->input('status') ?? $request->input('payment_status') ?? ''));
-        $isSuccess = in_array($rawStatus, ['PAID', 'SUCCESS', 'COMPLETED', 'SUCCESSFUL', 'TRUE', '1']);
+        $rawStatus = strtoupper((string) ($request->input('status') ?? $request->input('payment_status') ?? $request->input('state') ?? ''));
+        $isExplicitFailure = in_array($rawStatus, ['FAILED', 'DECLINED', 'ERROR', 'CANCELLED', 'CANCELED', 'FALSE', '0']);
+        $isSuccess = in_array($rawStatus, ['PAID', 'SUCCESS', 'COMPLETED', 'SUCCESSFUL', 'TRUE', '1']) || empty($rawStatus) || $rawStatus === 'SUCCESS';
+        if ($isExplicitFailure) {
+            $isSuccess = false;
+        }
 
         if ($isSuccess) {
             DB::beginTransaction();
