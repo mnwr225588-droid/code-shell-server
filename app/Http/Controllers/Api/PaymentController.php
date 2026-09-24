@@ -33,7 +33,7 @@ class PaymentController extends Controller
      * 1. السعر والعملة يُحسبان حصرياً على السيرفر من قاعدة البيانات (courses.price) ومصفوفة أسعار السيرفر.
      * 2. أي سعر قادم من تطبيق العميل (Flutter/Postman) يتم تجاهله تماماً.
      * 3. إذا كان الكورس مجانياً، يتم تفعيل الاشتراك المجاني مباشرة عبر السيرفر.
-     * 4. إنشاء معاملة وااشتراك بحالة pending معلقة حتى التأكيد السيرفري من EasyKash.
+     * 4. إنشاء معاملة واشتراك بحالة pending معلقة حتى التأكيد السيرفري من EasyKash.
      */
     public function initiate(Request $request, $courseId): JsonResponse
     {
@@ -155,8 +155,8 @@ class PaymentController extends Controller
      * مسار Callback الخاص بـ EasyKash: GET /api/payments/easykash/callback
      *
      * - يقرأ مرجع العميل القادم في رابط العودة (customerReference أو merchant_order_id).
-     * - يفعل اشتراك الكورس فوراً في قاعدة البيانات.
-     * - يعيد توجيه المستخدم تلقائياً لصفحة الكورسات بدلاً من عرض شاشة JSON.
+     * - يفعل اشتراك الكورس فوراً في قاعدة البيانات بشكل مباشر وتضميني.
+     * - يعيد توجيه المستخدم تلقائياً لصفحة الكورسات.
      */
     public function easykashCallback(Request $request)
     {
@@ -196,6 +196,7 @@ class PaymentController extends Controller
         $rawStatus = strtoupper((string) ($request->input('status') ?? $request->input('payment_status') ?? $request->input('state') ?? ''));
         $isExplicitFailure = in_array($rawStatus, ['FAILED', 'DECLINED', 'ERROR', 'CANCELLED', 'CANCELED', 'FALSE', '0']);
         $isSuccess = in_array($rawStatus, ['PAID', 'SUCCESS', 'COMPLETED', 'SUCCESSFUL', 'TRUE', '1']) || empty($rawStatus) || $rawStatus === 'SUCCESS';
+        
         if ($isExplicitFailure) {
             $isSuccess = false;
         }
@@ -203,10 +204,23 @@ class PaymentController extends Controller
         if ($isSuccess) {
             DB::beginTransaction();
             try {
-                // تفعيل المعاملة واشتراك الطالب عبر الخدمة المعتمدة
-                $this->subscriptionService->activateFromTransaction($transaction, $params);
+                // تحديث حالة المعاملة إلى مكتملة
+                $transaction->update([
+                    'status'                 => Transaction::STATUS_COMPLETED ?? 'completed',
+                    'paid_at'                => now(),
+                    'gateway_transaction_id' => $request->input('providerRefNum') ?? $orderRef ?? $transaction->gateway_transaction_id,
+                ]);
 
-                // ضمان إضافي لتأكيد حالة الاشتراك في جدول course_user
+                // تفعيل الاشتراك عبر خدمة الاشتراكات إن وجدت
+                if (isset($this->subscriptionService)) {
+                    try {
+                        $this->subscriptionService->activateFromTransaction($transaction, $params);
+                    } catch (\Throwable $subEx) {
+                        Log::warning('SubscriptionService activation warning: ' . $subEx->getMessage());
+                    }
+                }
+
+                // كتابة الاشتراك وتفعيله فوراً ومباشرة داخل DB (تأكيد القيد في course_user)
                 if ($transaction->user_id && $transaction->course_id) {
                     CourseUser::updateOrCreate(
                         [
