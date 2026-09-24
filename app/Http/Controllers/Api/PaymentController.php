@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
-use App\Models\CourseUser;
 use App\Models\Transaction;
 use App\Services\EasyKashService;
 use App\Services\Payment\Gateways\SandboxGateway;
@@ -28,12 +27,6 @@ class PaymentController extends Controller
 
     /**
      * بدء عملية الدفع: POST /api/courses/{id}/pay
-     *
-     * الأمان الصارم:
-     * 1. السعر والعملة يُحسبان حصرياً على السيرفر من قاعدة البيانات (courses.price) ومصفوفة أسعار السيرفر.
-     * 2. أي سعر قادم من تطبيق العميل (Flutter/Postman) يتم تجاهله تماماً.
-     * 3. إذا كان الكورس مجانياً، يتم تفعيل الاشتراك المجاني مباشرة عبر السيرفر.
-     * 4. إنشاء معاملة واشتراك بحالة pending معلقة حتى التأكيد السيرفري من EasyKash.
      */
     public function initiate(Request $request, $courseId): JsonResponse
     {
@@ -153,10 +146,6 @@ class PaymentController extends Controller
 
     /**
      * مسار Callback الخاص بـ EasyKash: GET /api/payments/easykash/callback
-     *
-     * - يقرأ مرجع العميل القادم في رابط العودة (customerReference أو merchant_order_id).
-     * - يفعل اشتراك الكورس فوراً في قاعدة البيانات بشكل مباشر وتضميني.
-     * - يعيد توجيه المستخدم تلقائياً لصفحة الكورسات.
      */
     public function easykashCallback(Request $request)
     {
@@ -166,7 +155,7 @@ class PaymentController extends Controller
         // رابط الواجهة الأمامية لإعادة توجيه الطالب إليها
         $frontendUrl = 'https://codeshell.kesug.com/courses.html';
 
-        // 1. استخراج مرجع المعاملة المحتفل به من EasyKash
+        // 1. استخراج مرجع المعاملة
         $orderRef = $request->input('customerReference') 
                  ?? $request->input('merchant_order_id') 
                  ?? $request->input('order_id')
@@ -211,7 +200,7 @@ class PaymentController extends Controller
                     'gateway_transaction_id' => $request->input('providerRefNum') ?? $orderRef ?? $transaction->gateway_transaction_id,
                 ]);
 
-                // تفعيل الاشتراك عبر خدمة الاشتراكات إن وجدت
+                // تفعيل الاشتراك عبر خدمة الاشتراكات
                 if (isset($this->subscriptionService)) {
                     try {
                         $this->subscriptionService->activateFromTransaction($transaction, $params);
@@ -220,19 +209,32 @@ class PaymentController extends Controller
                     }
                 }
 
-                // كتابة الاشتراك وتفعيله فوراً ومباشرة داخل DB (تأكيد القيد في course_user)
+                // إضافة القيد المباشر في جدول course_user باستخدام DB query لتجنب خطأ الكلاس المفقود
                 if ($transaction->user_id && $transaction->course_id) {
-                    CourseUser::updateOrCreate(
-                        [
-                            'user_id'   => $transaction->user_id,
-                            'course_id' => $transaction->course_id,
-                        ],
-                        [
+                    $exists = DB::table('course_user')
+                        ->where('user_id', $transaction->user_id)
+                        ->where('course_id', $transaction->course_id)
+                        ->first();
+
+                    if ($exists) {
+                        DB::table('course_user')
+                            ->where('user_id', $transaction->user_id)
+                            ->where('course_id', $transaction->course_id)
+                            ->update([
+                                'status'        => 'active',
+                                'subscribed_at' => now(),
+                                'updated_at'    => now(),
+                            ]);
+                    } else {
+                        DB::table('course_user')->insert([
+                            'user_id'       => $transaction->user_id,
+                            'course_id'     => $transaction->course_id,
                             'status'        => 'active',
                             'subscribed_at' => now(),
+                            'created_at'    => now(),
                             'updated_at'    => now(),
-                        ]
-                    );
+                        ]);
+                    }
                 }
 
                 DB::commit();
