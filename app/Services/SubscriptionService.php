@@ -120,6 +120,12 @@ class SubscriptionService
             $subscription->course_price_at_purchase = (float) $transaction->amount;
             $subscription->payment_gateway = $transaction->payment_gateway;
             $subscription->gateway_transaction_id = $transaction->gateway_transaction_id;
+
+            $metadata = $subscription->metadata ?? [];
+            if (isset($transaction->payload['plan_type'])) {
+                $metadata['plan_type'] = $transaction->payload['plan_type'];
+            }
+            $subscription->metadata = $metadata;
             $subscription->save();
 
             return $subscription;
@@ -174,6 +180,12 @@ class SubscriptionService
             $subscription->payment_gateway = $lockedTx->payment_gateway;
             $subscription->gateway_transaction_id = $lockedTx->gateway_transaction_id;
             $subscription->paid_at = now();
+
+            $metadata = $subscription->metadata ?? [];
+            if (isset($lockedTx->payload['plan_type'])) {
+                $metadata['plan_type'] = $lockedTx->payload['plan_type'];
+            }
+            $subscription->metadata = $metadata;
             $subscription->save();
 
             // ربط المستخدم بأحدث مجموعة مفتوحة

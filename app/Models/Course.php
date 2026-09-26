@@ -92,14 +92,43 @@ class Course extends Model
         if ($user && $user->isAdmin()) {
             return true;
         }
-        return \DB::table('course_subscriptions')
+
+        $subscription = \DB::table('course_subscriptions')
             ->where('user_id', $userId)
             ->where('course_id', $this->id)
             ->where(function ($q) {
                 $q->whereNull('subscription_status')
                   ->orWhere('subscription_status', 'active');
             })
-            ->exists();
+            ->first();
+
+        if (!$subscription) {
+            return false;
+        }
+
+        // فحص انتهاء الاشتراك بناءً على تاريخ نزول أول محاضرة أونلاين
+        $firstLectureDate = \DB::table('online_lectures')
+            ->where('course_id', $this->id)
+            ->orderBy('created_at', 'asc')
+            ->value('created_at');
+
+        if ($firstLectureDate) {
+            $metadata = json_decode($subscription->metadata ?? '{}', true);
+            $planType = $metadata['plan_type'] ?? 'monthly';
+            $durationDays = ($planType === 'term_3months') ? 90 : 30; // 3 months or 1 month
+
+            $startDate = \Carbon\Carbon::parse($firstLectureDate);
+            $expiryDate = $startDate->copy()->addDays($durationDays);
+
+            if (\Carbon\Carbon::now()->greaterThan($expiryDate)) {
+                \DB::table('course_subscriptions')
+                    ->where('id', $subscription->id)
+                    ->update(['subscription_status' => 'expired', 'expired_at' => now()]);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getLevelsCountAttribute()

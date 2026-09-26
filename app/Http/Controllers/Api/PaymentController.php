@@ -96,6 +96,8 @@ class PaymentController extends Controller
             }
         }
 
+        $planType = $request->input('plan_type') ?? $request->input('plan') ?? 'monthly';
+
         // 5. إنشاء معاملة مالية جديدة في DB
         $transaction = new Transaction([
             'user_id'         => $user->id,
@@ -107,6 +109,7 @@ class PaymentController extends Controller
             'payload'         => [
                 'auto_assign_group' => true,
                 'course_price'      => $amount,
+                'plan_type'         => $planType,
             ],
         ]);
         $transaction->save();
@@ -192,13 +195,22 @@ class PaymentController extends Controller
             return redirect($frontendUrl . '?status=failed&message=' . urlencode('عذراً، المعاملة المالية غير مسجلة لدينا.'));
         }
 
-        // 2. فحص حالة العملية القادمة من البوابة
-        $rawStatus = strtoupper((string) ($request->input('status') ?? $request->input('payment_status') ?? $request->input('state') ?? ''));
-        $isExplicitFailure = in_array($rawStatus, ['FAILED', 'DECLINED', 'ERROR', 'CANCELLED', 'CANCELED', 'FALSE', '0']);
-        $isSuccess = in_array($rawStatus, ['PAID', 'SUCCESS', 'COMPLETED', 'SUCCESSFUL', 'TRUE', '1']) || empty($rawStatus) || $rawStatus === 'SUCCESS';
-        
-        if ($isExplicitFailure) {
-            $isSuccess = false;
+        $isWalletTopup = ($transaction->course_id === null) || data_get($transaction->payload, 'is_wallet_topup', false);
+
+        // إذا كانت المعاملة قد اكملت سابقاً بالفعل (مثلاً تم استلام الإشعار عبر webhook أولاً)، نعيد التوجيه فوراً بدون تكرار إضافة الرصيد
+        if ($transaction->status === Transaction::STATUS_COMPLETED) {
+            $redirectTarget = $isWalletTopup 
+                ? 'https://codeshell.kesug.com/wallet.html?status=success&tx=' . $transaction->id 
+                : $frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id;
+
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json([
+                    'status' => true,
+                    'message' => 'تمت العملية بنجاح سابقاً',
+                    'data'   => ['payment_status' => 'paid'],
+                ]);
+            }
+            return redirect($redirectTarget);
         }
 
         if ($isSuccess) {
