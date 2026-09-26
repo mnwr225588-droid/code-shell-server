@@ -1,5 +1,6 @@
 /* ====================================================
    variables.css — متغيرات التصميم (Design Tokens)
+   ====================================================
    ده الملف اللي فيه كل الألوان والأبعاد والظلال
    اللي بنستخدمها في الموقع كله.
    الألوان دي متاخدة بالظبط من تطبيق الفلاتر (app_colors.dart)
@@ -46,7 +47,12 @@
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
   --shadow-primary: 0 8px 24px rgba(37, 99, 235, 0.25);
 
-  /* حجم القائمة الجانبية */
+  /* ====================================================
+     حجم القائمة الجانبية — الافتراضي (للديسكتوب)
+     ====================================================
+     القيمة دي بتتغير حسب حجم الشاشة في الـ media queries
+     اللي تحت عشان تبقى مناسبة لكل جهاز
+     ==================================================== */
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 80px;
 
@@ -78,4 +84,84 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
   --shadow-primary: 0 8px 24px rgba(59, 130, 246, 0.2);
+}
+
+
+/* ====================================================
+   📱 حجم القائمة الجانبية — تحكم دقيق حسب الجهاز
+   ====================================================
+   كل ما الشاشة تصغر، القائمة بتصغر بنسبة مناسبة
+   عشان تبقى مريحة للعين وسهلة الاستخدام
+   ==================================================== */
+
+/* --- 1. شاشات كبيرة جداً (Desktop XL) — أكبر من 1440px --- */
+@media (min-width: 1441px) {
+  :root {
+    --sidebar-width: 320px;        /* قائمة أعرض للشاشات الكبيرة */
+    --sidebar-collapsed-width: 90px;
+  }
+}
+
+/* --- 2. شاشات ديسكتوب كبيرة — من 1281px إلى 1440px --- */
+@media (min-width: 1281px) and (max-width: 1440px) {
+  :root {
+    --sidebar-width: 300px;
+    --sidebar-collapsed-width: 85px;
+  }
+}
+
+/* --- 3. ديسكتوب عادي — من 1025px إلى 1280px --- */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  :root {
+    --sidebar-width: 280px;        /* القيمة الافتراضية */
+    --sidebar-collapsed-width: 80px;
+  }
+}
+
+/* --- 4. تابلت أفقي (iPad Landscape) — من 769px إلى 1024px --- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  :root {
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 76px;
+  }
+}
+
+/* --- 5. تابلت عمودي / موبايل كبير — من 601px إلى 768px --- */
+@media (min-width: 601px) and (max-width: 768px) {
+  :root {
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 72px;
+  }
+}
+
+/* --- 6. موبايل كبير (iPhone 14 Pro Max / S23 Ultra) — من 431px إلى 600px --- */
+@media (min-width: 431px) and (max-width: 600px) {
+  :root {
+    --sidebar-width: 280px;        /* عرض ثابت مريح */
+    --sidebar-collapsed-width: 70px;
+  }
+}
+
+/* --- 7. موبايل متوسط (iPhone 14 / S23) — من 376px إلى 430px --- */
+@media (min-width: 376px) and (max-width: 430px) {
+  :root {
+    --sidebar-width: 260px;        /* عرض مناسب */
+    --sidebar-collapsed-width: 68px;
+  }
+}
+
+/* --- 8. موبايل صغير (iPhone 12 mini / S22) — من 321px إلى 375px --- */
+@media (min-width: 321px) and (max-width: 375px) {
+  :root {
+    --sidebar-width: 240px;        /* عرض أصغر */
+    --sidebar-collapsed-width: 64px;
+  }
+}
+
+/* --- 9. موبايل صغير جداً (iPhone SE / Galaxy Fold) — أقل من 320px --- */
+@media (max-width: 320px) {
+  :root {
+    --sidebar-width: 220px;        /* أصغر عرض ممكن */
+    --sidebar-collapsed-width: 60px;
+  }
 }

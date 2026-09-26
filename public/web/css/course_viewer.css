@@ -9,6 +9,23 @@
   padding-bottom: 40px;
 }
 
+/* --- حاوية عرض الكورس والدروس الرئيسية مع مراعاة الهيدر الثابت --- */
+#course-viewer-container {
+  padding: 95px 32px 32px;
+}
+
+@media (max-width: 768px) {
+  #course-viewer-container {
+    padding: 85px 16px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  #course-viewer-container {
+    padding: 75px 10px 24px !important;
+  }
+}
+
 /* --- هيدر الكورس --- */
 .cv-header-card {
   background: linear-gradient(135deg, #3776AB 0%, #1E415E 100%); /* افتراضي لبايثون */
@@ -198,13 +215,34 @@
   width: 100% !important;
   height: 100% !important;
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible !important;
 }
 
 .plyr--video {
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.plyr__menu__container {
+  overflow: visible !important;
+  z-index: 9999 !important;
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+#level-lessons-container {
+  padding: 95px 32px 32px;
+}
+@media (max-width: 768px) {
+  #level-lessons-container {
+    padding: 85px 16px 24px;
+  }
+}
+@media (max-width: 480px) {
+  #level-lessons-container {
+    padding: 75px 10px 24px !important;
+  }
 }
 
 .plyr__controls {
@@ -401,18 +439,58 @@
   padding: 24px;
 }
 
-/* شاشات الهواتف الصغرى */
+/* شاشات الهواتف والتابلت */
 @media (max-width: 900px) {
-  .cv-page-container > div[style*="grid-template-columns"] {
+  .cv-page-container > div[style*="grid-template-columns"],
+  .cv-lessons-grid {
     grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .cv-video-section {
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  .cv-quiz-trigger-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .cv-quiz-trigger-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 }
+
 @media (max-width: 768px) {
   .cv-lesson-item {
     flex-direction: column;
+    gap: 12px;
   }
   .cv-lesson-thumbnail {
     width: 100%;
     height: 180px;
   }
+  .cv-quiz-card {
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+  .cv-quiz-option {
+    padding: 14px;
+    font-size: 14px;
+  }
+  .cv-quiz-footer {
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+  .cv-btn-primary,
+  .cv-btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
 }
+

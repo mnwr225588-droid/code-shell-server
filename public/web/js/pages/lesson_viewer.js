@@ -187,6 +187,24 @@ function renderLessonPlayer(lesson, level, courseId, levelIdx) {
       }
     });
 
+    window.mainPlyrPlayer.on('enterfullscreen', () => {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+    });
+    window.mainPlyrPlayer.on('exitfullscreen', () => {
+      if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+        screen.orientation.unlock().catch(() => {});
+      }
+    });
+
+    // تفعيل ميزة النقر المزدوج (التقديم والترجيع 10 ثوانٍ)
+    const videoBox = document.getElementById('video-player-main-box');
+    const videoEl = document.getElementById('plyr-video');
+    if (videoBox && videoEl && typeof initDoubleTapSeek === 'function') {
+      initDoubleTapSeek(videoBox, videoEl, () => window.mainPlyrPlayer);
+    }
+
     const unlockQuizBtn = () => {
       const quizBtn = document.getElementById('quiz-btn');
       const quizBtnIcon = document.getElementById('quiz-btn-icon');
@@ -493,7 +511,7 @@ async function markCurrentLessonCompleted(lessonId) {
     if (lessonId) {
       await ApiClient.markLessonComplete(lessonId).catch(() => null);
     }
-    alert('🎉 أمتياز! تم إكمال مشاهدة الدرس وحفظ تقدمك في السيرفر بنجاح!');
+    alert('🎉 امتياز! تم إكمال مشاهدة الدرس وحفظ تقدمك بنجاح!');
   } catch (err) {
     alert(err.message || 'تعذر حفظ التقدم حالياً');
   }

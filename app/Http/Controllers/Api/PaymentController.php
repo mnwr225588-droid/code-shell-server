@@ -206,54 +206,75 @@ class PaymentController extends Controller
             try {
                 // تحديث حالة المعاملة إلى مكتملة
                 $transaction->update([
-                    'status'                 => Transaction::STATUS_COMPLETED ?? 'completed',
+                    'status'                 => Transaction::STATUS_COMPLETED,
                     'paid_at'                => now(),
                     'gateway_transaction_id' => $request->input('providerRefNum') ?? $orderRef ?? $transaction->gateway_transaction_id,
                 ]);
 
-                // تفعيل الاشتراك صراحة عبر خدمة الاشتراكات
-                if (isset($this->subscriptionService)) {
-                    $this->subscriptionService->activateFromTransaction($transaction, $params);
+                $isWalletTopup = ($transaction->course_id === null) || data_get($transaction->payload, 'is_wallet_topup', false);
+
+                if ($isWalletTopup) {
+                    $user = \App\Models\User::lockForUpdate()->find($transaction->user_id);
+                    if ($user) {
+                        $topupAmount = (float) $transaction->amount;
+                        $user->wallet_balance = (float) ($user->wallet_balance ?? 0) + $topupAmount;
+                        $user->save();
+
+                        \App\Models\WalletTransaction::create([
+                            'user_id'       => $user->id,
+                            'type'          => 'credit',
+                            'amount'        => $topupAmount,
+                            'balance_after' => (float) $user->wallet_balance,
+                            'reference_id'  => (string) $transaction->id,
+                            'description'   => "شحن المحفظة عبر الدفع الإلكتروني (مرجع: {$transaction->gateway_transaction_id})",
+                        ]);
+                        Log::info("Wallet Topup Completed via Callback: User #{$user->id} credited with {$topupAmount} EGP (Tx #{$transaction->id})");
+                    }
+                } else {
+                    // تفعيل الاشتراك صراحة عبر خدمة الاشتراكات
+                    if (isset($this->subscriptionService)) {
+                        $this->subscriptionService->activateFromTransaction($transaction, $params);
+                    }
+
+                    // ضمان إضافي مباشر لحفظ الاشتراك في قاعدة البيانات
+                    DB::table('course_subscriptions')->updateOrInsert(
+                        ['user_id' => $transaction->user_id, 'course_id' => $transaction->course_id],
+                        [
+                            'subscription_status' => 'active',
+                            'payment_status'      => 'paid',
+                            'amount'              => $transaction->amount,
+                            'currency_code'       => $transaction->currency_code ?? 'EGP',
+                            'payment_gateway'     => $transaction->payment_gateway ?? 'easykash',
+                            'paid_at'             => now(),
+                            'updated_at'          => now(),
+                        ]
+                    );
                 }
 
-                // ضمان إضافي مباشر لحفظ الاشتراك في قاعدة البيانات
-                DB::table('course_subscriptions')->updateOrInsert(
-                    ['user_id' => $transaction->user_id, 'course_id' => $transaction->course_id],
-                    [
-                        'subscription_status' => 'active',
-                        'payment_status'      => 'paid',
-                        'amount'              => $transaction->amount,
-                        'currency_code'       => $transaction->currency_code ?? 'EGP',
-                        'payment_gateway'     => $transaction->payment_gateway ?? 'easykash',
-                        'paid_at'             => now(),
-                        'updated_at'          => now(),
-                    ]
-                );
-
                 DB::commit();
-                Log::info("EasyKash Payment Completed & Course Activated for User #{$transaction->user_id}, Course #{$transaction->course_id}");
+                Log::info("Payment Completed & Processed for User #{$transaction->user_id}");
 
                 if ($request->wantsJson() || $request->expectsJson()) {
                     return response()->json([
                         'status' => true,
-                        'message' => 'تم تفعيل الاشتراك بنجاح',
+                        'message' => 'تمت العملية بنجاح',
                         'data'   => [
                             'payment_status'      => 'paid',
-                            'subscription_status' => 'active',
                         ],
                     ]);
                 }
 
                 // توجيه الطالب مباشرة إلى واجهة الموقع مع معلمات النجاح
-                return redirect($frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id);
+                $redirectTarget = $isWalletTopup ? 'https://codeshell.kesug.com/wallet.html?status=success&tx=' . $transaction->id : $frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id;
+                return redirect($redirectTarget);
 
             } catch (\Throwable $e) {
                 DB::rollBack();
-                Log::error('EasyKash Subscription Activation Failed: ' . $e->getMessage());
+                Log::error('Payment Processing Failed: ' . $e->getMessage());
                 if ($request->wantsJson() || $request->expectsJson()) {
-                    return response()->json(['status' => false, 'message' => 'حدث خطأ أثناء تفعيل الكورس.'], 500);
+                    return response()->json(['status' => false, 'message' => 'حدث خطأ أثناء معالجة الدفع.'], 500);
                 }
-                return redirect($frontendUrl . '?status=failed&message=' . urlencode('حدث خطأ أثناء تفعيل الكورس.'));
+                return redirect($frontendUrl . '?status=failed&message=' . urlencode('حدث خطأ أثناء معالجة الدفع.'));
             }
         }
 
@@ -296,7 +317,36 @@ class PaymentController extends Controller
         }
 
         if ($result['status'] === Transaction::STATUS_COMPLETED) {
-            $this->subscriptionService->activateFromTransaction($transaction, $result['raw_payload'] ?? []);
+            $isWalletTopup = ($transaction->course_id === null) || data_get($transaction->payload, 'is_wallet_topup', false);
+            if ($isWalletTopup) {
+                DB::transaction(function () use ($transaction, $result) {
+                    $lockedTx = Transaction::whereKey($transaction->id)->lockForUpdate()->first();
+                    if ($lockedTx && !$lockedTx->isCompleted()) {
+                        $user = \App\Models\User::lockForUpdate()->find($lockedTx->user_id);
+                        if ($user) {
+                            $topupAmount = (float) $lockedTx->amount;
+                            $user->wallet_balance = (float) ($user->wallet_balance ?? 0) + $topupAmount;
+                            $user->save();
+
+                            \App\Models\WalletTransaction::create([
+                                'user_id'       => $user->id,
+                                'type'          => 'credit',
+                                'amount'        => $topupAmount,
+                                'balance_after' => (float) $user->wallet_balance,
+                                'reference_id'  => (string) $lockedTx->id,
+                                'description'   => "شحن المحفظة عبر الـ Webhook (مرجع: {$lockedTx->gateway_transaction_id})",
+                            ]);
+                        }
+                        $lockedTx->update([
+                            'status'  => Transaction::STATUS_COMPLETED,
+                            'paid_at' => now(),
+                            'payload' => array_merge($lockedTx->payload ?? [], $result['raw_payload'] ?? []),
+                        ]);
+                    }
+                });
+            } else {
+                $this->subscriptionService->activateFromTransaction($transaction, $result['raw_payload'] ?? []);
+            }
         } else {
             $this->subscriptionService->markFailedFromTransaction($transaction, 'Webhook status: ' . $result['status']);
         }

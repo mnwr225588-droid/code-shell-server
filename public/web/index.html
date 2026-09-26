@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8" />
   <!-- إعدادات التجاوب مع شاشات الهواتف الذكية والأجهزة المحمولة -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +12,22 @@
   <title>Code Shell — الرئيسية</title>
   <link rel="icon" type="image/png" href="assets/images/logo.png" />
   
+  <script>
+    (function(){
+      var token = localStorage.getItem('cs_token');
+      var userRaw = localStorage.getItem('cs_user');
+      if (!token || !userRaw) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+  
   <!-- استدعاء ملفات التنسيقات (CSS): المتغيرات، التنسيقات الأساسية، العناصر المشتركة، وتنسيقات الصفحات -->
-  <link rel="stylesheet" href="css/variables.css?v=2" />
-  <link rel="stylesheet" href="css/base.css?v=2" />
-  <link rel="stylesheet" href="css/components.css?v=2" />
-  <link rel="stylesheet" href="css/pages.css?v=2" />
-  <link rel="stylesheet" href="css/course-modal.css" />
+  <link rel="stylesheet" href="css/variables.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/base.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/components.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/pages.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/course-modal.css?v=20260925v3" />
 </head>
 <body>
 
@@ -252,7 +265,7 @@
           </div>
 
           <!-- 2. كارت الكورسات الحالية (باللون الأخضر) -->
-          <div class="dashboard-stat-card card-green">
+          <div class="dashboard-stat-card card-green" style="cursor: pointer;" onclick="window.location.href='my-courses.html'" title="عرض كورساتي الحالية">
             <!-- خلفية مائية خفيفة لأيقونة اللمبة في الخلفية -->
             <div class="stat-card-watermark">
               <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor">
@@ -262,7 +275,7 @@
 
             <!-- النصوص والأرقام المخصصة لكارت الكورسات الجارية -->
             <div class="stat-card-content">
-              <div class="stat-card-val">1</div>
+              <div id="stat-enrolled-count" class="stat-card-val">0</div>
               <h3 class="stat-card-title">كورسات حالية</h3>
               <p class="stat-card-desc">الكورسات اللي بدأت فيها ولسه مكملتش محتواها.</p>
             </div>
@@ -373,9 +386,9 @@
   </div>
 
   <!-- استدعاء مكتبة Chart.js للرسومات البيانية التفاعلية + ملفات الـ JavaScript للمنصة -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/pages/home.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js?v=20260925v3"></script>
+  <script src="js/app.js?v=20260925v3"></script>
+  <script src="js/api.js?v=20260925v3"></script>
+  <script src="js/pages/home.js?v=20260925v3"></script>
 </body>
 </html>

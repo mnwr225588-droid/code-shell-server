@@ -122,9 +122,8 @@
                     body: signedBody
                 }).then(function (res) { return res.json(); })
                   .then(function (data) {
-                      // في حال النجاح أو الفشل نغلق الجلسة فوراً؛
-                      // التطبيق يتحقق من النتيجة عبر /payment-status بعد الإغلاق.
-                      window.location.href = window.location.origin + '/api/payment/closed';
+                      // إعادة توجيه المستخدم إلى صفحة المحفظة أو الدورات مع حالة النجاح لتحديث الرصيد فوراً
+                      window.location.href = window.location.origin + '/wallet.html?status=success';
                   })
                   .catch(function () {
                       alert('تعذر الاتصال بالخادم، حاول مرة أخرى.');

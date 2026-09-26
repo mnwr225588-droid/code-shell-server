@@ -1,361 +1,980 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <!-- ====================================================
-       Code Shell Wallet Top-up — صفحة المحفظة الإلكترونية
-       الملف: wallet.html
-       الوصف: صفحة كاملة ومستقلة لتعبئة محفظة كود شيل، استعراض الرصيد الحالي، وتأكيد عمليات الدفع الإلكتروني عبر بوابة EasyKash.
-       ==================================================== -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Code Shell Wallet Top-up | شحن المحفظة</title>
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
-  
-  <!-- خطوط تجريدية حديثة -->
+
+  <!-- خطوط حديثة -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
   <style>
-    /* ====================================================
-       أنماط صفحة المحفظة (Wallet Top-up Styles)
-       تضم تصميم الكروت المتجاوبة مع الهواتف بلمسة زجاجية راقية
-       ==================================================== */
-    .wallet-page-header {
-      background: linear-gradient(135deg, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.95));
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      border-radius: 24px;
-      padding: 35px;
-      margin-bottom: 30px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-    }
-    
-    .wallet-english-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 32px;
-      font-weight: 800;
-      color: #60A5FA;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-    }
-    
-    .wallet-subtitle {
-      color: #94A3B8;
-      font-size: 15px;
+    /* ============ متغيرات التصميم ============ */
+    :root {
+      --blue-900: #0a1f44;
+      --blue-800: #0d2a5c;
+      --blue-700: #123a7a;
+      --blue-600: #1a4fa0;
+      --blue-500: #2563eb;
+      --blue-400: #3b82f6;
+      --blue-300: #60a5fa;
+      --blue-100: #dbeafe;
+      --blue-50:  #eff6ff;
+
+      --white: #ffffff;
+      --gray-50: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-400: #94a3b8;
+      --gray-600: #475569;
+      --gray-800: #1e293b;
+
+      --success: #10b981;
+      --danger: #ef4444;
+
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+
+      --shadow-sm: 0 1px 3px rgba(10, 31, 68, 0.08);
+      --shadow-md: 0 4px 16px rgba(10, 31, 68, 0.10);
+      --shadow-lg: 0 12px 40px rgba(10, 31, 68, 0.15);
+      --shadow-blue: 0 8px 24px rgba(37, 99, 235, 0.25);
+
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* كرت رصيد المحفظة الحالي */
-    .wallet-balance-card {
-      background: linear-gradient(135deg, #1E3A8A, #0F172A);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      border-radius: 20px;
-      padding: 25px;
-      color: #FFFFFF;
+    /* ============ إعادة الضبط الأساسية ============ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--blue-50) 0%, var(--white) 50%, var(--blue-50) 100%);
+      color: var(--gray-800);
+      min-height: 100vh;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      padding: 24px 16px;
+    }
+
+    /* ============ الحاوية الرئيسية ============ */
+    .wallet-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ============ الهيدر ============ */
+    .wallet-header {
+      background: linear-gradient(135deg, var(--blue-700) 0%, var(--blue-500) 100%);
+      border-radius: var(--radius-lg);
+      padding: 40px 36px;
+      color: var(--white);
       position: relative;
       overflow: hidden;
-      margin-bottom: 30px;
-      box-shadow: 0 12px 30px rgba(30, 58, 138, 0.35);
-    }
-    .wallet-balance-label {
-      font-size: 14px;
-      color: #93C5FD;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .wallet-balance-amount {
-      font-size: 40px;
-      font-weight: 800;
-      color: #F8FAFC;
-      font-family: 'Outfit', sans-serif;
+      box-shadow: var(--shadow-lg);
     }
 
-    /* تصميم خيار الشروط والأحكام مطابق للتصميم المستهدف */
-    .terms-checkbox-wrapper {
-      background: rgba(16, 185, 129, 0.12);
-      border: 1.5px solid #10B981;
-      border-radius: 14px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
+    .wallet-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .wallet-header::after {
+      content: '';
+      position: absolute;
+      bottom: -60%;
+      right: -5%;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .header-top {
       display: flex;
       align-items: center;
-      gap: 12px;
-      transition: all 0.25s ease;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+      flex-wrap: wrap;
     }
-    .terms-checkbox-wrapper input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      accent-color: #10B981;
-      cursor: pointer;
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
-    .terms-checkbox-label {
-      color: #E2E8F0;
-      font-size: 14.5px;
+
+    .brand-logo {
+      width: 52px;
+      height: 52px;
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 22px;
+      color: var(--blue-600);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .brand-info h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-info p {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      font-weight: 400;
+    }
+
+    .header-badge {
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 8px 18px;
+      border-radius: 50px;
+      font-size: 0.85rem;
       font-weight: 600;
-      margin: 0;
-      cursor: pointer;
-    }
-    .terms-checkbox-label a {
-      color: #38BDF8;
-      text-decoration: underline;
-      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    /* حقل إدخال المبلغ وزر تأكيد الدفع */
-    .amount-input-label {
-      font-size: 14px;
-      font-weight: 700;
-      color: #CBD5E1;
-      margin-bottom: 8px;
-      display: block;
+    .header-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+      animation: pulse 2s infinite;
     }
-    .amount-input-field {
-      background: #0F172A;
-      border: 1.5px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      padding: 14px 18px;
-      color: #FFFFFF;
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+
+    /* ============ بطاقة الرصيد ============ */
+    .balance-section {
+      position: relative;
+      z-index: 1;
+      margin-top: 32px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .balance-label {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .balance-amount {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      transition: var(--transition);
+    }
+
+    .balance-amount .currency {
+      font-size: 1.1rem;
+      font-weight: 600;
+      opacity: 0.85;
+    }
+
+    .balance-updated {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 6px;
+    }
+
+    .balance-icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    /* ============ تأثير زيادة الرصيد ============ */
+    @keyframes balancePop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.12); color: #4ade80; }
+      100% { transform: scale(1); }
+    }
+
+    .balance-amount.bump {
+      animation: balancePop 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ============ الشبكة الرئيسية ============ */
+    .wallet-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .wallet-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ============ البطاقات ============ */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--gray-100);
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--blue-900);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title .icon-box {
+      width: 36px;
+      height: 36px;
+      background: var(--blue-50);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue-500);
       font-size: 18px;
-      font-weight: 700;
-      width: 100%;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-    .amount-input-field:focus {
-      border-color: #3B82F6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-    }
-    .error-msg-red {
-      color: #EF4444;
-      font-size: 13.5px;
-      font-weight: 700;
-      margin-top: 8px;
-      display: none;
     }
 
-    /* زر تأكيد الدفع الاحترافي */
-    .btn-confirm-payment {
-      background: linear-gradient(135deg, #0F766E, #0D9488);
-      color: #FFFFFF;
-      border: none;
-      border-radius: 12px;
-      padding: 14px 32px;
-      font-size: 17px;
-      font-weight: 800;
+    .card-subtitle {
+      font-size: 0.88rem;
+      color: var(--gray-600);
+      margin-bottom: 24px;
+    }
+
+    /* ============ خيارات الشحن ============ */
+    .amount-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .amount-options { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .amount-option {
+      background: var(--gray-50);
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      padding: 18px 10px;
+      text-align: center;
       cursor: pointer;
-      transition: all 0.25s ease;
-      display: inline-flex;
+      transition: var(--transition);
+      font-weight: 700;
+      color: var(--gray-800);
+      font-size: 1.05rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .amount-option:hover {
+      border-color: var(--blue-400);
+      background: var(--blue-50);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .amount-option.selected {
+      border-color: var(--blue-500);
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
+      color: var(--white);
+      box-shadow: var(--shadow-blue);
+      transform: translateY(-2px);
+    }
+
+    /* ============ حقل مخصص ============ */
+    .custom-amount {
+      margin-bottom: 24px;
+    }
+
+    .custom-amount label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 16px 18px;
+      padding-left: 70px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      font-size: 1.05rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--gray-800);
+      background: var(--gray-50);
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .input-wrapper input:focus {
+      border-color: var(--blue-500);
+      background: var(--white);
+      box-shadow: 0 0 0 4px var(--blue-100);
+    }
+
+    .input-wrapper .input-suffix {
+      position: absolute;
+      left: 18px;
+      font-weight: 700;
+      color: var(--blue-600);
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+
+    /* ============ ملخص الدفع ============ */
+    .summary-box {
+      background: var(--blue-50);
+      border: 1px dashed var(--blue-300);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.92rem;
+      padding: 6px 0;
+    }
+
+    .summary-row.total {
+      border-top: 1px solid var(--blue-300);
+      margin-top: 8px;
+      padding-top: 12px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--blue-700);
+    }
+
+    .summary-row .label { color: var(--gray-600); }
+    .summary-row .value { font-weight: 700; color: var(--gray-800); }
+
+    /* ============ زر الدفع ============ */
+    .pay-button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-700));
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow-blue);
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pay-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
       width: 100%;
-      box-shadow: 0 10px 25px rgba(13, 148, 136, 0.3);
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
     }
-    .btn-confirm-payment:disabled {
-      background: #334155 !important;
-      color: #94A3B8 !important;
-      cursor: not-allowed;
-      box-shadow: none !allowed;
-      opacity: 0.6;
-    }
-    .btn-confirm-payment:not(:disabled):hover {
+
+    .pay-button:hover::before { left: 100%; }
+
+    .pay-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 14px 30px rgba(13, 148, 136, 0.45);
+      box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
     }
+
+    .pay-button:active { transform: translateY(0); }
+
+    .pay-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ============ بوابة الدفع ============ */
+    .gateway-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: var(--gray-400);
+    }
+
+    .gateway-info .lock {
+      color: var(--success);
+    }
+
+    /* ============ سجل العمليات ============ */
+    .transactions-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .transaction-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 12px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .transaction-item:hover {
+      background: var(--blue-50);
+    }
+
+    .transaction-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .transaction-icon.credit {
+      background: #d1fae5;
+      color: var(--success);
+    }
+
+    .transaction-icon.debit {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    .transaction-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .transaction-info .title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .transaction-info .date {
+      font-size: 0.78rem;
+      color: var(--gray-400);
+    }
+
+    .transaction-amount {
+      font-weight: 800;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .transaction-amount.credit { color: var(--success); }
+    .transaction-amount.debit { color: var(--danger); }
+
+    /* ============ الحالة الفارغة ============ */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-400);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    /* ============ الفوتر ============ */
+    .wallet-footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--gray-400);
+      font-size: 0.82rem;
+    }
+
+    .wallet-footer a {
+      color: var(--blue-500);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .wallet-footer a:hover { text-decoration: underline; }
+
+    /* ============ تأثيرات الدخول ============ */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .wallet-header { animation: fadeInUp 0.5s ease-out; }
+    .card { animation: fadeInUp 0.5s ease-out backwards; }
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
   </style>
 </head>
-<body class="bg-dark text-light">
+<body>
 
-  <!-- ====================================================
-       1. الشريط العلوي (Navbar)
-       ==================================================== -->
-  <header class="navbar navbar-expand-lg sticky-top navbar-dark bg-dark-glass shadow-sm">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
-        <img src="assets/icons/logo.svg" alt="Code Shell" height="36" onerror="this.src='assets/icons/favicon.svg'">
-        <span class="fw-bold text-white font-outfit">Code Shell</span>
-      </a>
-      <div class="d-flex align-items-center gap-3">
-        <a href="courses.html" class="btn btn-outline-light btn-sm rounded-pill px-3">الكورسات</a>
-        <a href="profile.html" class="btn btn-primary btn-sm rounded-pill px-3">حسابي</a>
+  <div class="wallet-container">
+
+    <!-- ============ الهيدر ============ -->
+    <header class="wallet-header">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-logo">CS</div>
+          <div class="brand-info">
+            <h1>Code Shell</h1>
+            <p>محفظة إلكترونية آمنة</p>
+          </div>
+        </div>
+        <div class="header-badge">
+          <span class="dot"></span>
+          متصل • آمن
+        </div>
       </div>
-    </div>
-  </header>
 
-  <!-- ====================================================
-       2. محتوى صفحة المحفظة الرئيسي
-       ==================================================== -->
-  <main class="container py-5">
+      <div class="balance-section">
+        <div>
+          <div class="balance-label">الرصيد الحالي</div>
+          <div class="balance-amount" id="balanceAmount">
+            <span id="currentBalance">0.00</span>
+            <span class="currency">ج.م</span>
+          </div>
+          <div class="balance-updated" id="balanceUpdated">جاهز للشحن</div>
+        </div>
+        <div class="balance-icon">💳</div>
+      </div>
+    </header>
 
-    <!-- كرت العنوان الإنجليزي والوصف -->
-    <div class="wallet-page-header text-center animate-fadeIn">
-      <h1 class="wallet-english-title">Code Shell Wallet Top-up</h1>
-      <p class="wallet-subtitle">تعبئة محفظة كود شيل وإدارة رصيدك الإلكتروني للاشتراك المباشر في الكورسات</p>
-    </div>
+    <!-- ============ الشبكة الرئيسية ============ -->
+    <div class="wallet-grid">
 
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        
-        <!-- كرت عرض الرصيد الحالي -->
-        <div class="wallet-balance-card animate-fadeIn">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <div class="wallet-balance-label">رصيد المحفظة الحالي</div>
-              <div class="wallet-balance-amount" id="current-wallet-balance">0.00 <span style="font-size: 20px;">ج.م</span></div>
-            </div>
-            <div style="font-size: 45px;">💳</div>
+      <!-- ============ بطاقة الشحن ============ -->
+      <section class="card">
+        <h2 class="card-title">
+          <span class="icon-box">⚡</span>
+          شحن المحفظة
+        </h2>
+        <p class="card-subtitle">اختر مبلغ الشحن المناسب أو أدخل مبلغاً مخصصاً</p>
+
+        <div class="amount-options" id="amountOptions">
+          <div class="amount-option" data-amount="100">100 ج.م</div>
+          <div class="amount-option" data-amount="250">250 ج.م</div>
+          <div class="amount-option" data-amount="500">500 ج.م</div>
+          <div class="amount-option" data-amount="1000">1,000 ج.م</div>
+          <div class="amount-option" data-amount="2000">2,000 ج.م</div>
+          <div class="amount-option" data-amount="5000">5,000 ج.م</div>
+        </div>
+
+        <div class="custom-amount">
+          <label for="customAmount">أو أدخل مبلغاً مخصصاً</label>
+          <div class="input-wrapper">
+            <input type="number" id="customAmount" placeholder="0.00" min="30" step="10">
+            <span class="input-suffix">ج.م</span>
+          </div>
+          <div id="minAmountWarning" style="color: #ef4444; font-size: 0.85rem; margin-top: 8px; display: none; font-weight: 600;">
+            برجاء إضافة مبلغ أكبر من أو يساوي 30
           </div>
         </div>
 
-        <!-- كرت تعبئة المحفظة والدفع -->
-        <div class="card bg-dark-glass border-secondary rounded-4 p-4 shadow-lg animate-fadeIn">
-          
-          <h3 class="h5 font-bold mb-4 text-white d-flex align-items-center gap-2">
-            ⚡ تعبئة رصيد المحفظة
-          </h3>
-
-          <!-- خيار الشروط والأحكام -->
-          <div class="terms-checkbox-wrapper">
-            <input type="checkbox" id="wallet-terms-check" onchange="validateWalletForm()">
-            <label for="wallet-terms-check" class="terms-checkbox-label">
-              أوافق على <a href="terms.html" target="_blank">الشروط والأحكام</a> واتفاقية شحن وتعبئة المحفظة في منصة كود شيل.
-            </label>
+        <div class="summary-box">
+          <div class="summary-row">
+            <span class="label">مبلغ الشحن</span>
+            <span class="value" id="summaryAmount">0.00 ج.م</span>
           </div>
-
-          <!-- حقل إدخال المبلغ -->
-          <div class="mb-4">
-            <label for="wallet-amount-input" class="amount-input-label">اكتب المبلغ (جنيه مصري)</label>
-            <input 
-              type="number" 
-              id="wallet-amount-input" 
-              class="amount-input-field" 
-              placeholder="مثال: 50" 
-              min="30" 
-              step="1"
-              oninput="validateWalletForm()"
-            >
-            <!-- رسالة الخطأ باللون الأحمر -->
-            <div id="wallet-error-msg" class="error-msg-red">
-              ⚠️ يجب إدخال مبلغ يساوي 30 جنيه أو أكبر.
-            </div>
+          <div class="summary-row">
+            <span class="label">الرصيد بعد الشحن</span>
+            <span class="value" id="summaryAfter" style="color: var(--blue-600);">0.00 ج.م</span>
           </div>
-
-          <!-- زر تأكيد الدفع -->
-          <button id="wallet-submit-btn" class="btn-confirm-payment" disabled onclick="handleWalletTopupSubmit()">
-            💳 أكد الدفع
-          </button>
-
+          <div class="summary-row total">
+            <span>الإجمالي المستحق</span>
+            <span id="summaryTotal">0.00 ج.م</span>
+          </div>
         </div>
 
-      </div>
+        <!-- ============ الموافقة على الشروط والأحكام ============ -->
+        <label for="termsCheckbox" class="terms-agreement" style="margin-bottom: 20px; font-size: 0.88rem; color: var(--gray-600); display: flex; align-items: center; gap: 12px; background: var(--gray-50); padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--gray-200); cursor: pointer; user-select: none; transition: var(--transition);">
+          <input type="checkbox" id="termsCheckbox" style="width: 22px; height: 22px; min-width: 22px; flex-shrink: 0; cursor: pointer; accent-color: var(--blue-500); margin: 0; padding: 0;">
+          <span style="flex: 1; line-height: 1.6;">
+            أوافق على <a href="terms.html" target="_blank" style="color: var(--blue-500); font-weight: 700; text-decoration: underline;" onclick="event.stopPropagation();">الشروط والأحكام</a> الخاصة بشحن محفظة كود شيل
+          </span>
+        </label>
+
+        <button class="pay-button" id="payButton" disabled>
+          متابعة عملية الشحن
+        </button>
+
+        <div class="gateway-info">
+          اتصال مشفر وآمن • الدفع الإلكتروني
+        </div>
+      </section>
+
+      <!-- ============ سجل العمليات ============ -->
+      <aside class="card">
+        <h2 class="card-title">
+          <span class="icon-box">📋</span>
+          آخر العمليات
+        </h2>
+        <p class="card-subtitle">سجل آخر 5 معاملات على محفظتك</p>
+
+        <ul class="transactions-list" id="transactionsList">
+          <li class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>لا توجد عمليات حتى الآن</p>
+          </li>
+        </ul>
+      </aside>
+
     </div>
 
-  </main>
+    <!-- ============ الفوتر ============ -->
+    <footer class="wallet-footer">
+      © 2025 Code Shell — جميع الحقوق محفوظة •
+      <a href="terms.html">سياسة الخصوصية</a> •
+      <a href="terms.html">الشروط والأحكام</a>
+    </footer>
 
-  <!-- ====================================================
-       3. التذييل (Footer)
-       ==================================================== -->
-  <footer class="footer mt-auto py-4 bg-darker text-center border-top border-secondary text-muted">
-    <div class="container">
-      <p class="mb-0">جميع الحقوق محفوظة © 2026 Code Shell Platform</p>
-    </div>
-  </footer>
+  </div>
 
-  <!-- السكربتات المعتمدة -->
-  <script src="js/api.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/api.js?v=20260925v3"></script>
   <script>
-    /* ====================================================
-       منطق التحكم الخاص بصفحة المحفظة (Wallet Top-up Logic)
-       ==================================================== */
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 1. التقاط معلمات العودة من الدفع النجاح
-      const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get('status');
-      const amount = urlParams.get('amount');
+    /* ================================================================
+       💳 كود شيل - محفظة حساب التلميذ الآمنة (مربوط بالخادم الحقيقي)
+       ================================================================ */
 
-      if (status === 'success') {
-        alert(`🎉 تهانينا! تمت تعبئة محفظتك بنجاح بمبلغ ${amount || ''} ج.م.`);
-        window.history.replaceState({}, document.title, window.location.pathname);
+    /* ============ حالة التطبيق ============ */
+    let currentBalance = 0;
+    let currentAmount  = 0;
+    let isProcessing   = false;
+
+    /* ============ عناصر DOM ============ */
+    const amountOptions     = document.querySelectorAll('.amount-option');
+    const customAmountInput = document.getElementById('customAmount');
+    const summaryAmount     = document.getElementById('summaryAmount');
+    const summaryAfter      = document.getElementById('summaryAfter');
+    const summaryTotal      = document.getElementById('summaryTotal');
+    const payButton         = document.getElementById('payButton');
+    const termsCheckbox     = document.getElementById('termsCheckbox');
+    const minAmountWarning  = document.getElementById('minAmountWarning');
+    const currentBalanceEl  = document.getElementById('currentBalance');
+    const balanceAmountEl   = document.getElementById('balanceAmount');
+    const balanceUpdatedEl  = document.getElementById('balanceUpdated');
+    const transactionsList  = document.getElementById('transactionsList');
+
+    // تصفير المحفظة الوهمية القديمة لتجنب أي رصيد غير حقيقي
+    localStorage.removeItem('codeshell_wallet_balance');
+    localStorage.removeItem('codeshell_wallet_transactions');
+
+    /* ============ أدوات مساعدة ============ */
+    function formatCurrency(value) {
+      return Number(value || 0).toLocaleString('ar-EG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + ' ج.م';
+    }
+
+    function formatDate(dateString) {
+      try {
+        const d = new Date(dateString);
+        return d.toLocaleString('ar-EG', {
+          day: 'numeric', month: 'short',
+          hour: '2-digit', minute: '2-digit'
+        });
+      } catch { return ''; }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = String(str || '');
+      return div.innerHTML;
+    }
+
+    /* ============ عرض الرصيد ============ */
+    function renderBalance(animate = false) {
+      currentBalanceEl.textContent = Number(currentBalance).toLocaleString('ar-EG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      if (animate) {
+        balanceAmountEl.classList.remove('bump');
+        void balanceAmountEl.offsetWidth;
+        balanceAmountEl.classList.add('bump');
+      }
+    }
+
+    /* ============ عرض سجل العمليات ============ */
+    function renderTransactions(list) {
+      if (!list || list.length === 0) {
+        transactionsList.innerHTML = `
+          <li class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>لا توجد عمليات حتى الآن</p>
+          </li>`;
+        return;
       }
 
-      // 2. جلب وتحديث رصيد المحفظة من السيرفر
-      await loadWalletBalance();
+      transactionsList.innerHTML = list.slice(0, 5).map(tx => {
+        const isCredit = tx.type === 'credit';
+        const sign = isCredit ? '+' : '-';
+        const cls  = isCredit ? 'credit' : 'debit';
+        const icon = isCredit ? '↓' : '↑';
+
+        return `
+          <li class="transaction-item">
+            <div class="transaction-icon ${cls}">${icon}</div>
+            <div class="transaction-info">
+              <div class="title">${escapeHtml(tx.title || (isCredit ? 'شحن محفظة' : 'خصم من المحفظة'))}</div>
+              <div class="date">${formatDate(tx.date || tx.created_at)}</div>
+            </div>
+            <div class="transaction-amount ${cls}">
+              ${sign} ${formatCurrency(Math.abs(tx.amount))}
+            </div>
+          </li>`;
+      }).join('');
+    }
+
+    /* ============ تحديث ملخص الدفع وحالة زر الشحن ============ */
+    function updateSummary(amount) {
+      currentAmount = amount > 0 ? amount : 0;
+      summaryAmount.textContent = formatCurrency(currentAmount);
+      summaryAfter.textContent  = formatCurrency(currentBalance + currentAmount);
+      summaryTotal.textContent  = formatCurrency(currentAmount);
+
+      // إظهار/إخفاء تحذير الحد الأدنى
+      if (minAmountWarning) {
+        if (currentAmount > 0 && currentAmount < 30) {
+          minAmountWarning.style.display = 'block';
+        } else {
+          minAmountWarning.style.display = 'none';
+        }
+      }
+
+      const isTermsAccepted = termsCheckbox ? termsCheckbox.checked : false;
+      // لا يتيح الزر إلا إذا كان المبلغ 30 ج.م على الأقل والموافقة على الشروط مفعلة
+      payButton.disabled = currentAmount < 30 || !isTermsAccepted || isProcessing;
+    }
+
+    /* ============ الأحداث والاستجابات ============ */
+    if (termsCheckbox) {
+      termsCheckbox.addEventListener('change', () => {
+        updateSummary(currentAmount);
+      });
+    }
+
+    amountOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        amountOptions.forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+        customAmountInput.value = '';
+        updateSummary(parseFloat(option.dataset.amount));
+      });
     });
 
-    /** جلب رصيد المحفظة الحالي من الباك إند بهيدر Bearer Token */
-    async function loadWalletBalance() {
-      const balanceEl = document.getElementById('current-wallet-balance');
-      try {
-        const data = await ApiClient.request('/wallet/balance');
-        if (data && data.status) {
-          const bal = parseFloat(data.wallet_balance || 0).toFixed(2);
-          balanceEl.innerHTML = `${bal} <span style="font-size: 20px;">ج.م</span>`;
-        }
-      } catch (e) {
-        console.warn('Failed to load wallet balance:', e);
-      }
-    }
-
-    /** التحقق من صحة النموذج وتفعيل/إيقاف زر تأكيد الدفع */
-    function validateWalletForm() {
-      const termsChecked = document.getElementById('wallet-terms-check').checked;
-      const amountInput = document.getElementById('wallet-amount-input');
-      const errorMsg = document.getElementById('wallet-error-msg');
-      const submitBtn = document.getElementById('wallet-submit-btn');
-
-      const val = parseFloat(amountInput.value || 0);
-
-      let isAmountValid = false;
-
-      if (amountInput.value.trim() !== '') {
-        if (val < 30) {
-          errorMsg.style.display = 'block';
-          isAmountValid = false;
-        } else {
-          errorMsg.style.display = 'none';
-          isAmountValid = true;
-        }
+    customAmountInput.addEventListener('input', () => {
+      const value = parseFloat(customAmountInput.value);
+      if (value && value > 0) {
+        amountOptions.forEach(o => o.classList.remove('selected'));
+        updateSummary(value);
       } else {
-        errorMsg.style.display = 'none';
-        isAmountValid = false;
+        updateSummary(0);
       }
+    });
 
-      // الزر لا يعمل إلا عند الموافقة على الشروط وإدخال مبلغ >= 30
-      submitBtn.disabled = !(termsChecked && isAmountValid);
-    }
-
-    /** إرسال طلب الشحن وبدء عملية الدفع عبر EasyKash */
-    async function handleWalletTopupSubmit() {
-      const submitBtn = document.getElementById('wallet-submit-btn');
-      const amountInput = document.getElementById('wallet-amount-input');
-      const val = parseFloat(amountInput.value || 0);
-
-      if (val < 30) return;
-
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span>⏳ جاري تجهيز بوابة الدفع...</span>';
-
+    /* ============ جلب الرصيد الحقيقي والعمليات من الخادم ============ */
+    async function fetchLiveWalletData() {
       try {
-        const response = await ApiClient.request('/wallet/topup', {
-          method: 'POST',
-          body: { amount: val }
-        });
+        if (typeof ApiClient === 'undefined' || !ApiClient.getToken()) {
+          balanceUpdatedEl.textContent = 'يرجى تسجيل الدخول لعرض رصيدك الحقيقي';
+          currentBalance = 0;
+          renderBalance(false);
+          renderTransactions([]);
+          return;
+        }
 
-        if (response && response.status && response.data && response.data.payment_url) {
-          window.location.href = response.data.payment_url;
-        } else {
-          alert(response.message || 'تعذر استلام رابط الدفع. يرجى المحاولة لاحقاً.');
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '💳 أكد الدفع';
+        balanceUpdatedEl.textContent = 'جاري تحديث الرصيد...';
+        const res = await ApiClient.getWalletBalance();
+
+        if (res && (res.status || res.wallet_balance !== undefined)) {
+          currentBalance = parseFloat(res.wallet_balance || 0);
+          renderBalance(false);
+
+          const rawTxList = res.transactions || res.data?.transactions || [];
+          const txList = rawTxList.map(tx => ({
+            id: tx.id || Date.now(),
+            type: tx.type === 'debit' ? 'debit' : 'credit',
+            title: tx.title || (tx.type === 'debit' ? 'اشتراك كورس' : 'شحن محفظة عبر EasyKash'),
+            amount: parseFloat(tx.amount || 0),
+            date: tx.created_at || tx.date || new Date().toISOString()
+          }));
+
+          renderTransactions(txList);
+          balanceUpdatedEl.textContent = currentBalance > 0 ? 'الرصيد الحالي بالمحفظة' : 'جاهز للشحن';
         }
       } catch (err) {
-        alert(err.message || 'حدث خطأ في شبكة الدفع. يرجى إعادة المحاولة.');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '💳 أكد الدفع';
+        console.warn('تعذر جلب رصيد المحفظة من السيرفر:', err.message);
+        currentBalance = 0;
+        renderBalance(false);
+        balanceUpdatedEl.textContent = 'رصيد الحساب (0.00 ج.م)';
       }
     }
+
+    /* ============ زر الدفع وبوابة EasyKash ============ */
+    payButton.addEventListener('click', async () => {
+      if (isProcessing) return;
+
+      if (!termsCheckbox.checked) {
+        alert('⚠️ يجب الموافقة على الشروط والأحكام الخاصة بالموقع قبل فتح بوابة الدفع!');
+        return;
+      }
+
+      if (currentAmount < 30) {
+        alert('⚠️ الحد الأدنى لشحن المحفظة هو 30 جنيهاً.');
+        return;
+      }
+
+      if (typeof ApiClient === 'undefined' || !ApiClient.getToken()) {
+        alert('⚠️ يرجى تسجيل الدخول للحساب أولاً لإتمام شحن المحفظة.');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      isProcessing = true;
+      payButton.disabled = true;
+      const originalHTML = payButton.innerHTML;
+      payButton.innerHTML = '<span>⏳</span> جاري التحويل إلى بوابة الدفع...';
+
+      try {
+        const res = await ApiClient.topUpWallet(currentAmount);
+        const paymentUrl = res.data?.payment_url || res.payment_url || res.redirect_url;
+
+        if (paymentUrl) {
+          window.location.href = paymentUrl;
+        } else {
+          throw new Error(res.message || 'لم يتم استلام رابط بوابة الدفع من الخادم.');
+        }
+      } catch (err) {
+        alert('❌ حدث خطأ أثناء الاتصال ببوابة الدفع: ' + (err.message || 'يرجى المحاولة لاحقاً.'));
+        payButton.innerHTML = originalHTML;
+        isProcessing = false;
+        updateSummary(currentAmount);
+      }
+    });
+
+    /* ============ التحقق من العودة بعد دفع ناجح ============ */
+    function checkReturnStatus() {
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('status') || params.get('payment');
+      if (status === 'success' || status === 'paid') {
+        const alertBox = document.createElement('div');
+        alertBox.style.cssText = 'background: #d1fae5; color: #065f46; border: 1px solid #34d399; padding: 14px 20px; border-radius: 16px; font-weight: 700; text-align: center; margin-bottom: 20px; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 12px rgba(16,185,129,0.15);';
+        alertBox.innerHTML = '<span>🎉</span> تم إتمام عملية الدفع وشحن المحفظة بنجاح!';
+        const container = document.querySelector('.wallet-container');
+        if (container) {
+          container.insertBefore(alertBox, container.children[1]);
+        }
+        renderBalance(true);
+      }
+    }
+
+    /* ============ التهيئة ============ */
+    async function init() {
+      renderBalance(false);
+      updateSummary(0);
+      checkReturnStatus();
+      await fetchLiveWalletData();
+    }
+
+    init();
   </script>
+
 </body>
 </html>

@@ -840,11 +840,12 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
     right: 0 !important;
     left: 0 !important;
     width: 100% !important;
+    height: 60px !important;
     box-sizing: border-box !important;
-    padding: 12px 14px !important;
+    padding: 8px 14px !important;
     gap: 8px !important;
     align-items: center !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     z-index: 1020 !important;
   }
 
@@ -994,7 +995,10 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
   }
 
   /* === inline grid overrides === */
-  div[style*="grid-template-columns: repeat(auto-fit"] {
+  div[style*="grid-template-columns: repeat(auto-fit"],
+  div[style*="minmax(340px"],
+  div[style*="minmax(260px"],
+  .level-lessons-grid {
     grid-template-columns: 1fr !important;
   }
 
@@ -1352,3 +1356,4 @@ html[data-theme="dark"] .theme-single-btn .theme-icon-moon {
     gap: 10px !important;
   }
 }
+

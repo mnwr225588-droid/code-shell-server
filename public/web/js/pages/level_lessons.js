@@ -30,14 +30,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       ApiClient.getCourseDetails(courseId).catch(() => null)
     ]);
 
-    isUserSubscribedToCourse = Boolean(subRes.is_subscribed);
-    if (courseRes && (courseRes.data || courseRes.id || courseRes.title)) {
-      globalCourseInfo = courseRes.data || courseRes.course || courseRes;
+    const courseObj = courseRes ? (courseRes.data || courseRes.course || courseRes) : null;
+    if (courseObj) {
+      globalCourseInfo = courseObj;
+      isUserSubscribedToCourse = Boolean(subRes.is_subscribed || courseObj.is_subscribed);
     } else {
+      isUserSubscribedToCourse = Boolean(subRes.is_subscribed);
       globalCourseInfo = { id: courseId, title: 'الكورس', is_free: true };
     }
 
-    if (levelsRes && levelsRes.is_waiting) {
+    if (levelsRes && levelsRes.is_waiting && !isUserSubscribedToCourse) {
       container.innerHTML = `
         <div style="background: var(--bg-card); border-radius: 28px; padding: 56px 28px; text-align: center; border: 1px solid var(--border-color); max-width: 640px; margin: 40px auto; box-shadow: 0 20px 50px rgba(0,0,0,0.06);" class="animate-fadeIn">
           <div style="width: 80px; height: 80px; border-radius: 24px; background: rgba(245, 158, 11, 0.15); color: #F59E0B; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px;">
@@ -126,13 +128,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // شبكة بطاقات الدروس
-    html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;">`;
+    // شبكة بطاقات الدروس مع نظام الفتح التسلسلي والتجاوب الكامل للهاتف
+    html += `<div class="level-lessons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px;">`;
 
     lessons.forEach((lesson, idx) => {
       const lessonTitle = lesson.title || lesson.name || `الدرس ${idx + 1}`;
       
-      // حساب المدة الفعلية للدرس من السيرفر
+      // فحص هل الدرس مفتوح أم مغلق بالتسلسل
+      const isFirstLesson = (idx === 0);
+      const prevLesson = idx > 0 ? lessons[idx - 1] : null;
+      const isUnlocked = isFirstLesson || isLessonDone(courseId, prevLesson);
+
       let duration = 'غير محدد';
       if (lesson.duration_seconds) {
         const sec = parseInt(lesson.duration_seconds, 10);
@@ -141,8 +147,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         duration = `${m}:${s < 10 ? '0' : ''}${s}`;
       } else if (lesson.duration_minutes) {
         duration = `${lesson.duration_minutes} دقيقة`;
-      } else if (lesson.duration && lesson.duration !== '10:00' && lesson.duration !== '10 دقائق') {
-        duration = lesson.duration;
       } else if (lesson.duration) {
         duration = lesson.duration;
       }
@@ -162,15 +166,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const grad = gradients[idx % gradients.length];
 
       html += `
-        <div class="animate-fadeIn" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.06); transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 20px 40px rgba(37,99,235,0.15)'; this.style.borderColor='rgba(37,99,235,0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.06)'; this.style.borderColor='var(--border-color)'">
+        <div class="animate-fadeIn" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.06); transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; opacity: ${isUnlocked ? '1' : '0.8'};">
           
-          <!-- صورة الدرس المصغرة (Thumbnail من R2) -->
+          <!-- صورة الدرس المصغرة (Thumbnail) -->
           <div style="width: 100%; height: 200px; background: ${grad}; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             ${hasThumb 
               ? `<img src="${thumbnail}" alt="${lessonTitle}" style="width: 100%; height: 100%; object-fit: cover;" />`
               : `<div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
                    <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); border: 2px solid rgba(255,255,255,0.3);">
-                     <i class="fas fa-play" style="font-size: 24px; color: #FFF; margin-right: -2px;"></i>
+                     <i class="fas ${isUnlocked ? 'fa-play' : 'fa-lock'}" style="font-size: 24px; color: #FFF;"></i>
                    </div>
                    <span style="color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 700;">الدرس ${idx + 1}</span>
                  </div>`
@@ -180,8 +184,8 @@ document.addEventListener('DOMContentLoaded', async () => {
               <i class="far fa-clock" style="font-size: 11px;"></i> ${duration}
             </div>
             
-            <div style="position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,0.2); color: #FFF; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3);">
-              ${idx + 1}
+            <div style="position: absolute; top: 14px; right: 14px; background: ${isUnlocked ? 'rgba(255,255,255,0.2)' : 'rgba(239, 68, 68, 0.8)'}; color: #FFF; width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3);">
+              ${isUnlocked ? (idx + 1) : '🔒'}
             </div>
           </div>
 
@@ -191,10 +195,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; flex-grow: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${lessonDesc}</p>
             
             <!-- زر الدخول للدرس -->
-            <button onclick="openLessonWithSubscriptionCheck('${courseId}', ${levelIdx}, ${idx})" style="width: 100%; background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #FFF; border: none; padding: 13px; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; transition: all 0.25s; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 25px rgba(37,99,235,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 20px rgba(37,99,235,0.3)'">
-              <i class="fas fa-play-circle"></i>
-              الدخول للدرس
-            </button>
+            ${isUnlocked ? `
+              <button onclick="openLessonWithSubscriptionCheck('${courseId}', ${levelIdx}, ${idx})" style="width: 100%; background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #FFF; border: none; padding: 13px; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; transition: all 0.25s; box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fas fa-play-circle"></i> الدخول للدرس
+              </button>
+            ` : `
+              <button onclick="alert('يرجى مشاهدة الدرس السابق واجتياز اختباره أولاً لفتح هذا الدرس!')" style="width: 100%; background: #6B7280; color: #FFF; border: none; padding: 13px; border-radius: 14px; font-size: 14px; font-weight: 700; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fas fa-lock"></i> 🔒 مغلّق (أكمل الدرس السابق)
+              </button>
+            `}
           </div>
         </div>
       `;
@@ -214,6 +223,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>`;
   }
 });
+
+function isLessonDone(courseId, lesson) {
+  if (!lesson) return false;
+  if (lesson.is_completed || lesson.completed) return true;
+  try {
+    const stored = JSON.parse(localStorage.getItem(`completed_lessons_${courseId}`) || '[]');
+    return stored.includes(String(lesson.id)) || stored.includes(Number(lesson.id));
+  } catch (e) {
+    return false;
+  }
+}
 
 // دالة فحص الاشتراك والدخول للدرس (مثل التطبيق)
 async function openLessonWithSubscriptionCheck(courseId, levelIdx, lessonIdx) {
@@ -260,14 +280,21 @@ function showAppSubscriptionModal(course, onSuccess) {
         </span>
       </p>
 
-      <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 28px; background: var(--bg-body); padding: 14px; border-radius: 14px; border: 1px solid var(--border-color); line-height: 1.6;">
+      <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 20px; background: var(--bg-body); padding: 14px; border-radius: 14px; border: 1px solid var(--border-color); line-height: 1.6;">
         ${isFree 
-          ? 'بكبسة زر واحدة سيتم إضافة هذا الكورس إلى قائمتك، وتخصيص مجموعة لك مع المدرس مع حفظ تقدمك بالسيرفر!' 
+          ? 'بكبسة زر واحدة سيتم إضافة هذا الكورس إلى قائمتك، وتخصيص مجموعة لك مع المدرس مع حفظ تقدمك!' 
           : 'يتطلب هذا الكورس اشتراكاً مفككاً لتفعيل المجموعة والمتابعة مع المدرس والمشرفين.'}
       </p>
 
+      <div style="margin-bottom: 20px; background: rgba(16, 185, 129, 0.12); border: 1.5px solid #10B981; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; text-align: right;">
+        <input type="checkbox" id="app-modal-terms-check" onchange="toggleAppModalSubBtn()" style="width: 18px; height: 18px; accent-color: #10B981; cursor: pointer;">
+        <label for="app-modal-terms-check" style="color: #E2E8F0; font-size: 13px; font-weight: 600; margin: 0; cursor: pointer;">
+          أوافق على <a href="terms.html" target="_blank" style="color: #38BDF8; text-decoration: underline; font-weight: 700;">الشروط والأحكام</a> واتفاقية الاستخدام في منصة كود شيل.
+        </label>
+      </div>
+
       <div style="display: flex; gap: 12px;">
-        <button id="modal-confirm-btn" class="auth-btn" style="background: ${isFree ? 'linear-gradient(135deg, #16A34A, #15803D)' : 'linear-gradient(135deg, #2563EB, #1D4ED8)'}; flex: 1; padding: 14px; border-radius: 14px; font-weight: 800;">
+        <button id="modal-confirm-btn" disabled class="auth-btn" style="background: ${isFree ? 'linear-gradient(135deg, #16A34A, #15803D)' : 'linear-gradient(135deg, #2563EB, #1D4ED8)'}; flex: 1; padding: 14px; border-radius: 14px; font-weight: 800; opacity: 0.6; cursor: not-allowed;">
           ${isFree ? '✨ تأكيد الاشتراك المجاني الآن' : '💳 متابعة عملية الدفع'}
         </button>
         <button onclick="document.getElementById('app-sub-modal').remove()" style="background: var(--bg-body); border: 1px solid var(--border-color); color: var(--text-primary); padding: 14px 20px; border-radius: 14px; font-weight: 700; cursor: pointer;">
@@ -280,13 +307,19 @@ function showAppSubscriptionModal(course, onSuccess) {
   document.body.appendChild(modal);
 
   document.getElementById('modal-confirm-btn').addEventListener('click', async () => {
+    if (typeof isStudentEmailVerified === 'function' && !isStudentEmailVerified()) {
+      alert('⚠️ يجب تأكيد بريدك الإلكتروني أولاً لتتمكن من الاشتراك في الكورسات.\n\nيرجى الضغط على زر "إرسال بريد التأكيد" في أعلى الصفحة.');
+      return;
+    }
+
     const btn = document.getElementById('modal-confirm-btn');
     btn.disabled = true;
-    btn.innerHTML = 'جاري التسجيل في السيرفر...';
+    btn.innerHTML = 'جاري الاشتراك والتسجيل... ⏳';
 
     try {
       if (isFree) {
         await ApiClient.subscribeCourse(course.id);
+        if (typeof saveLocalSubscription === 'function') saveLocalSubscription(course.id);
         modal.remove();
         if (onSuccess) onSuccess();
       } else {
@@ -304,3 +337,13 @@ function showAppSubscriptionModal(course, onSuccess) {
 }
 
 window.openLessonWithSubscriptionCheck = openLessonWithSubscriptionCheck;
+function toggleAppModalSubBtn() {
+  const check = document.getElementById('app-modal-terms-check');
+  const btn = document.getElementById('modal-confirm-btn');
+  if (btn && check) {
+    btn.disabled = !check.checked;
+    btn.style.opacity = check.checked ? '1' : '0.6';
+    btn.style.cursor = check.checked ? 'pointer' : 'not-allowed';
+  }
+}
+window.toggleAppModalSubBtn = toggleAppModalSubBtn;

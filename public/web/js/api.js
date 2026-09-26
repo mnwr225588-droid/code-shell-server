@@ -22,11 +22,11 @@ let currentBaseUrl = API_CONFIG.PROD_URL;
 class ApiClient {
   static getBaseUrl() {
     if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-      if (window.location.hostname.includes('kesug.com')) {
-        return `${window.location.origin}/api`;
+      if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+        return API_CONFIG.LOCAL_URL;
       }
     }
-    return currentBaseUrl;
+    return API_CONFIG.PROD_URL;
   }
 
   static setBaseUrl(url) {
@@ -101,10 +101,10 @@ class ApiClient {
               currentBaseUrl = API_CONFIG.LOCAL_URL;
             }
           } catch (localErr) {
-            throw new Error('تعذر الاتصال بالسيرفر. يرجى التأكد من اتصال النت أو إعادة المحاولة.');
+            throw new Error('تعذر الاتصال بالشبكة. يرجى التأكد من اتصال النت أو إعادة المحاولة.');
           }
         } else {
-          throw new Error('تعذر الاتصال بالسيرفر المحلي.');
+          throw new Error('تعذر الاتصال بالخدمة.');
         }
       }
 
@@ -269,6 +269,10 @@ class ApiClient {
     });
   }
 
+  static async getPaymentStatus(courseId) {
+    return await this.request(`/courses/${courseId}/payment-status`);
+  }
+
   // ====================================================
   // 4. المحاضرات المباشرة والـ Zoom (Online Lectures)
   // ====================================================
@@ -299,6 +303,10 @@ class ApiClient {
     return await this.request(`/teacher/groups/${groupId}/lectures`);
   }
 
+  static async getTeacherSessions() {
+    return await this.request('/teacher/my-sessions');
+  }
+
   static async teacherStartLecture(lectureId, zoomUrl = null) {
     return await this.request('/teacher/start-lecture', {
       method: 'POST',
@@ -327,17 +335,24 @@ class ApiClient {
     });
   }
 
-  static async teacherStartBreak(groupId, durationMinutes) {
+  static async teacherStartBreak(lectureId, breakMinutes) {
     return await this.request('/teacher/break', {
       method: 'POST',
-      body: { group_id: groupId, duration_minutes: durationMinutes }
+      body: { online_lecture_id: lectureId, break_minutes: breakMinutes }
+    });
+  }
+
+  static async teacherEndBreak(lectureId) {
+    return await this.request('/teacher/end-break', {
+      method: 'POST',
+      body: { online_lecture_id: lectureId }
     });
   }
 
   static async teacherRequestPostponement(lectureId, reason, newDate) {
     return await this.request('/teacher/postpone', {
       method: 'POST',
-      body: { lecture_id: lectureId, reason, new_date: newDate }
+      body: { online_lecture_id: lectureId, reason, new_date: newDate }
     });
   }
 
@@ -351,6 +366,20 @@ class ApiClient {
   static async markLessonComplete(lessonId) {
     return await this.request(`/progress/lesson/${lessonId}/complete`, {
       method: 'POST'
+    });
+  }
+
+  // ====================================================
+  // 7. المحفظة الإلكترونية وشحن الرصيد (Wallet System)
+  // ====================================================
+  static async getWalletBalance() {
+    return await this.request('/wallet/balance');
+  }
+
+  static async topUpWallet(amount) {
+    return await this.request('/wallet/topup', {
+      method: 'POST',
+      body: { amount }
     });
   }
 }

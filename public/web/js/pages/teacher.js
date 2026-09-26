@@ -158,7 +158,7 @@ async function loadTeacherSessions() {
 
       // التحقق مما إذا كان الرابط قد تم إدخاله وحفظه مخصصاً من قبل المدرس (وليس رابط عشوائي افتراضي)
       const rawUrl = (session.zoom_join_url || '').trim();
-      const isCustomSaved = Boolean(session.is_custom_link || (rawUrl && !rawUrl.includes('rand') && !session.zoom_meeting_id?.startsWith('9')));
+      const isCustomSaved = Boolean(session.is_custom_link || (rawUrl && !rawUrl.includes('rand')));
       const displayUrl = isCustomSaved ? rawUrl : '';
       const hasUrl = Boolean(isCustomSaved && rawUrl);
 
@@ -482,6 +482,8 @@ async function hostStartLecture(lectureId) {
   }
 }
 
+window.saveTeacherZoomLink = saveTeacherZoomLink;
+
 // 3. إنهاء المحاضرة
 async function hostEndLecture(lectureId) {
   if (!confirm('هل أنت تأكد من إنهاء هذه المحاضرة؟ سيظهر للطلاب أن المحاضرة قد انتهت.')) return;
@@ -599,7 +601,7 @@ window.loadTeacherData = loadTeacherData;
 window.selectGroupDetails = selectGroupDetails;
 window.closeGroupDetails = closeGroupDetails;
 window.hostStartLecture = hostStartLecture;
-window.hostJoinLecture = typeof hostJoinLecture !== 'undefined' ? hostJoinLecture : function(){};
+window.hostJoinLecture = hostJoinLecture;
 window.hostEndLecture = hostEndLecture;
 window.teacherEndBreakAction = teacherEndBreakAction;
 window.openBreakModal = openBreakModal;
@@ -609,3 +611,5 @@ window.endBreakTimer = endBreakTimer;
 window.openPostponeModal = openPostponeModal;
 window.closePostponeModal = closePostponeModal;
 window.submitPostponeForm = submitPostponeForm;
+
+

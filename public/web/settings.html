@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8" />
   <!-- إعدادات التجاوب مع شاشات الهواتف الذكية والأجهزة المحمولة -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +12,22 @@
   <title>Code Shell — الإعدادات</title>
   <link rel="icon" type="image/png" href="assets/images/logo.png" />
   
+  <script>
+    (function(){
+      var token = localStorage.getItem('cs_token');
+      var userRaw = localStorage.getItem('cs_user');
+      if (!token || !userRaw) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+  
   <!-- استدعاء ملفات التنسيقات (CSS) -->
-  <link rel="stylesheet" href="css/variables.css" />
-  <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/pages.css" />
-  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="css/variables.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/base.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/components.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/pages.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/settings.css?v=20260925v3" />
 </head>
 <body>
 
@@ -561,8 +574,8 @@
   </div>
 
   <!-- استدعاء ApiClient وملف الـ JavaScript الرئيسي -->
-  <script src="js/api.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/api.js?v=20260925v3"></script>
+  <script src="js/app.js?v=20260925v3"></script>
 
   <!-- ====================================================
        JavaScript خاص بصفحة الإعدادات فقط

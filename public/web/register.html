@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Code Shell — إنشاء حساب جديد" />
@@ -11,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/variables.css" />
-  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/variables.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/base.css?v=20260925v3" />
   
   <style>
     * {
@@ -25,7 +28,7 @@
     body {
       min-height: 100vh;
       width: 100vw;
-      background: radial-gradient(circle at 50% 0%, #1E3A8A 0%, #0F172A 70%, #090D16 100%);
+      background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 40%, #2563EB 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -34,56 +37,54 @@
       padding: 32px 16px;
     }
 
-    .bg-orb-1 {
+    .bg-shape-1 {
       position: absolute;
       top: -120px;
-      right: -120px;
-      width: 450px;
-      height: 450px;
+      right: -100px;
+      width: 480px;
+      height: 480px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(37, 99, 235, 0.4) 0%, rgba(37, 99, 235, 0) 70%);
-      pointer-events: none;
-      filter: blur(40px);
-      animation: floatOrb 8s infinite alternate ease-in-out;
-    }
-
-    .bg-orb-2 {
-      position: absolute;
-      bottom: -150px;
-      left: -150px;
-      width: 500px;
-      height: 500px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(124, 58, 237, 0.35) 0%, rgba(124, 58, 237, 0) 70%);
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, rgba(37, 99, 235, 0) 70%);
       pointer-events: none;
       filter: blur(50px);
-      animation: floatOrb 10s infinite alternate ease-in-out reverse;
+      animation: floatShape 8s infinite alternate ease-in-out;
     }
 
-    @keyframes floatOrb {
+    .bg-shape-2 {
+      position: absolute;
+      bottom: -140px;
+      left: -100px;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(147, 197, 253, 0.25) 0%, rgba(30, 58, 138, 0) 70%);
+      pointer-events: none;
+      filter: blur(60px);
+      animation: floatShape 10s infinite alternate ease-in-out reverse;
+    }
+
+    @keyframes floatShape {
       0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(40px, 30px) scale(1.1); }
+      100% { transform: translate(35px, 25px) scale(1.08); }
     }
 
     /* كارت المصادقة المستقل لإنشاء الحساب */
     .auth-card-standalone {
       width: 100%;
-      max-width: 620px;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      max-width: 640px;
+      background: #FFFFFF;
       border-radius: 28px;
-      padding: 40px 36px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 40px rgba(37, 99, 235, 0.15);
+      padding: 42px 36px;
+      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35), 0 0 40px rgba(37, 99, 235, 0.2);
       position: relative;
       z-index: 10;
-      color: #FFFFFF;
-      animation: cardFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #0F172A;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    @keyframes cardFadeIn {
-      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    @keyframes cardSlideUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.96); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
@@ -93,29 +94,30 @@
     }
 
     .auth-logo-icon {
-      width: 68px;
-      height: 68px;
-      margin: 0 auto 12px;
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(124, 58, 237, 0.2));
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 14px;
+      background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+      border: 2px solid #BFDBFE;
+      border-radius: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.18);
     }
 
     .auth-title {
-      font-size: 24px;
-      font-weight: 800;
-      color: #FFFFFF;
-      margin-bottom: 4px;
+      font-size: 25px;
+      font-weight: 900;
+      color: #1E3A8A;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
     }
 
     .auth-subtitle {
-      font-size: 13px;
-      color: #94A3B8;
-      font-weight: 500;
+      font-size: 13.5px;
+      color: #64748B;
+      font-weight: 600;
     }
 
     /* تقسيم الحقول على شبكات 2 و 3 أعمدة */
@@ -136,7 +138,7 @@
         grid-template-columns: 1fr;
       }
       .auth-card-standalone {
-        padding: 28px 20px;
+        padding: 30px 20px;
       }
     }
 
@@ -147,54 +149,55 @@
 
     .form-label-custom {
       display: block;
-      font-size: 12px;
-      font-weight: 700;
-      color: #CBD5E1;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #1E293B;
       margin-bottom: 6px;
     }
 
     .form-input-custom {
       width: 100%;
       height: 48px;
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
       border-radius: 12px;
       padding: 0 14px;
-      font-size: 13px;
-      color: #FFFFFF;
+      font-size: 13.5px;
+      color: #0F172A;
       outline: none;
+      font-weight: 600;
       transition: all 0.25s ease;
     }
 
     .form-input-custom:focus {
-      border-color: #3B82F6;
-      background: rgba(30, 41, 59, 0.95);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+      border-color: #2563EB;
+      background: #FFFFFF;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
     }
 
     select.form-input-custom option {
-      background: #0F172A;
-      color: #FFFFFF;
+      background: #FFFFFF;
+      color: #0F172A;
     }
 
     .auth-submit-btn {
       width: 100%;
-      height: 50px;
+      height: 52px;
       background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
       color: #FFFFFF;
       border: none;
       border-radius: 14px;
-      font-size: 15px;
-      font-weight: 800;
+      font-size: 16px;
+      font-weight: 900;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
       transition: all 0.25s ease;
       margin-top: 10px;
     }
 
     .auth-submit-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.5);
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.45);
       background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
     }
 
@@ -202,13 +205,14 @@
       text-align: center;
       margin-top: 20px;
       font-size: 14px;
-      color: #94A3B8;
+      color: #64748B;
+      font-weight: 600;
     }
 
     .auth-card-footer a {
-      color: #60A5FA;
+      color: #2563EB;
       text-decoration: none;
-      font-weight: 700;
+      font-weight: 800;
       margin-right: 4px;
     }
 
@@ -217,13 +221,13 @@
     }
 
     .alert-error {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #FCA5A5;
+      background: #FEF2F2;
+      border: 1.5px solid #FCA5A5;
+      color: #DC2626;
       padding: 12px 16px;
       border-radius: 12px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 16px;
       display: none;
     }
@@ -319,7 +323,7 @@
 
   </div>
 
-  <script src="js/api.js"></script>
-  <script src="js/pages/auth.js"></script>
+  <script src="js/api.js?v=20260925v3"></script>
+  <script src="js/pages/auth.js?v=20260925v3"></script>
 </body>
 </html>

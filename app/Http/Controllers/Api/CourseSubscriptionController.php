@@ -36,6 +36,7 @@ class CourseSubscriptionController extends Controller
         $isSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
 
         $group = null;
+        $subscription = null;
         if ($isSubscribed && $user) {
             $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
                 ->where('course_id', $course->id)
@@ -50,6 +51,9 @@ class CourseSubscriptionController extends Controller
             }
         }
 
+        $subDate = $subscription ? ($subscription->paid_at ?? $subscription->created_at) : null;
+        $canCancel = $subDate ? ($subDate->diffInHours(now()) <= 48) : true;
+
         return response()->json([
             'status'        => true,
             'is_subscribed' => $isSubscribed,
@@ -59,6 +63,9 @@ class CourseSubscriptionController extends Controller
             ] : null,
             'group_name'    => $group ? $group->name : null,
             'students_count'=> $course->subscribedUsers()->count() + 120,
+            'subscribed_at' => $subDate ? $subDate->toIso8601String() : null,
+            'can_cancel'    => $canCancel,
+            'hours_since_subscription' => $subDate ? $subDate->diffInHours(now()) : 0,
         ]);
     }
 
@@ -150,6 +157,15 @@ class CourseSubscriptionController extends Controller
             ], 422);
         }
 
+        // فحص مهلة الـ يومان (48 ساعة) للاسترجاع وإلغاء الاشتراك
+        $subDate = $subscription ? ($subscription->paid_at ?? $subscription->created_at) : null;
+        if ($subDate && $subDate->diffInHours(now()) > 48) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'عذراً، لا يمكن إلغاء الاشتراك بعد مرور أكثر من يومين (48 ساعة) على تاريخ الاشتراك.',
+            ], 422);
+        }
+
         \DB::beginTransaction();
         try {
             // احتساب المبلغ المسترد
@@ -160,21 +176,19 @@ class CourseSubscriptionController extends Controller
                 $refundAmount = (float) $course->price;
             }
 
-            // 1. تحديث حالة الاشتراك إلى ملغى
+            // 1. حذف سجل الاشتراك كلياً من السيرفر
             if ($subscription) {
-                $subscription->subscription_status = \App\Models\CourseSubscription::STATUS_CANCELLED;
-                $subscription->payment_status = \App\Models\CourseSubscription::PAYMENT_CANCELLED;
-                $subscription->cancelled_at = now();
-                $subscription->save();
+                $subscription->delete();
             }
 
             \DB::table('course_subscriptions')
                 ->where('user_id', $user->id)
                 ->where('course_id', $courseId)
-                ->update([
-                    'subscription_status' => 'cancelled',
-                    'updated_at' => now(),
-                ]);
+                ->delete();
+
+            if (method_exists($user, 'subscribedCourses')) {
+                $user->subscribedCourses()->detach($courseId);
+            }
 
             // 2. إذا كان الكورس مدفوعاً، أضف المبلغ المحسوب إلى محفظة المستخدم
             if ($refundAmount > 0) {
@@ -187,15 +201,15 @@ class CourseSubscriptionController extends Controller
                     'amount'        => $refundAmount,
                     'balance_after' => (float) $user->wallet_balance,
                     'reference_id'  => (string) $course->id,
-                    'description'   => "استرداد قيمة كورس ({$course->title}) بعد إلغاء الاشتراك",
+                    'description'   => "استرداد قيمة كورس ({$course->title}) بعد إلغاء الاشتراك وحذفه كلياً",
                 ]);
             }
 
             \DB::commit();
 
             $msg = $refundAmount > 0 
-                ? "تم إلغاء الاشتراك بنجاح وإضافة {$refundAmount} ج.م إلى محفظتك!"
-                : "تم إلغاء الاشتراك في الكورس بنجاح!";
+                ? "تم إلغاء الاشتراك وحذف الكورس كلياً وإضافة {$refundAmount} ج.م إلى محفظتك!"
+                : "تم إلغاء الاشتراك وحذف الكورس كلياً من حسابك!";
 
             return response()->json([
                 'status'         => true,

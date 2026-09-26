@@ -19,6 +19,37 @@ async function loadHomeUserData() {
       const greetingEl = document.getElementById('user-welcome-name');
       if (greetingEl) greetingEl.textContent = `مرحباً بك، ${name} 👋`;
     }
+
+    // حساب عدد الكورسات التي اشترك فيها الطالب فعلياً من السيرفر
+    const coursesRes = await ApiClient.getCourses().catch(() => []);
+    const courses = Array.isArray(coursesRes) ? coursesRes : (coursesRes.data || []);
+    let enrolledCount = 0;
+
+    for (const course of courses) {
+      let isSubscribed = Boolean(course.is_subscribed);
+      if (String(course.id) === '1' && localStorage.getItem('cs_subscribed_computer_basics') === 'true') {
+        isSubscribed = true;
+      }
+      try {
+        const subRes = await ApiClient.getSubscriptionStatus(course.id);
+        if (subRes.is_subscribed || subRes.status === 'subscribed' || subRes.subscribed) {
+          isSubscribed = true;
+        }
+      } catch (e) {}
+
+      if (isSubscribed) enrolledCount++;
+    }
+
+    if (localStorage.getItem('cs_subscribed_computer_basics') === 'true') {
+      const hasCb = courses.some(c => String(c.id) === '1' && (c.is_subscribed || Boolean(c.subscribed)));
+      if (!hasCb) enrolledCount++;
+    }
+
+    const statEnrolled = document.getElementById('stat-enrolled-count');
+    if (statEnrolled) {
+      statEnrolled.textContent = enrolledCount;
+    }
+
   } catch (e) {
     console.error('Home user data load error:', e);
   }

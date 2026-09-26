@@ -136,48 +136,21 @@ function renderForumApp() {
   if (!container) return;
 
   container.innerHTML = `
-    <!-- هيدر المنتدى البانر المميز -->
-    <div class="forum-header-banner">
-      <div class="forum-banner-circles"></div>
-      <div class="forum-header-content">
-        <div class="forum-title-group">
-          <h1>منتدى مجتمع Code Shell 💬</h1>
-          <p>إطرح أسئلتك البرمجية، شارك خبراتك، تناقش في الدروس، وتطوّر مع زملائك والمحاضرين في البيئة التعليمية!</p>
-        </div>
-        <div class="forum-header-actions">
-          <div class="forum-search-box">
-            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input type="text" id="forum-search-input" placeholder="إبحث في المناقشات والأسئلة..." oninput="handleForumSearch(this.value)" />
-          </div>
-          <button class="btn-create-post" onclick="showCreatePostView()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <span>إطرح سؤالاً جديداً</span>
-          </button>
-        </div>
+    <div style="background: var(--bg-card); border-radius: 28px; padding: 60px 32px; text-align: center; border: 1px solid var(--border-color); max-width: 680px; margin: 40px auto; box-shadow: 0 20px 60px rgba(0,0,0,0.06);" class="animate-fadeIn">
+      <div style="width: 90px; height: 90px; border-radius: 30px; background: rgba(239, 68, 68, 0.15); color: #EF4444; display: flex; align-items: center; justify-content: center; font-size: 44px; margin: 0 auto 24px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);">
+        🔒
+      </div>
+      <h2 style="font-size: 24px; font-weight: 900; color: var(--text-primary); margin-bottom: 12px;">منتدى المجتمع مغلق حالياً</h2>
+      <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 32px; max-width: 520px; margin-left: auto; margin-right: auto;">
+        تم إيقاف قسم المنتدى والمناقشات البرمجية مؤقتاً من قبل إدارة المنصة. يمكنك الاستمرار في متابعة دروسك والكورسات المتاحة.
+      </p>
+      <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
+        <a href="index.html" class="auth-btn" style="display: inline-block; width: auto; padding: 12px 28px; text-decoration: none; border-radius: 14px; background: linear-gradient(135deg, #2563EB, #1D4ED8);">الرئيسية</a>
+        <a href="courses.html" class="auth-btn" style="display: inline-block; width: auto; padding: 12px 28px; text-decoration: none; border-radius: 14px; background: var(--bg-body); color: var(--text-primary); border: 1px solid var(--border-color);">الكورسات</a>
       </div>
     </div>
-
-    <!-- أقسام المجالات (Category Horizontal Chips) -->
-    <div class="categories-horizontal-scroll" id="categories-bar">
-      ${ForumData.categories.map(cat => `
-        <div class="category-chip ${currentCategory === cat.id ? 'active' : ''}" onclick="selectCategory('${cat.id}')">
-          <span>${cat.icon}</span>
-          <span>${cat.name}</span>
-        </div>
-      `).join('')}
-    </div>
-
-    <!-- التخطيط الرئيسي (سايدبار المنتدى + قائمة المناقشات) -->
-    <div class="forum-main-layout">
-      
-      <!-- سايدبار المنتدى الجانبي -->
-      <aside>
+  `;
+}
         <div class="forum-sidebar-card">
           <div class="forum-sidebar-title">تصفح المنتدى</div>
           <div class="forum-menu-list">

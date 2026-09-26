@@ -32,11 +32,26 @@ async function loadMyCoursesFromApi() {
   const container = document.getElementById('main-page-container');
   if (!container) return;
 
+  container.innerHTML = `
+    <div style="margin-bottom: 24px;">
+      <h3 class="section-title">كورساتي الحالية 💡</h3>
+      <p class="section-subtitle">جاري تحميل كورساتك المشترك بها...</p>
+    </div>
+    <div style="text-align:center; padding: 60px 20px; color: var(--text-muted);">
+      <div style="font-size: 36px; margin-bottom: 12px; animation: pulse 1.5s infinite;">⏳</div>
+      <p style="font-size: 15px; font-weight: 600;">جاري تحميل الكورسات...</p>
+    </div>
+  `;
+
   try {
     const coursesRes = await ApiClient.getCourses();
     const courses = Array.isArray(coursesRes) ? coursesRes : (coursesRes.data || []);
 
     let enrolledCourses = [];
+    let localSubscribedCourses = [];
+    try {
+      localSubscribedCourses = JSON.parse(localStorage.getItem('cs_subscribed_courses') || '[]');
+    } catch (e) {}
 
     for (const course of courses) {
       let isSubscribed = Boolean(course.is_subscribed);
@@ -46,12 +61,28 @@ async function loadMyCoursesFromApi() {
         isSubscribed = true;
       }
 
+      if (localSubscribedCourses.includes(String(course.id)) || localSubscribedCourses.includes(Number(course.id)) || localStorage.getItem(`cs_subscribed_${course.id}`) === 'true') {
+        isSubscribed = true;
+      }
+
       try {
         const subRes = await ApiClient.getSubscriptionStatus(course.id);
-        if (subRes.is_subscribed || subRes.status === 'subscribed' || subRes.subscribed) {
+        if (subRes && (subRes.is_subscribed || subRes.status === 'subscribed' || subRes.subscribed)) {
           isSubscribed = true;
           if (subRes.group) groupObj = subRes.group;
           else if (subRes.group_name) groupObj = { name: subRes.group_name };
+          if (typeof saveLocalSubscription === 'function') {
+            saveLocalSubscription(course.id);
+          }
+        } else if (subRes && subRes.is_subscribed === false) {
+          isSubscribed = false;
+          localStorage.removeItem(`cs_subscribed_${course.id}`);
+          if (String(course.id) === '1') {
+            localStorage.removeItem('cs_subscribed_computer_basics');
+          }
+          let sc = JSON.parse(localStorage.getItem('cs_subscribed_courses') || '[]');
+          sc = sc.filter(id => String(id) !== String(course.id));
+          localStorage.setItem('cs_subscribed_courses', JSON.stringify(sc));
         }
       } catch (e) {
         // Fallback
@@ -66,7 +97,7 @@ async function loadMyCoursesFromApi() {
     }
 
     // إذا اشترك الطالب في كورس أساسيات الحاسوب محلياً
-    if (localStorage.getItem('cs_subscribed_computer_basics') === 'true') {
+    if (localStorage.getItem('cs_subscribed_computer_basics') === 'true' || localSubscribedCourses.includes('1') || localSubscribedCourses.includes(1)) {
       const alreadyHasCb = enrolledCourses.some(c => String(c.id) === '1');
       if (!alreadyHasCb) {
         enrolledCourses.unshift({
@@ -132,16 +163,6 @@ async function loadMyCoursesFromApi() {
             <a href="${courseLink}" class="pro-card-btn">
               <span>متابعة الدروس 👈</span>
             </a>
-            <div class="course-card-options-wrapper" onclick="event.stopPropagation();" style="position: relative;">
-              <button onclick="event.stopPropagation(); toggleCourseOptionsMenu(event, '${c.id}')" class="course-card-options-btn" title="خيارات الكورس" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px;">
-                ⋮
-              </button>
-              <div id="course-options-menu-${c.id}" class="course-options-dropdown" style="display: none; position: absolute; top: 42px; left: 0; background: #1E293B; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 140px; overflow: hidden; z-index: 100;">
-                <button onclick="event.stopPropagation(); closeAllCourseOptionsMenus(); openCancelSubscriptionPasswordPrompt('${c.id}', '${titleClean}')" style="width: 100%; padding: 10px 14px; background: transparent; border: none; color: #EF4444; font-weight: 700; font-size: 13px; text-align: right; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit;">
-                  <span>❌ إلغاء الاشتراك</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       `;

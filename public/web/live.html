@@ -1,16 +1,29 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Code Shell — المحاضرات المباشرة والأونلاين" />
   <title>Code Shell — المحاضرات المباشرة والأونلاين</title>
   <link rel="icon" type="image/png" href="assets/images/logo.png" />
   
-  <link rel="stylesheet" href="css/variables.css" />
-  <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/pages.css" />
+  <script>
+    (function(){
+      var token = localStorage.getItem('cs_token');
+      var userRaw = localStorage.getItem('cs_user');
+      if (!token || !userRaw) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+  
+  <link rel="stylesheet" href="css/variables.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/base.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/components.css?v=20260925v3" />
+  <link rel="stylesheet" href="css/pages.css?v=20260925v3" />
   <style>
     .live-card {
       background: var(--bg-card);
@@ -52,6 +65,16 @@
       border-radius: 50%;
       box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
       animation: pulse 1.6s infinite;
+    }
+    .countdown-timer {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      color: #3B82F6;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 2px 10px;
+      border-radius: 10px;
+      display: inline-block;
+      font-size: 13px;
     }
     @keyframes pulse {
       0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
@@ -203,8 +226,8 @@
     </main>
   </div>
 
-  <script src="js/app.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/pages/live.js"></script>
+  <script src="js/app.js?v=20260925v3"></script>
+  <script src="js/api.js?v=20260925v3"></script>
+  <script src="js/pages/live.js?v=20260925v3"></script>
 </body>
 </html>

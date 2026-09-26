@@ -68,6 +68,27 @@ async function loadUserProfileData() {
   }
 }
 
+/**
+ * دالة الحصول على أيقونة الكورس المناسبة باللوجو الخاص بها
+ */
+function getCourseIcon(course) {
+  if (course.icon_url && course.icon_url.startsWith('http')) return course.icon_url;
+  if (course.image && course.image.startsWith('http')) return course.image;
+  if (course.icon && course.icon.startsWith('http')) return course.icon;
+
+  const name = (course.title || course.name || '').toLowerCase();
+  if (name.includes('python') || name.includes('بايثون')) return 'assets/icons/python.svg';
+  if (name.includes('flutter') || name.includes('فلاتر')) return 'assets/icons/flutter.svg';
+  if (name.includes('dart') || name.includes('دارت')) return 'assets/icons/dart.svg';
+  if (name.includes('java') || name.includes('جافا')) return 'assets/icons/java.svg';
+  if (name.includes('php') || name.includes('بي إتش بي')) return 'assets/icons/php.svg';
+  if (name.includes('html')) return 'assets/icons/html5.svg';
+  if (name.includes('css')) return 'assets/icons/css3.svg';
+  if (name.includes('computer') || name.includes('حاسوب') || name.includes('أساسيات')) return 'assets/icons/computer_basics.svg';
+
+  return 'assets/icons/python.svg';
+}
+
 async function loadEnrolledCourses() {
   const container = document.getElementById('enrolled-courses-container');
   if (!container) return;
@@ -110,7 +131,7 @@ async function loadEnrolledCourses() {
     let html = '';
     enrolledList.forEach(c => {
       const title = c.title || c.name || 'كورس برمجي';
-      const icon = c.icon_url || c.image || 'assets/icons/python.svg';
+      const icon = getCourseIcon(c);
 
       html += `
         <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">

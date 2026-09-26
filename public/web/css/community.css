@@ -570,7 +570,7 @@
 /* --- تجاوب الشاشات (Responsive Mobile Rules) --- */
 @media (max-width: 1024px) {
   .forum-main-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 
   .forum-sidebar-card {
@@ -587,10 +587,13 @@
   .forum-header-content {
     flex-direction: column;
     align-items: flex-start;
+    gap: 16px;
   }
 
   .forum-header-actions {
     width: 100%;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .forum-search-box {
@@ -602,11 +605,30 @@
     justify-content: center;
   }
 
+  .forum-tabs-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .forum-tabs {
+    overflow-x: auto;
+    padding-bottom: 6px;
+    width: 100%;
+  }
+
   .discussion-card {
     padding: 16px 14px;
+    border-radius: 16px;
   }
 
   .discussion-title {
     font-size: 15px;
   }
+
+  .discussion-footer {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 }
+
