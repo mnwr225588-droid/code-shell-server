@@ -179,6 +179,12 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/users/{id}', [AdminContentController::class, 'showUser']);
     Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);
     
+    // الباقات (Plans) للكورسات
+    Route::get('/courses/{id}/plans', [AdminContentController::class, 'getCoursePlans']);
+    Route::post('/courses/{id}/plans', [AdminContentController::class, 'storeCoursePlan']);
+    Route::put('/plans/{id}', [AdminContentController::class, 'updateCoursePlan']);
+    Route::delete('/plans/{id}', [AdminContentController::class, 'deleteCoursePlan']);
+    
     // Groups & Online Lectures
     Route::get('/courses/{courseId}/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'index']);
     Route::post('/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'store']);

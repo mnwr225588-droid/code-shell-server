@@ -12,6 +12,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\CoursePlan;
 use App\Models\Level;
 use App\Models\Lesson;
 use App\Models\User;
@@ -542,6 +543,130 @@ class AdminContentController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'فشل في حذف الحساب: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // 🔟 إدارة الباقات (Plans) للكورسات
+    /**
+     * جلب جميع الباقات لكورس معين
+     */
+    public function getCoursePlans($courseId)
+    {
+        $course = Course::findOrFail($courseId);
+        $plans = CoursePlan::where('course_id', $courseId)
+            ->orderBy('sort_order')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $plans
+        ]);
+    }
+
+    /**
+     * إضافة باقة جديدة لكورس
+     */
+    public function storeCoursePlan(Request $request, $courseId)
+    {
+        $course = Course::findOrFail($courseId);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'slug' => 'required|string|max:255|unique:course_plans,slug,NULL,id,course_id,' . $courseId,
+            'description' => 'nullable|string',
+            'price' => 'required|numeric',
+            'currency' => 'required|string|max:3',
+            'duration_days' => 'required|integer|min:1',
+            'duration_type' => 'required|string|in:days,months,years',
+            'is_active' => 'sometimes|boolean',
+            'sort_order' => 'sometimes|integer',
+            'features' => 'nullable|array',
+        ]);
+
+        $plan = CoursePlan::create([
+            'course_id' => $courseId,
+            'name' => $request->name,
+            'name_en' => $request->name_en,
+            'slug' => $request->slug,
+            'description' => $request->description,
+            'price' => $request->price,
+            'currency' => $request->currency,
+            'duration_days' => $request->duration_days,
+            'duration_type' => $request->duration_type,
+            'is_active' => $request->is_active ?? true,
+            'sort_order' => $request->sort_order ?? 0,
+            'features' => $request->features,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تمت إضافة الباقة بنجاح',
+            'data' => $plan
+        ]);
+    }
+
+    /**
+     * تعديل باقة موجودة
+     */
+    public function updateCoursePlan(Request $request, $id)
+    {
+        $plan = CoursePlan::findOrFail($id);
+
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'name_en' => 'nullable|string|max:255',
+            'slug' => 'sometimes|string|max:255|unique:course_plans,slug,' . $id . ',id',
+            'description' => 'nullable|string',
+            'price' => 'sometimes|numeric',
+            'currency' => 'sometimes|string|max:3',
+            'duration_days' => 'sometimes|integer|min:1',
+            'duration_type' => 'sometimes|string|in:days,months,years',
+            'is_active' => 'sometimes|boolean',
+            'sort_order' => 'sometimes|integer',
+            'features' => 'nullable|array',
+        ]);
+
+        if ($request->has('name')) $plan->name = $request->name;
+        if ($request->has('name_en')) $plan->name_en = $request->name_en;
+        if ($request->has('slug')) $plan->slug = $request->slug;
+        if ($request->has('description')) $plan->description = $request->description;
+        if ($request->has('price')) $plan->price = $request->price;
+        if ($request->has('currency')) $plan->currency = $request->currency;
+        if ($request->has('duration_days')) $plan->duration_days = $request->duration_days;
+        if ($request->has('duration_type')) $plan->duration_type = $request->duration_type;
+        if ($request->has('is_active')) $plan->is_active = $request->is_active;
+        if ($request->has('sort_order')) $plan->sort_order = $request->sort_order;
+        if ($request->has('features')) $plan->features = $request->features;
+
+        $plan->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تحديث الباقة بنجاح',
+            'data' => $plan
+        ]);
+    }
+
+    /**
+     * حذف باقة
+     */
+    public function deleteCoursePlan($id)
+    {
+        try {
+            $plan = CoursePlan::findOrFail($id);
+            $plan->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم حذف الباقة بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting plan #' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في حذف الباقة: ' . $e->getMessage(),
             ], 500);
         }
     }
