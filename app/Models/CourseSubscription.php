@@ -48,6 +48,7 @@ class CourseSubscription extends Model
         'user_id',
         'course_id',
         'group_id',
+        'plan_id',
         'subscription_status',
         'payment_status',
         'amount',
@@ -61,6 +62,8 @@ class CourseSubscription extends Model
         'failed_at',
         'cancelled_at',
         'expired_at',
+        'started_at',
+        'is_expired',
         'failure_reason',
         'metadata',
     ];
@@ -73,6 +76,8 @@ class CourseSubscription extends Model
         'failed_at'                => 'datetime',
         'cancelled_at'             => 'datetime',
         'expired_at'               => 'datetime',
+        'started_at'               => 'datetime',
+        'is_expired'               => 'boolean',
         'metadata'                 => 'array',
     ];
 
@@ -101,11 +106,64 @@ class CourseSubscription extends Model
     }
 
     /**
+     * علاقة الباقة (Plan)
+     */
+    public function plan()
+    {
+        return $this->belongsTo(CoursePlan::class, 'plan_id');
+    }
+
+    /**
      * هل يمنح هذا الاشتراك صاحبه صلاحية الوصول للكورس؟
      * (الاشتراك النشط active أو الاشتراكات القديمة legacy التي كانت null)
      */
     public function isGranted(): bool
     {
+        if ($this->is_expired) {
+            return false;
+        }
+        if ($this->expired_at && $this->expired_at->isPast()) {
+            return false;
+        }
         return $this->subscription_status === self::STATUS_ACTIVE || is_null($this->subscription_status);
+    }
+
+    /**
+     * حساب المدة المتبقية من الاشتراك بالأيام
+     */
+    public function getRemainingDaysAttribute(): int
+    {
+        if (!$this->expired_at) {
+            return 0;
+        }
+        return max(0, now()->diffInDays($this->expired_at, false));
+    }
+
+    /**
+     * تحديث حالة الاشتراك بناءً على تاريخ الانتهاء
+     */
+    public function checkAndUpdateExpiry(): void
+    {
+        if ($this->expired_at && $this->expired_at->isPast()) {
+            $this->is_expired = true;
+            $this->subscription_status = self::STATUS_EXPIRED;
+            $this->save();
+        }
+    }
+
+    /**
+     * تفعيل الاشتراك من أول محاضرة أونلاين
+     */
+    public function activateFromFirstLecture(): void
+    {
+        if (!$this->plan) {
+            return;
+        }
+
+        $this->started_at = now();
+        $this->expired_at = now()->addDays($this->plan->duration_days);
+        $this->is_expired = false;
+        $this->subscription_status = self::STATUS_ACTIVE;
+        $this->save();
     }
 }

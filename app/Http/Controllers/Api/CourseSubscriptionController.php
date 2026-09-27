@@ -19,6 +19,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CoursePlan;
+use App\Models\CourseSubscription;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -37,11 +39,18 @@ class CourseSubscriptionController extends Controller
 
         $group = null;
         $subscription = null;
+        $plan = null;
         if ($isSubscribed && $user) {
-            $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+            $subscription = CourseSubscription::where('user_id', $user->id)
                 ->where('course_id', $course->id)
+                ->with('plan')
                 ->first();
-            
+
+            if ($subscription) {
+                $subscription->checkAndUpdateExpiry();
+                $plan = $subscription->plan;
+            }
+
             if ($subscription && $subscription->group_id) {
                 $group = \App\Models\CourseGroup::find($subscription->group_id);
             }
@@ -53,6 +62,14 @@ class CourseSubscriptionController extends Controller
 
         $subDate = $subscription ? ($subscription->paid_at ?? $subscription->created_at) : null;
         $canCancel = $subDate ? ($subDate->diffInHours(now()) <= 48) : true;
+
+        // حساب المدة المتبقية
+        $remainingDays = 0;
+        $expiryDate = null;
+        if ($subscription && $subscription->expired_at) {
+            $remainingDays = $subscription->remaining_days;
+            $expiryDate = $subscription->expired_at->toIso8601String();
+        }
 
         return response()->json([
             'status'        => true,
@@ -66,6 +83,15 @@ class CourseSubscriptionController extends Controller
             'subscribed_at' => $subDate ? $subDate->toIso8601String() : null,
             'can_cancel'    => $canCancel,
             'hours_since_subscription' => $subDate ? $subDate->diffInHours(now()) : 0,
+            'plan'          => $plan ? [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'duration_days' => $plan->duration_days,
+                'duration_text' => $plan->duration_text,
+            ] : null,
+            'remaining_days' => $remainingDays,
+            'expired_at' => $expiryDate,
+            'is_expired' => $subscription ? $subscription->is_expired : false,
         ]);
     }
 
@@ -84,6 +110,25 @@ class CourseSubscriptionController extends Controller
 
         // الحصول على نوع الخطة من الطلب (monthly أو term_3months)
         $planType = $request->input('plan_type', 'monthly');
+
+        // البحث عن الباقة المناسبة للكورس
+        $plan = CoursePlan::where('course_id', $courseId)
+            ->where('slug', $planType)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$plan) {
+            // إذا لم توجد باقة، نحاول إنشاء واحدة افتراضية
+            $plan = CoursePlan::create([
+                'course_id' => $courseId,
+                'name' => $planType === 'term_3months' ? 'اشتراك ثلاث شهور' : 'اشتراك شهري',
+                'slug' => $planType,
+                'price' => $course->price,
+                'currency' => 'EGP',
+                'duration_days' => $planType === 'term_3months' ? 90 : 30,
+                'is_active' => true,
+            ]);
+        }
 
         // التحقق من توفر مجموعة غير مفعلة للتسجيل
         $availableGroup = \App\Models\CourseGroup::where('course_id', $courseId)
@@ -127,30 +172,38 @@ class CourseSubscriptionController extends Controller
                     'status'    => 'active'
                 ]);
             }
-            $user->subscribedCourses()->syncWithoutDetaching([
-                $courseId => [
-                    'group_id' => $assignedGroup->id,
-                    'metadata' => json_encode(['plan_type' => $planType])
-                ]
-            ]);
-        } else {
-            // تحديث الاشتراك الموجود بإضافة الـ metadata
-            $existingSubscription = \App\Models\CourseSubscription::where('user_id', $user->id)
-                ->where('course_id', $courseId)
-                ->first();
-            
-            if ($existingSubscription) {
-                $existingSubscription->metadata = json_encode(['plan_type' => $planType]);
-                $existingSubscription->save();
-            }
         }
+
+        // إنشاء أو تحديث الاشتراك مع الباقة
+        $subscription = CourseSubscription::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'course_id' => $courseId,
+            ],
+            [
+                'group_id' => $assignedGroup->id,
+                'plan_id' => $plan->id,
+                'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+                'payment_status' => $course->is_free ? CourseSubscription::PAYMENT_NOT_REQUIRED : CourseSubscription::PAYMENT_PAID,
+                'amount' => $plan->price,
+                'currency_code' => $plan->currency,
+                'course_price_at_purchase' => $course->price,
+                'metadata' => json_encode(['plan_type' => $planType]),
+                'is_expired' => false,
+            ]
+        );
 
         return response()->json([
             'status'        => true,
             'message'       => 'تم الاشتراك في الكورس بنجاح!',
             'is_subscribed' => true,
             'students_count'=> $course->subscribedUsers()->count() + 120,
-            'plan_type'     => $planType,
+            'plan'          => [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'duration_days' => $plan->duration_days,
+                'duration_text' => $plan->duration_text,
+            ],
         ]);
     }
 
