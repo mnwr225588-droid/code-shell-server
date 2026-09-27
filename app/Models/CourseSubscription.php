@@ -106,7 +106,8 @@ class CourseSubscription extends Model
     }
 
     /**
-     * علاقة الباقة (Plan)
+     * علاقة الاشتراك بالباقة (Plan)
+     * كل اشتراك يتبع باقة واحدة
      */
     public function plan()
     {
@@ -115,36 +116,55 @@ class CourseSubscription extends Model
 
     /**
      * هل يمنح هذا الاشتراك صاحبه صلاحية الوصول للكورس؟
-     * (الاشتراك النشط active أو الاشتراكات القديمة legacy التي كانت null)
+     * يتحقق من:
+     * 1. هل الاشتراك منتهي (is_expired)
+     * 2. هل تاريخ الانتهاء في الماضي
+     * 3. هل حالة الاشتراك نشطة
      */
     public function isGranted(): bool
     {
+        // إذا كان الاشتراك منتهي صراحة، رفض الوصول
         if ($this->is_expired) {
             return false;
         }
+        
+        // إذا كان تاريخ الانتهاء موجود وفي الماضي، رفض الوصول
         if ($this->expired_at && $this->expired_at->isPast()) {
             return false;
         }
+        
+        // القبول إذا كان الاشتراك نشط أو من الاشتراكات القديمة (null)
         return $this->subscription_status === self::STATUS_ACTIVE || is_null($this->subscription_status);
     }
 
     /**
      * حساب المدة المتبقية من الاشتراك بالأيام
+     * Accessor تلقائي يرجع عدد الأيام المتبقية
+     * يرجع 0 إذا لم يكن هناك تاريخ انتهاء
      */
     public function getRemainingDaysAttribute(): int
     {
+        // إذا لم يكن هناك تاريخ انتهاء، رجع 0
         if (!$this->expired_at) {
             return 0;
         }
+        
+        // حساب الفرق بالأيام بين الآن وتاريخ الانتهاء
+        // false للفرق في المستقبل (أيام متبقية)
+        // max(0, ...) لضمان عدم إرجاع أرقام سالبة
         return max(0, now()->diffInDays($this->expired_at, false));
     }
 
     /**
      * تحديث حالة الاشتراك بناءً على تاريخ الانتهاء
+     * هذه الدالة تستدعى عند كل طلب للتحقق من حالة الاشتراك
+     * إذا انتهت المدة، يتم تحديث الحالة تلقائياً
      */
     public function checkAndUpdateExpiry(): void
     {
+        // التحقق من وجود تاريخ انتهاء وأنه في الماضي
         if ($this->expired_at && $this->expired_at->isPast()) {
+            // تحديث حالة الاشتراك إلى منتهي
             $this->is_expired = true;
             $this->subscription_status = self::STATUS_EXPIRED;
             $this->save();
@@ -153,17 +173,27 @@ class CourseSubscription extends Model
 
     /**
      * تفعيل الاشتراك من أول محاضرة أونلاين
+     * هذه الدالة تستدعى عند نزول أول محاضرة أونلاين للكورس
+     * تحسب تاريخ البدء والانتهاء بناءً على مدة الباقة
      */
     public function activateFromFirstLecture(): void
     {
+        // التحقق من وجود باقة مرتبطة بالاشتراك
         if (!$this->plan) {
             return;
         }
 
+        // تعيين تاريخ البدء الآن
         $this->started_at = now();
+        
+        // حساب تاريخ الانتهاء بإضافة مدة الباقة بالأيام
         $this->expired_at = now()->addDays($this->plan->duration_days);
+        
+        // تفعيل الاشتراك
         $this->is_expired = false;
         $this->subscription_status = self::STATUS_ACTIVE;
+        
+        // حفظ التغييرات
         $this->save();
     }
 }

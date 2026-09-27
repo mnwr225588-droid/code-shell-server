@@ -30,40 +30,53 @@ class CourseSubscriptionController extends Controller
     /**
      * جلب حالة اشتراك المستخدم الحالي في كورس معين
      */
+    /**
+     * جلب حالة اشتراك المستخدم الحالي في كورس معين
+     * يرجع معلومات شاملة عن الاشتراك والمجموعة والباقة والمدة المتبقية
+     */
     public function getStatus(Request $request, $courseId): JsonResponse
     {
+        // جلب الكورس والمستخدم
         $course = Course::findOrFail($courseId);
         $user = $request->user();
 
+        // التحقق من حالة الاشتراك
         $isSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
 
         $group = null;
         $subscription = null;
         $plan = null;
+        
+        // إذا كان المستخدم مشترك، جلب تفاصيل الاشتراك
         if ($isSubscribed && $user) {
+            // جلب الاشتراك مع الباقة المرتبطة
             $subscription = CourseSubscription::where('user_id', $user->id)
                 ->where('course_id', $course->id)
                 ->with('plan')
                 ->first();
 
+            // التحقق من حالة الانتهاء وتحديثها إذا لزم الأمر
             if ($subscription) {
                 $subscription->checkAndUpdateExpiry();
                 $plan = $subscription->plan;
             }
 
+            // جلب المجموعة المرتبطة بالاشتراك
             if ($subscription && $subscription->group_id) {
                 $group = \App\Models\CourseGroup::find($subscription->group_id);
             }
 
+            // إذا لم تكن هناك مجموعة، تعيين واحدة تلقائياً
             if (!$group) {
                 $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
             }
         }
 
+        // حساب تاريخ الاشتراك لتحديد إمكانية الإلغاء
         $subDate = $subscription ? ($subscription->paid_at ?? $subscription->created_at) : null;
         $canCancel = $subDate ? ($subDate->diffInHours(now()) <= 48) : true;
 
-        // حساب المدة المتبقية
+        // حساب المدة المتبقية من الاشتراك
         $remainingDays = 0;
         $expiryDate = null;
         if ($subscription && $subscription->expired_at) {
@@ -71,6 +84,7 @@ class CourseSubscriptionController extends Controller
             $expiryDate = $subscription->expired_at->toIso8601String();
         }
 
+        // إرجاع الاستجابة بجميع المعلومات المطلوبة
         return response()->json([
             'status'        => true,
             'is_subscribed' => $isSubscribed,
@@ -103,12 +117,18 @@ class CourseSubscriptionController extends Controller
      * بعد تحقق السيرفر المستقل من البوابة). الكورسات المجانية فقط
      * يُسمح لها بالاشتراك المباشر من هذا المسار.
      */
+    /**
+     * تسجيل اشتراك المستخدم الحالي في كورس معين
+     * يدعم نظام الباقات (Plans) للتحكم في مدة الاشتراك والسعر
+     */
     public function subscribe(Request $request, $courseId): JsonResponse
     {
+        // جلب الكورس والمستخدم
         $course = Course::findOrFail($courseId);
         $user = $request->user();
 
         // الحصول على نوع الخطة من الطلب (monthly أو term_3months)
+        // القيمة الافتراضية هي monthly إذا لم يتم تحديدها
         $planType = $request->input('plan_type', 'monthly');
 
         // البحث عن الباقة المناسبة للكورس
@@ -117,8 +137,8 @@ class CourseSubscriptionController extends Controller
             ->where('is_active', true)
             ->first();
 
+        // إذا لم توجد باقة، نحاول إنشاء واحدة افتراضية تلقائياً
         if (!$plan) {
-            // إذا لم توجد باقة، نحاول إنشاء واحدة افتراضية
             $plan = CoursePlan::create([
                 'course_id' => $courseId,
                 'name' => $planType === 'term_3months' ? 'اشتراك ثلاث شهور' : 'اشتراك شهري',
@@ -131,6 +151,7 @@ class CourseSubscriptionController extends Controller
         }
 
         // التحقق من توفر مجموعة غير مفعلة للتسجيل
+        // المجموعات التي ليست active أو completed هي المتاحة
         $availableGroup = \App\Models\CourseGroup::where('course_id', $courseId)
             ->whereNotIn('status', ['active', 'completed'])
             ->exists();
@@ -145,6 +166,7 @@ class CourseSubscriptionController extends Controller
         // ══════════════════════════════════════════════════════
         // 🔒 حماية: منع الاشتراك المباشر في الكورسات المدفوعة
         // ══════════════════════════════════════════════════════
+        // الكورسات المدفوعة تتطلب دفع مكتمل أولاً
         if (!$course->is_free) {
             $hasCompletedPayment = Transaction::where('user_id', $user->id)
                 ->where('course_id', $course->id)
@@ -162,6 +184,7 @@ class CourseSubscriptionController extends Controller
         // ربط المستخدم بأحدث مجموعة مفتوحة، أو إنشاء مجموعة أساسية تلقائياً
         $assignedGroup = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $courseId);
 
+        // إذا لم يتم تعيين مجموعة، نحاول إنشاء واحدة
         if (!$assignedGroup) {
             $assignedGroup = \App\Models\CourseGroup::where('course_id', $courseId)->first();
             if (!$assignedGroup) {
@@ -174,7 +197,8 @@ class CourseSubscriptionController extends Controller
             }
         }
 
-        // إنشاء أو تحديث الاشتراك مع الباقة
+        // إنشاء أو تحديث الاشتراك مع ربطه بالباقة المحددة
+        // updateOrCreate يضمن عدم تكرار الاشتراك لنفس المستخدم والكورس
         $subscription = CourseSubscription::updateOrCreate(
             [
                 'user_id' => $user->id,
@@ -193,6 +217,7 @@ class CourseSubscriptionController extends Controller
             ]
         );
 
+        // إرجاع استجابة النجاح مع معلومات الباقة
         return response()->json([
             'status'        => true,
             'message'       => 'تم الاشتراك في الكورس بنجاح!',
