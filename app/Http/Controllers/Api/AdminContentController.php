@@ -15,6 +15,7 @@ use App\Models\Course;
 use App\Models\CoursePlan;
 use App\Models\Level;
 use App\Models\Lesson;
+use App\Models\PlanLesson;
 use App\Models\User;
 use App\Services\PricingService;
 use App\Services\VideoProcessor;
@@ -667,6 +668,78 @@ class AdminContentController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'فشل في حذف الباقة: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // 1️⃣1️⃣ إدارة ربط المحاضرات بالباقات (Plan Lessons)
+    /**
+     * جلب المحاضرات المرتبطة بباقة معينة
+     */
+    public function getPlanLessons($planId)
+    {
+        $plan = CoursePlan::findOrFail($planId);
+        $planLessons = PlanLesson::where('plan_id', $planId)
+            ->with(['lesson', 'level', 'group'])
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $planLessons
+        ]);
+    }
+
+    /**
+     * ربط محاضرة بباقة (أو مجموعة/مستوى)
+     */
+    public function assignLessonToPlan(Request $request, $planId)
+    {
+        $plan = CoursePlan::findOrFail($planId);
+
+        $request->validate([
+            'lesson_id' => 'required|exists:lessons,id',
+            'level_id' => 'nullable|exists:levels,id',
+            'group_id' => 'nullable|exists:course_groups,id',
+            'is_accessible' => 'sometimes|boolean',
+        ]);
+
+        $planLesson = PlanLesson::updateOrCreate(
+            [
+                'plan_id' => $planId,
+                'lesson_id' => $request->lesson_id,
+            ],
+            [
+                'level_id' => $request->level_id,
+                'group_id' => $request->group_id,
+                'is_accessible' => $request->is_accessible ?? true,
+            ]
+        );
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم ربط المحاضرة بالباقة بنجاح',
+            'data' => $planLesson
+        ]);
+    }
+
+    /**
+     * إزالة ربط محاضرة من باقة
+     */
+    public function removeLessonFromPlan($id)
+    {
+        try {
+            $planLesson = PlanLesson::findOrFail($id);
+            $planLesson->delete();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'تم إزالة المحاضرة من الباقة بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error removing lesson from plan #' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'فشل في إزالة المحاضرة: ' . $e->getMessage(),
             ], 500);
         }
     }

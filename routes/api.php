@@ -185,6 +185,11 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::put('/plans/{id}', [AdminContentController::class, 'updateCoursePlan']);
     Route::delete('/plans/{id}', [AdminContentController::class, 'deleteCoursePlan']);
     
+    // ربط المحاضرات بالباقات (Plan Lessons)
+    Route::get('/plans/{id}/lessons', [AdminContentController::class, 'getPlanLessons']);
+    Route::post('/plans/{id}/lessons', [AdminContentController::class, 'assignLessonToPlan']);
+    Route::delete('/plan-lessons/{id}', [AdminContentController::class, 'removeLessonFromPlan']);
+    
     // Groups & Online Lectures
     Route::get('/courses/{courseId}/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'index']);
     Route::post('/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'store']);
