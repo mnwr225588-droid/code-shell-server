@@ -82,6 +82,9 @@ class CourseSubscriptionController extends Controller
         $course = Course::findOrFail($courseId);
         $user = $request->user();
 
+        // الحصول على نوع الخطة من الطلب (monthly أو term_3months)
+        $planType = $request->input('plan_type', 'monthly');
+
         // التحقق من توفر مجموعة غير مفعلة للتسجيل
         $availableGroup = \App\Models\CourseGroup::where('course_id', $courseId)
             ->whereNotIn('status', ['active', 'completed'])
@@ -125,8 +128,21 @@ class CourseSubscriptionController extends Controller
                 ]);
             }
             $user->subscribedCourses()->syncWithoutDetaching([
-                $courseId => ['group_id' => $assignedGroup->id]
+                $courseId => [
+                    'group_id' => $assignedGroup->id,
+                    'metadata' => json_encode(['plan_type' => $planType])
+                ]
             ]);
+        } else {
+            // تحديث الاشتراك الموجود بإضافة الـ metadata
+            $existingSubscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->first();
+            
+            if ($existingSubscription) {
+                $existingSubscription->metadata = json_encode(['plan_type' => $planType]);
+                $existingSubscription->save();
+            }
         }
 
         return response()->json([
@@ -134,6 +150,7 @@ class CourseSubscriptionController extends Controller
             'message'       => 'تم الاشتراك في الكورس بنجاح!',
             'is_subscribed' => true,
             'students_count'=> $course->subscribedUsers()->count() + 120,
+            'plan_type'     => $planType,
         ]);
     }
 
