@@ -31,7 +31,7 @@ class PaymentController extends Controller
     public function initiate(Request $request, $courseId): JsonResponse
     {
         $user = $request->user();
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
 
         // 1. الكورسات المجانية: إنشاء اشتراك مجاني فعال عبر السيرفر دون استدعاء EasyKash
         if ($course->is_free || (float)$course->price === 0.0) {
@@ -375,7 +375,7 @@ class PaymentController extends Controller
     public function payWithWallet(Request $request, $courseId): JsonResponse
     {
         $user = $request->user();
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
 
         // 1. الكورسات المجانية لا تحتاج خصم من المحفظة
         if ($course->is_free || (float)$course->price === 0.0) {
@@ -470,7 +470,7 @@ class PaymentController extends Controller
     public function paymentStatus(Request $request, $courseId): JsonResponse
     {
         $user = $request->user();
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
 
         $transaction = Transaction::where('user_id', $user->id)
             ->where('course_id', $course->id)

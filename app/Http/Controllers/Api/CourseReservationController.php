@@ -14,7 +14,7 @@ class CourseReservationController extends Controller
      */
     public function getStatus(Request $request, $courseId): JsonResponse
     {
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
         $user = $request->user();
 
         // معرفة ما إذا كان المستخدم الحالي قد حجز المكان مسبقاً أم لا
@@ -32,7 +32,7 @@ class CourseReservationController extends Controller
      */
     public function toggleReservation(Request $request, $courseId): JsonResponse
     {
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
         $user = $request->user();
 
         // عملية التبديل: إن كان محجوزاً يُلغى، وإن لم يكن يتم الحجز

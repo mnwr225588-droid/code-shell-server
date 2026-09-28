@@ -29,6 +29,9 @@ class AdminContentController extends Controller
     // 0️⃣ جلب جميع الكورسات (بما فيها غير المنشورة)
     public function getCourses(Request $request)
     {
+        // تأكد من وجود كورس البكالوريا بالسيرفر للأدمن
+        try { Course::findCourseSafely(10); } catch (\Exception $e) {}
+
         // Admin needs to see all courses to manage them
         $courses = Course::with('category')->orderBy('id', 'desc')->get();
         return response()->json([
@@ -107,7 +110,7 @@ class AdminContentController extends Controller
     // 2️⃣.ب تعديل كورس (البيانات الأساسية + الأسعار متعددة العملات)
     public function updateCourse(Request $request, $id)
     {
-        $course = Course::findOrFail($id);
+        $course = Course::findCourseSafely($id);
 
         $request->validate([
             'category_id'    => 'sometimes|exists:categories,id',
@@ -343,7 +346,7 @@ class AdminContentController extends Controller
     // 7️⃣ تفعيل/إلغاء تفعيل الكورس (Publish Toggle)
     public function togglePublish($id)
     {
-        $course = Course::findOrFail($id);
+        $course = Course::findCourseSafely($id);
 
         // حفظ الحالة القديمة قبل التبديل
         $wasComingSoon = (bool) $course->is_coming_soon;
@@ -554,7 +557,7 @@ class AdminContentController extends Controller
      */
     public function getCoursePlans($courseId)
     {
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
         $plans = CoursePlan::where('course_id', $courseId)
             ->orderBy('sort_order')
             ->get();
@@ -570,7 +573,7 @@ class AdminContentController extends Controller
      */
     public function storeCoursePlan(Request $request, $courseId)
     {
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
 
         $request->validate([
             'name' => 'required|string|max:255',

@@ -36,8 +36,8 @@ class CourseSubscriptionController extends Controller
      */
     public function getStatus(Request $request, $courseId): JsonResponse
     {
-        // جلب الكورس والمستخدم
-        $course = Course::findOrFail($courseId);
+        // جلب الكورس والمستخدم بأمان
+        $course = Course::findCourseSafely($courseId);
         $user = $request->user();
 
         // التحقق من حالة الاشتراك
@@ -149,8 +149,8 @@ class CourseSubscriptionController extends Controller
      */
     public function subscribe(Request $request, $courseId): JsonResponse
     {
-        // جلب الكورس والمستخدم
-        $course = Course::findOrFail($courseId);
+        // جلب الكورس والمستخدم بأمان
+        $course = Course::findCourseSafely($courseId);
         $user = $request->user();
 
         // الحصول على نوع الخطة من الطلب (monthly أو term_3months)
@@ -263,7 +263,7 @@ class CourseSubscriptionController extends Controller
      */
     public function cancel(Request $request, $courseId): JsonResponse
     {
-        $course = Course::findOrFail($courseId);
+        $course = Course::findCourseSafely($courseId);
         $user = $request->user();
 
         // التأكد من أن المستخدم مشترك حالياً في الكورس

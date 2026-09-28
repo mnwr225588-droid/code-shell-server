@@ -52,10 +52,14 @@ class CourseController extends Controller
     // جلب كورس واحد
     public function show(Request $request, $id)
     {
-        $course = Course::with(['category', 'groups' => function ($q) {
-                $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
-                  ->withCount('students');
-            }])->findOrFail($id);
+        $course = Course::find($id);
+        if (!$course) {
+            $course = Course::findCourseSafely($id);
+        }
+        $course->load(['category', 'groups' => function ($q) {
+            $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
+              ->withCount('students');
+        }]);
 
         $user = auth('sanctum')->user() ?: $request->user();
         $courseData = $course->toArray();
@@ -87,7 +91,7 @@ class CourseController extends Controller
         $user = auth('sanctum')->user() ?: $request->user();
         $userId = $user?->id;
         $isAdmin = $user?->isAdmin() ?? false;
-        $course = Course::findOrFail($course_id);
+        $course = Course::findCourseSafely($course_id);
 
         // 🔒 حماية أمنية صارمة: يمنع منعيًا إرجاع المحتوى لمستخدم غير مسجل الدخول أو لا يملك اشتراكاً فعالاً
         if (!$isAdmin && (!$user || !$course->isUserSubscribed($userId))) {
@@ -215,7 +219,7 @@ class CourseController extends Controller
         $user = auth('sanctum')->user() ?: $request->user();
         $userId = $user?->id;
         $isAdmin = $user?->isAdmin() ?? false;
-        $course = Course::findOrFail($course_id);
+        $course = Course::findCourseSafely($course_id);
 
         // 🔒 حماية أمنية: يمنع الحصول على محاضرات الكورس دون اشتراك
         if (!$isAdmin && (!$user || !$course->isUserSubscribed($userId))) {
