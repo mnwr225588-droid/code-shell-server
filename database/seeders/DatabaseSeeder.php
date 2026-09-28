@@ -33,5 +33,7 @@ class DatabaseSeeder extends Seeder
                 'difficulty' => 'متوسط',
             ]
         );
+
+        $this->call(CoursePlansSeeder::class);
     }
 }

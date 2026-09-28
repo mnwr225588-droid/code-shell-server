@@ -94,10 +94,28 @@ class AdminOnlineLectureController extends Controller
             'status' => 'scheduled',
         ]);
 
+        // ══════════════════════════════════════════════════════
+        // 🔔 تفعيل اشتراكات الطلاب عند نزول أول محاضرة أونلاين
+        // ══════════════════════════════════════════════════════
+        // عند إضافة أول محاضرة أونلاين لكورس، يبدأ العد التنازلي
+        // لجميع الاشتراكات التي لم يُعيَّن لها تاريخ بدء بعد.
+        // هذا مهم لكورسات مثل البكالوريا (اشتراك 3 أشهر من أول محاضرة).
+        $courseId = $request->course_id;
+        $subscriptionsToActivate = \App\Models\CourseSubscription::where('course_id', $courseId)
+            ->where('subscription_status', 'active')
+            ->whereNull('started_at')
+            ->get();
+
+        foreach ($subscriptionsToActivate as $sub) {
+            $sub->activateFromFirstLecture();
+            Log::info("Activated subscription #{$sub->id} for user #{$sub->user_id} in course #{$courseId}");
+        }
+
         return response()->json([
             'status' => true,
-            'message' => 'تم إضافة المحاضرة الأونلاين بنجاح',
-            'data' => $lecture
+            'message' => 'تم إضافة المحاضرة الأونلاين بنجاح' . ($subscriptionsToActivate->count() > 0 ? " وتفعيل {$subscriptionsToActivate->count()} اشتراك" : ''),
+            'data' => $lecture,
+            'activated_subscriptions' => $subscriptionsToActivate->count(),
         ], 200);
     }
 

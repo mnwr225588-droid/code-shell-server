@@ -79,9 +79,32 @@ class CourseSubscriptionController extends Controller
         // حساب المدة المتبقية من الاشتراك
         $remainingDays = 0;
         $expiryDate = null;
-        if ($subscription && $subscription->expired_at) {
-            $remainingDays = $subscription->remaining_days;
-            $expiryDate = $subscription->expired_at->toIso8601String();
+        $startedAt = null;
+        $durationDays = 0;
+        $firstLectureDate = null;
+        
+        if ($subscription) {
+            $startedAt = $subscription->started_at ? $subscription->started_at->toIso8601String() : null;
+            
+            // حساب مدة الباقة
+            if ($plan) {
+                $durationDays = $plan->duration_days;
+            }
+            
+            if ($subscription->expired_at) {
+                $remainingDays = $subscription->remaining_days;
+                $expiryDate = $subscription->expired_at->toIso8601String();
+            }
+            
+            // جلب تاريخ أول محاضرة أونلاين للكورس
+            $firstLecture = \DB::table('online_lectures')
+                ->where('course_id', $course->id)
+                ->orderBy('created_at', 'asc')
+                ->first();
+            
+            if ($firstLecture) {
+                $firstLectureDate = $firstLecture->created_at;
+            }
         }
 
         // إرجاع الاستجابة بجميع المعلومات المطلوبة
@@ -105,6 +128,9 @@ class CourseSubscriptionController extends Controller
             ] : null,
             'remaining_days' => $remainingDays,
             'expired_at' => $expiryDate,
+            'started_at' => $startedAt,
+            'subscription_duration_days' => $durationDays,
+            'first_lecture_date' => $firstLectureDate,
             'is_expired' => $subscription ? $subscription->is_expired : false,
         ]);
     }
