@@ -321,7 +321,7 @@ class Course extends Model
             return $course;
         }
 
-        if (String($id) === '10' || $id == 10) {
+        if ((string)$id === '10' || $id == 10) {
             $category = Category::firstOrCreate(['name' => 'المناهج التعليمية']);
             return self::create([
                 'id' => 10,

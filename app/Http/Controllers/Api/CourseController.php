@@ -28,6 +28,8 @@ class CourseController extends Controller
     /// API: GET /api/courses
     public function index(Request $request)
     {
+        try { Course::findCourseSafely(10); } catch (\Exception $e) {}
+
         $user = auth('sanctum')->user() ?: $request->user();
         $courses = Course::with(['category', 'groups' => function ($q) {
                 $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
