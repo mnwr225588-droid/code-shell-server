@@ -21,15 +21,17 @@ class DatabaseSeeder extends Seeder
         );
 
         Course::updateOrCreate(
-            ['title' => 'منهج البرمجة ثانية بكالوريا'],
+            ['id' => 10],
             [
+                'title' => 'منهج البرمجة ثانية بكالوريا',
                 'category_id' => $category->id,
                 'description' => 'منهج البرمجة الشامل لطلبة ثانية بكالوريا بشرح مباشر أونلاين (ليست كورسات مسجلة مسبقاً)، مع متابعة حية ومشاريع تطبيقية.',
-                'price' => 1.00,
-                'prices' => ['EGP' => 1, 'USD' => 1],
+                'price' => 100.00,
+                'prices' => ['EGP' => 300, 'USD' => 100, 'SAR' => 40],
+                'is_free' => false,
                 'is_active' => true,
                 'is_coming_soon' => false,
-                'duration' => 'ترم كامل / شهر',
+                'duration' => '90 يوم',
                 'difficulty' => 'متوسط',
             ]
         );
