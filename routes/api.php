@@ -102,66 +102,6 @@ Route::post('/app-reviews', [AppReviewController::class, 'store']);
 
 /*
 |--------------------------------------------------------------------------
-| Server & Database Diagnostic / Fix Route (مسار الفحص الشامل وإصلاح الأدمن)
-|--------------------------------------------------------------------------
-*/
-Route::get('/server-check', function () {
-    try {
-        $user = User::where('email', 'admin@codeshell.com')->first();
-        
-        if (!$user) {
-            $user = new User();
-            $user->email = 'admin@codeshell.com';
-        }
-        
-        // تعبئة كافة الحقول المحتملة لتجنب أي قيود Not Null
-        $user->name = 'Admin';
-        
-        if (Schema::hasColumn('users', 'first_name')) {
-            $user->first_name = 'Admin';
-        }
-        if (Schema::hasColumn('users', 'middle_name')) {
-            $user->middle_name = 'Admin';
-        }
-        if (Schema::hasColumn('users', 'last_name')) {
-            $user->last_name = 'System';
-        }
-        if (Schema::hasColumn('users', 'username')) {
-            $user->username = 'admin';
-        }
-        if (Schema::hasColumn('users', 'phone')) {
-            $user->phone = '0123456789';
-        }
-        
-        $user->password = Hash::make('password');
-        
-        if (Schema::hasColumn('users', 'role')) {
-            $user->role = 'admin';
-        }
-        
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'تم إنشاء حساب الأدمن وتجاوز القيود بنجاح!',
-            'admin_user' => $user
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-            'line' => $e->getLine()
-        ], 500);
-    }
-});
-
-Route::get('/create-admin-fix', function () {
-    return redirect('/api/server-check');
-});
-
-/*
-|--------------------------------------------------------------------------
 | Admin Routes (إضافة لغات، كورسات، مستويات، دروس بالفيديو، والمستخدمين)
 |--------------------------------------------------------------------------
 */

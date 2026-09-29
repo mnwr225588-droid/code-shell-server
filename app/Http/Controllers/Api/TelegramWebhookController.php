@@ -12,12 +12,13 @@ use Illuminate\Support\Str;
 
 class TelegramWebhookController extends Controller
 {
-    protected string $botToken = '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U';
+    protected string $botToken;
     protected string $secretToken = '';
 
     public function __construct()
     {
-        // تم تعيين التوكن مباشرة أعلى الكلاس لضمان العمل الفوري
+        // التوكن يُقرأ من البيئة عبر config/services.php (TELEGRAM_BOT_TOKEN) — لا يُخزن في الكود
+        $this->botToken = (string) config('services.telegram.bot_token', '');
     }
 
     // ============================================================

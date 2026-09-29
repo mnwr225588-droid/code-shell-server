@@ -24,6 +24,10 @@ class AdminAuthController extends Controller
             ], 401);
         }
 
+        // أمني: إبطال جميع جلسات الأدمن السابقة عند كل تسجيل دخول
+        // (يمنع استمرار صلاحية أي توكن قديم مسرّب أو محفوظ على جهاز آخر)
+        $admin->tokens()->delete();
+
         // إنشاء توكن خاص بحارس الـ admin باستخدام Sanctum
         $token = $admin->createToken('admin_token')->plainTextToken;
 
