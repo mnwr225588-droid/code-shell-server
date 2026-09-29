@@ -398,7 +398,18 @@ class AdminContentController extends Controller
             fclose($out);
 
             // 3. غلاف UploadedFile للمؤقت ليغذي نفس مسار R2 المتبع
-            $videoFile = new \Illuminate\Http\UploadedFile($mergedTmp, $request->filename, null, null, true);
+            // مع نوع MIME صحيح حسب الامتداد الأصلي (حتى لا يُخمَّن .bin)
+            $mimeMap = [
+                'mp4' => 'video/mp4', 'mov' => 'video/quicktime', 'avi' => 'video/x-msvideo',
+                'mkv' => 'video/x-matroska', 'wmv' => 'video/x-ms-wmv',
+            ];
+            $videoFile = new \Illuminate\Http\UploadedFile(
+                $mergedTmp,
+                $request->filename,
+                $mimeMap[$ext] ?? 'application/octet-stream',
+                null,
+                true
+            );
 
             $key = $videoFile->store('lessons/videos', 'r2');
             Log::info('Chunked video uploaded to R2: ' . $key);
