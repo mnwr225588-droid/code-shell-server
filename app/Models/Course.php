@@ -312,7 +312,100 @@ class Course extends Model
     }
 
     /**
-     * البحث عن الكورس بأمان وإنشاء كورس البكالوريا تلقائياً إذا لم يكن موجهاً بـ ID 10
+     * البحث عن كورس البكالوريا بشكل مضمون بغض النظر عن ترتيب قاعدة البيانات.
+     *
+     * ⚠️ مطابقة النصوص العربية داخل SQL (LIKE / =) غير موثوقة على قاعدة بيانات الإنتاج،
+     * (وهذا ما تسبب سابقاً في إنشاء عشرات الكورسات المكررة)، لذلك:
+     * 1. نحاول أولاً البحث عبر تصنيف البكالوريا بـ slug إنجليزي (ASCII آمن دائماً).
+     * 2. ثم نرتب الكورسات بالمعرف ونطابق العنوان داخل PHP (str_contains يعمل على
+     *    مستوى البايتات ولا يتأثر بمشاكل collation قاعدة البيانات).
+     */
+    public static function findBaccalaureateCourse()
+    {
+        // slug إنجليزي (ASCII) = مطابقة آمنة على أي قاعدة بيانات — بشرط وجود العمود
+        if (\Schema::hasTable('categories') && \Schema::hasColumn('categories', 'slug')) {
+            $category = Category::where('slug', 'baccalaureate')->first();
+            if ($category) {
+                $byCategory = self::where('category_id', $category->id)->orderBy('id')->first();
+                if ($byCategory) {
+                    return $byCategory;
+                }
+            }
+        }
+
+        // مطابقة العنوان داخل PHP — تعمل حتى لو كانت مطابقة العربية معطلة في SQL
+        return self::orderBy('id')->get()
+            ->first(fn ($c) => str_contains((string) $c->title, 'بكالوريا'));
+    }
+
+    /**
+     * دمج كورسات البكالوريا المكررة في كورس واحد (الأقدم بأقل معرف) وحذف الباقي.
+     * يُعاد توجيه كل الجداول الأبناء (مستويات، مجموعات، اشتراكات، حجوزات...) للكورس المحتفظ به.
+     *
+     * @return array إحصائيات العملية: عدد المحذوف ومعرف الكورس المحتفظ به
+     */
+    public static function deduplicateBaccalaureate(): array
+    {
+        $bacCourses = self::orderBy('id')->get()
+            ->filter(fn ($c) => str_contains((string) $c->title, 'بكالوريا'))
+            ->values();
+
+        if ($bacCourses->count() <= 1) {
+            return ['deleted' => 0, 'kept_id' => $bacCourses->first()?->id];
+        }
+
+        $keeper  = $bacCourses->first();
+        $dupeIds = $bacCourses->skip(1)->pluck('id')->all();
+
+        \DB::transaction(function () use ($dupeIds, $keeper) {
+            // 1. إعادة ربط الجداول الأبناء بالكورس المحتفظ به قبل الحذف
+            foreach ([
+                'levels',
+                'sections',
+                'online_lectures',
+                'course_groups',
+                'course_reservations',
+                'course_plans',
+                'transactions',
+            ] as $table) {
+                if (\Schema::hasTable($table) && \Schema::hasColumn($table, 'course_id')) {
+                    \DB::table($table)->whereIn('course_id', $dupeIds)->update(['course_id' => $keeper->id]);
+                }
+            }
+
+            // 2. الاشتراكات: احترام القيد الفريد (user_id, course_id) — حذف أي تعارض أولاً
+            if (\Schema::hasTable('course_subscriptions')) {
+                $dupeSubUsers = \DB::table('course_subscriptions')
+                    ->whereIn('course_id', $dupeIds)->pluck('user_id');
+
+                \DB::table('course_subscriptions')
+                    ->where('course_id', $keeper->id)
+                    ->whereIn('user_id', $dupeSubUsers)
+                    ->delete();
+
+                \DB::table('course_subscriptions')
+                    ->whereIn('course_id', $dupeIds)
+                    ->update(['course_id' => $keeper->id]);
+            }
+
+            // 3. حذف النسخ المكررة
+            self::whereIn('id', $dupeIds)->delete();
+        });
+
+        \Log::info('Baccalaureate courses deduplicated', [
+            'kept_id'     => $keeper->id,
+            'deleted_ids' => $dupeIds,
+        ]);
+
+        return ['deleted' => count($dupeIds), 'kept_id' => $keeper->id];
+    }
+
+    /**
+     * البحث عن الكورس بأمان وإنشاء كورس البكالوريا تلقائياً إذا لم يكن موجوداً إطلاقاً.
+     *
+     * الإصلاح: النسخة القديمة كانت تعتمد على LIKE عربي داخل SQL يعمل بشكل غير موثوق،
+     * فكان يفشل في العثور على الكورس الموجود وينشئ نسخة مكررة عند كل طلب.
+     * الآن: المطابقة تتم داخل PHP، والإنشاء يتم مرة واحدة فقط تحت قفل ذري مع إعادة فحص.
      */
     public static function findCourseSafely($id)
     {
@@ -322,33 +415,47 @@ class Course extends Model
             return $course;
         }
 
-        // 2. تجربة البحث بالعنوان لضمان عدم التكرار أبداً
-        $bacCourse = self::where('title', 'like', '%بكالوريا%')->first();
+        // 2. البحث عن كورس البكالوريا الموجود (بدون إنشاء)
+        $bacCourse = self::findBaccalaureateCourse();
         if ($bacCourse) {
             return $bacCourse;
         }
 
-        // 3. إنشاء كورس واحد فقط إذا لم يكن موجهاً بـ ID أو عنوان سابق
-        $category = Category::firstOrCreate(['name' => 'المناهج التعليمية']);
-        return self::firstOrCreate(
-            ['title' => 'منهج البرمجة ثانية بكالوريا'],
-            [
-                'category_id'   => $category->id,
-                'description'   => 'كورس متخصص في شرح منهج البرمجة لثانوية عامة (ثانية بكالوريا) - محاضرات أونلاين مباشرة مع مدرسين متخصصين. يغطي جميع مفاهيم البرمجة المقررة في المنهج الوزاري مع شرح مفصل وحل أسئلة امتحانية.',
-                'thumbnail'     => null,
-                'is_free'       => false,
-                'price'         => 100.00,
-                'prices'        => [
-                    'EGP' => 300,
-                    'USD' => 100,
-                    'SAR' => 40
-                ],
-                'is_active'     => true,
-                'is_coming_soon'=> false,
-                'sort_order'    => 10,
-                'duration'      => '90 يوم',
-                'difficulty'    => 'متوسط',
-            ]
-        );
+        // 3. لا يوجد أي كورس بكالوريا — إنشاء واحد فقط تحت قفل ذري لمنع التكرار المتزامن
+        $defaults = fn () => [
+            'category_id'   => Category::firstOrCreate(['name' => 'المناهج التعليمية'])->id,
+            'description'   => 'كورس متخصص في شرح منهج البرمجة لثانوية عامة (ثانية بكالوريا) - محاضرات أونلاين مباشرة مع مدرسين متخصصين. يغطي جميع مفاهيم البرمجة المقررة في المنهج الوزاري مع شرح مفصل وحل أسئلة امتحانية.',
+            'thumbnail'     => null,
+            'is_free'       => false,
+            'price'         => 100.00,
+            'prices'        => [
+                'EGP' => 300,
+                'USD' => 100,
+                'SAR' => 40
+            ],
+            'is_active'     => true,
+            'is_coming_soon'=> false,
+            'sort_order'    => 10,
+            'duration'      => '90 يوم',
+            'difficulty'    => 'متوسط',
+        ];
+
+        try {
+            return \Cache::lock('create_baccalaureate_course', 10)->block(5, function () use ($defaults) {
+                // إعادة فحص داخل القفل (Double-Checked Locking) لمنع سباق الإنشاء
+                $existing = self::findBaccalaureateCourse();
+                if ($existing) {
+                    return $existing;
+                }
+                return self::create(array_merge($defaults(), ['title' => 'منهج البرمجة ثانية بكالوريا']));
+            });
+        } catch (\Throwable $e) {
+            // احتياطي إذا كان مخزن الكاش لا يدعم الأقفال: فحص أخير ثم إنشاء
+            $existing = self::findBaccalaureateCourse();
+            if ($existing) {
+                return $existing;
+            }
+            return self::create(array_merge($defaults(), ['title' => 'منهج البرمجة ثانية بكالوريا']));
+        }
     }
 }

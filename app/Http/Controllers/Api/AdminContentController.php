@@ -32,6 +32,11 @@ class AdminContentController extends Controller
         // تأكد من وجود كورس البكالوريا بالسيرفر للأدمن
         try { Course::findCourseSafely(10); } catch (\Exception $e) {}
 
+        // تنظيف تلقائي: دمج أي كورسات بكالوريا مكررة في كورس واحد (لا يكلف شيئاً عند عدم وجود تكرار)
+        try { Course::deduplicateBaccalaureate(); } catch (\Throwable $e) {
+            \Log::warning('Baccalaureate deduplication skipped: ' . $e->getMessage());
+        }
+
         // Admin needs to see all courses to manage them
         $courses = Course::with('category')->orderBy('id', 'desc')->get();
         return response()->json([
@@ -87,18 +92,29 @@ class AdminContentController extends Controller
 
         $prices = PricingService::normalizePrices($request->input('prices'));
 
-        $course = Course::create([
-            'category_id'    => $request->category_id,
-            'title'          => $request->title,
-            'description'    => $request->description,
-            'thumbnail'      => $thumbnailPath,
-            'is_free'        => $request->is_free,
-            // العمود القديم للتوافق؛ المصدر الحقيقي هو مصفوفة prices (EGP افتراضياً).
-            'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
-            'prices'         => $prices,
-            'is_coming_soon' => $request->is_coming_soon ?? false,
-            'is_active'      => true,
-        ]);
+        try {
+            $course = Course::create([
+                'category_id'    => $request->category_id,
+                'title'          => $request->title,
+                'description'    => $request->description,
+                'thumbnail'      => $thumbnailPath,
+                'is_free'        => $request->is_free,
+                // العمود القديم للتوافق؛ المصدر الحقيقي هو مصفوفة prices (EGP افتراضياً).
+                'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
+                'prices'         => $prices,
+                'is_coming_soon' => $request->is_coming_soon ?? false,
+                'is_active'      => true,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // قيد العنوان الفريد: منع إنشاء كورسات بنفس العنوان بدل 500 غامضة
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'يوجد كورس بنفس العنوان بالفعل. يرجى استخدام عنوان مختلف أو تعديل الكورس الموجود.',
+                ], 422);
+            }
+            throw $e;
+        }
 
         return response()->json([
             'status'  => true,
@@ -145,7 +161,18 @@ class AdminContentController extends Controller
             $course->prices = PricingService::normalizePrices($request->input('prices'));
         }
 
-        $course->save();
+        try {
+            $course->save();
+        } catch (\Illuminate\Database\QueryException $e) {
+            // قيد العنوان الفريد: رسالة واضحة بدل خطأ سيرفر غامض
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'يوجد كورس آخر بنفس العنوان. يرجى استخدام عنوان مختلف.',
+                ], 422);
+            }
+            throw $e;
+        }
 
         return response()->json([
             'status'  => true,

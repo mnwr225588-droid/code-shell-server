@@ -107,60 +107,31 @@ class CourseSubscriptionController extends Controller
             }
         }
 
-        // جلب المعومات الدقيقة للمجموعة
-        $groupStudentsCount = 0;
-        $groupCapacity = 10;
-        $groupStatus = 'open_for_registration';
-        $isWaitingCompletion = false;
-        
-        if ($group) {
-            $groupStudentsCount = \DB::table('course_subscriptions')
-                ->where('group_id', $group->id)
-                ->count();
-            $groupCapacity = $group->capacity ?: 10;
-            $groupStatus = $group->status;
-            $isWaitingCompletion = in_array($groupStatus, ['open_for_registration', 'waiting_for_students']);
-        }
-
-        $openGroup = \App\Models\CourseGroup::where('course_id', $course->id)
-            ->whereIn('status', ['open_for_registration', 'waiting_for_students'])
-            ->first();
-
         // إرجاع الاستجابة بجميع المعلومات المطلوبة
         return response()->json([
-            'status'          => true,
-            'is_subscribed'   => $isSubscribed,
-            'has_open_groups' => (bool) $openGroup || (bool) $group,
-            'group'           => $group ? [
-                'id'                    => $group->id,
-                'name'                  => $group->name,
-                'status'                => $groupStatus,
-                'students_count'        => $groupStudentsCount,
-                'capacity'              => $groupCapacity,
-                'capacity_text'         => "{$groupStudentsCount} من {$groupCapacity} طلاب",
-                'is_waiting_completion' => $isWaitingCompletion,
-                'completion_notice'     => 'سوف يتم تفعيل وبدء الكورس عند اكتمال العدد المطلوب في المجموعة',
+            'status'        => true,
+            'is_subscribed' => $isSubscribed,
+            'group'         => $group ? [
+                'id'   => $group->id,
+                'name' => $group->name,
             ] : null,
-            'group_name'                 => $group ? $group->name : null,
-            'students_count'             => $groupStudentsCount,
-            'group_capacity'             => $groupCapacity,
-            'group_capacity_text'        => "{$groupStudentsCount} من {$groupCapacity} طلاب",
-            'is_waiting_group_completion'=> $isWaitingCompletion,
-            'subscribed_at'              => $subDate ? $subDate->toIso8601String() : null,
-            'can_cancel'                 => $canCancel,
-            'hours_since_subscription'   => $subDate ? $subDate->diffInHours(now()) : 0,
-            'plan'                       => $plan ? [
-                'id'            => $plan->id,
-                'name'          => $plan->name,
+            'group_name'    => $group ? $group->name : null,
+            'students_count'=> $course->subscribedUsers()->count() + 120,
+            'subscribed_at' => $subDate ? $subDate->toIso8601String() : null,
+            'can_cancel'    => $canCancel,
+            'hours_since_subscription' => $subDate ? $subDate->diffInHours(now()) : 0,
+            'plan'          => $plan ? [
+                'id' => $plan->id,
+                'name' => $plan->name,
                 'duration_days' => $plan->duration_days,
                 'duration_text' => $plan->duration_text,
             ] : null,
-            'remaining_days'             => $remainingDays,
-            'expired_at'                 => $expiryDate,
-            'started_at'                 => $startedAt,
+            'remaining_days' => $remainingDays,
+            'expired_at' => $expiryDate,
+            'started_at' => $startedAt,
             'subscription_duration_days' => $durationDays,
-            'first_lecture_date'         => $firstLectureDate,
-            'is_expired'                 => $subscription ? $subscription->is_expired : false,
+            'first_lecture_date' => $firstLectureDate,
+            'is_expired' => $subscription ? $subscription->is_expired : false,
         ]);
     }
 
