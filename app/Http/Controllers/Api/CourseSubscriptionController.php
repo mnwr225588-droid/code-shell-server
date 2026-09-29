@@ -72,9 +72,22 @@ class CourseSubscriptionController extends Controller
             }
         }
 
-        // حساب تاريخ الاشتراك لتحديد إمكانية الإلغاء
+        // إمكانية الإلغاء وفق قاعدة الـ 48 ساعة:
+        // تُحسب المدة من نزول أول محاضرة أونلاين للكورس —
+        // طالما لم تنزل أول محاضرة أونلاين يمكن الإلغاء في أي وقت،
+        // وبعد نزولها يُسمح بالإلغاء خلال 48 ساعة فقط من نزولها.
         $subDate = $subscription ? ($subscription->paid_at ?? $subscription->created_at) : null;
-        $canCancel = $subDate ? ($subDate->diffInHours(now()) <= 48) : true;
+
+        $firstLectureAt = \DB::table('online_lectures')
+            ->where('course_id', $course->id)
+            ->min('created_at');
+
+        if ($firstLectureAt) {
+            $hoursSinceFirstLecture = \Carbon\Carbon::parse($firstLectureAt)->diffInHours(now());
+            $canCancel = $hoursSinceFirstLecture <= 48;
+        } else {
+            $canCancel = true;
+        }
 
         // حساب المدة المتبقية من الاشتراك
         $remainingDays = 0;
@@ -286,13 +299,22 @@ class CourseSubscriptionController extends Controller
             ], 422);
         }
 
-        // فحص مهلة الـ يومان (48 ساعة) للاسترجاع وإلغاء الاشتراك
-        $subDate = $subscription ? ($subscription->paid_at ?? $subscription->created_at) : null;
-        if ($subDate && $subDate->diffInHours(now()) > 48) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'عذراً، لا يمكن إلغاء الاشتراك بعد مرور أكثر من يومين (48 ساعة) على تاريخ الاشتراك.',
-            ], 422);
+        // فحص مهلة اليومين (48 ساعة) للاسترجاع وإلغاء الاشتراك:
+        // المدة تُحسب من نزول أول محاضرة أونلاين للكورس —
+        // طالما لم تنزل أول محاضرة أونلاين يمكن الإلغاء في أي وقت،
+        // وبعد نزولها لا يمكن الإلغاء بعد مرور 48 ساعة على نزولها.
+        $firstLectureAt = \DB::table('online_lectures')
+            ->where('course_id', $course->id)
+            ->min('created_at');
+
+        if ($firstLectureAt) {
+            $hoursSinceFirstLecture = \Carbon\Carbon::parse($firstLectureAt)->diffInHours(now());
+            if ($hoursSinceFirstLecture > 48) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'عذراً، لا يمكن إلغاء الاشتراك بعد مرور أكثر من يومين (48 ساعة) على نزول أول محاضرة أونلاين للكورس.',
+                ], 422);
+            }
         }
 
         \DB::beginTransaction();
