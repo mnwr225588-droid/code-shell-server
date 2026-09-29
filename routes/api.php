@@ -115,6 +115,8 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::match(['put', 'post'], '/courses/{id}', [AdminContentController::class, 'updateCourse']);
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
     Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
+    // الرفع المجزأ للدروس: تجميع مقاطع الفيديو وإنشاء الدرس (إيقاف مؤقت + استكمال)
+    Route::post('/lessons/complete-chunked', [AdminContentController::class, 'completeChunkedLesson']);
     Route::get('/users', [AdminContentController::class, 'getUsers']);
     Route::get('/users/{id}', [AdminContentController::class, 'showUser']);
     Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);

@@ -330,6 +330,165 @@ class AdminContentController extends Controller
         }
     }
 
+    // 4️⃣.ب استكمال رفع درس مجزأ (Chunked Upload):
+    // الفيديو يُقسم في المتصفح لمقاطع صغيرة تُرفع عبر /admin/upload-chunk،
+    // ثم هذا المسار يجمعها ويكمل نفس مسار R2 + Fast-Start المتبع في storeLessonWithQuiz.
+    // يتيح: الإيقاف المؤقت، استكمال الرفع بعد انقطاع النت أو إعادة تحميل الصفحة.
+    public function completeChunkedLesson(Request $request)
+    {
+        $request->validate([
+            'upload_id'    => 'required|string|max:100',
+            'total_chunks' => 'required|integer|min:1|max:20000',
+            'filename'     => 'required|string|max:255',
+            'level_id'     => 'required|exists:levels,id',
+            'title'        => 'required|string|max:255',
+            'order_num'    => 'required|integer',
+            'description'  => 'nullable|string',
+            'is_optional'  => 'nullable',
+            'questions'    => 'nullable',
+            'thumbnail'    => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'video_url'    => 'nullable|string',
+        ]);
+
+        $ext = strtolower(pathinfo($request->filename, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'wmv'])) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'صيغة ملف الفيديو غير مدعومة (المسموح: mp4, mov, avi, mkv, wmv).',
+            ], 422);
+        }
+
+        $disk = Storage::disk('local');
+        $chunkDir = 'chunks/' . $request->upload_id;
+        $totalChunks = (int) $request->total_chunks;
+
+        try {
+            // 1. التأكد من وصول كل المقاطع
+            $missing = [];
+            for ($i = 0; $i < $totalChunks; $i++) {
+                if (!$disk->exists($chunkDir . '/' . $i . '.part')) {
+                    $missing[] = $i;
+                }
+            }
+            if (!empty($missing)) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'بعض مقاطع الفيديو لم تصل بعد. أعد المحاولة لاستكمالها.',
+                    'missing' => $missing,
+                ], 422);
+            }
+
+            // 2. تجميع المقاطع بالترتيب في ملف مؤقت
+            $mergedTmp = $disk->path($chunkDir . '/merged.tmp');
+            $out = @fopen($mergedTmp, 'wb');
+            if (!$out) {
+                throw new \Exception('تعذر إنشاء ملف مؤقت للتجميع.');
+            }
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $in = @fopen($disk->path($chunkDir . '/' . $i . '.part'), 'rb');
+                if (!$in) {
+                    fclose($out);
+                    throw new \Exception('تعذر قراءة المقطع رقم ' . ($i + 1));
+                }
+                while (!feof($in)) {
+                    fwrite($out, fread($in, 1024 * 512));
+                }
+                fclose($in);
+            }
+            fclose($out);
+
+            // 3. غلاف UploadedFile للمؤقت ليغذي نفس مسار R2 المتبع
+            $videoFile = new \Illuminate\Http\UploadedFile($mergedTmp, $request->filename, null, null, true);
+
+            $key = $videoFile->store('lessons/videos', 'r2');
+            Log::info('Chunked video uploaded to R2: ' . $key);
+
+            // 4. Fast-Start (نقل moov لأول الملف) بدون إعادة ترميز
+            try {
+                $processor = new \App\Services\VideoProcessor();
+                $processed = $processor->fastStart($videoFile->getRealPath(), $videoFile->getClientOriginalName());
+                if ($processed !== $videoFile->getRealPath()) {
+                    Storage::disk('r2')->put($key, fopen($processed, 'rb'), ['ContentType' => 'video/mp4']);
+                    @unlink($processed);
+                    Log::info('Video fast-start applied: ' . $key);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Video fast-start skipped: ' . $e->getMessage());
+            }
+            $videoPath = $key;
+
+            // 5. الصورة المصغرة
+            $thumbnailPath = null;
+            if ($request->hasFile('thumbnail')) {
+                $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'r2');
+                Log::info('Thumbnail uploaded to R2: ' . $thumbnailPath);
+            }
+
+            $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
+
+            // 6. إنشاء الدرس
+            $lesson = Lesson::create([
+                'level_id'    => $request->level_id,
+                'title'       => $request->title,
+                'description' => $request->description,
+                'video_url'   => $videoPath,
+                'thumbnail'   => $thumbnailPath,
+                'order_num'   => $request->order_num,
+                'is_optional' => $isOptional,
+            ]);
+
+            // 7. الأسئلة (تصل كسلسلة JSON من FormData أو مصفوفة)
+            $questions = $request->questions;
+            if (is_string($questions)) {
+                $questions = json_decode($questions, true);
+            }
+            if (is_array($questions)) {
+                foreach ($questions as $qData) {
+                    if (!is_array($qData) || empty($qData['question_text'])) continue;
+                    $question = $lesson->questions()->create([
+                        'question_text' => $qData['question_text'],
+                    ]);
+                    if (isset($qData['options']) && is_array($qData['options'])) {
+                        foreach ($qData['options'] as $optData) {
+                            $isCorrect = $optData['is_correct'] ?? false;
+                            if (is_string($isCorrect)) {
+                                $isCorrect = in_array(strtolower($isCorrect), ['true', '1', 'yes']);
+                            }
+                            $question->options()->create([
+                                'option_text' => $optData['option_text'],
+                                'is_correct'  => $isCorrect,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // 8. تنظيف مجلد المقاطع المؤقت
+            try { $disk->deleteDirectory($chunkDir); } catch (\Throwable $e) {}
+
+            // 9. إشعار صامت للطلاب بتحديث المحتوى
+            try {
+                $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('topic', 'content_updates')
+                    ->withData(['action' => 'refresh_content']);
+                app('firebase.messaging')->send($message);
+            } catch (\Throwable $e) {
+                Log::error('FCM update error: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'تم رفع الدرس وحفظ الاختبارات بنجاح',
+                'data'    => $lesson->load('questions.options'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Chunked lesson completion failed: ' . $e->getMessage());
+            return response()->json([
+                'status'  => false,
+                'message' => 'فشل حفظ الدرس: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     // 5️⃣ عرض كافة المستخدمين واشتراكاتهم المدفوعة فقط
     public function getUsers(Request $request)
     {
