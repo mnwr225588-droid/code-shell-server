@@ -37,6 +37,9 @@ class AdminGroupController extends Controller
 
         $data = $request->only(['course_id', 'name', 'capacity', 'registration_deadline', 'status', 'duration_days', 'is_auto_create', 'teacher_id']);
 
+        // ⚡ الإنشاء التلقائي للمجموعة التالية مفعّل افتراضياً
+        $data['is_auto_create'] = $request->boolean('is_auto_create', true);
+
         if (empty($data['teacher_id']) || !\App\Models\Teacher::where('id', $data['teacher_id'])->exists()) {
             $data['teacher_id'] = null;
         }

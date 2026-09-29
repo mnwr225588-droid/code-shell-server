@@ -67,6 +67,44 @@ class AdminTeacherController extends Controller
     }
 
     /**
+     * تعديل بيانات مدرس: الاسم، البريد، الهاتف، النبذة، وكلمة السر (اختيارية).
+     */
+    public function update(Request $request, $id)
+    {
+        $teacher = Teacher::findOrFail($id);
+
+        $request->validate([
+            'name'     => 'sometimes|required|string|max:255',
+            'email'    => 'sometimes|required|email|max:255|unique:teachers,email,' . $teacher->id,
+            'phone'    => 'nullable|string|max:30',
+            'bio'      => 'nullable|string|max:1000',
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        $data = $request->only(['name', 'email', 'phone', 'bio']);
+
+        // كلمة السر جديدة اختيارية — تُشفَّر قبل الحفظ
+        if ($request->filled('password')) {
+            $data['password'] = \Illuminate\Support\Facades\Hash::make($request->input('password'));
+        }
+
+        // حقل الهاتف/النبذة اختياريان في جدول teachers — احفظهما فقط إذا كان العمود موجوداً
+        foreach (['phone', 'bio'] as $optionalField) {
+            if (array_key_exists($optionalField, $data) && !\Schema::hasColumn('teachers', $optionalField)) {
+                unset($data[$optionalField]);
+            }
+        }
+
+        $teacher->update(array_filter($data, fn ($v) => $v !== null));
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم تحديث بيانات المدرس بنجاح',
+            'data' => $teacher,
+        ]);
+    }
+
+    /**
      * جلب طلبات التأجيل (الكل أو المعلقة فقط).
      */
     public function postponementRequests(Request $request)

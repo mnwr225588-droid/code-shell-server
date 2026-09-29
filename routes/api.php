@@ -177,7 +177,14 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     // 👨‍🏫 إدارة المدرسين
     Route::get('/teachers', [\App\Http\Controllers\Api\AdminTeacherController::class, 'index']);
     Route::post('/teachers', [\App\Http\Controllers\Api\AdminTeacherController::class, 'store']);
+    Route::put('/teachers/{id}', [\App\Http\Controllers\Api\AdminTeacherController::class, 'update']);
     Route::delete('/teachers/{id}', [\App\Http\Controllers\Api\AdminTeacherController::class, 'destroy']);
+
+    // 🧾 عمليات الأدمن على حسابات الطلاب (شحن محفظة / اشتراك مباشر / سجل)
+    Route::post('/users/lookup', [\App\Http\Controllers\Api\AdminOpsController::class, 'lookup']);
+    Route::post('/wallet/admin-credit', [\App\Http\Controllers\Api\AdminOpsController::class, 'creditWallet']);
+    Route::post('/subscriptions/admin-subscribe', [\App\Http\Controllers\Api\AdminOpsController::class, 'subscribeStudent']);
+    Route::get('/operations', [\App\Http\Controllers\Api\AdminOpsController::class, 'index']);
 
     // 📋 طلبات تأجيل المحاضرات
     Route::get('/postponement-requests', [\App\Http\Controllers\Api\AdminTeacherController::class, 'postponementRequests']);
