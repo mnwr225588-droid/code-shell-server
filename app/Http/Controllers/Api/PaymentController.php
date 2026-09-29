@@ -148,19 +148,27 @@ class PaymentController extends Controller
     }
 
     /**
-     * مسار Callback الخاص بـ EasyKash: GET /api/payments/easykash/callback
+     * مسار Callback الخاص بـ EasyKash: GET/POST /api/payments/easykash/callback
+     * يستقبل إعادة التوجيه من بوابة الدفع بعد انتهاء العملية (ناجحة أو فاشلة)
+     * ثم يفعّل الاشتراك أو يشحن المحفظة ويعيد توجيه الطالب للموقع.
+     *
+     * الإصلاح: النسخة السابقة كانت تستخدم متغير $isSuccess غير معرّف فتنهار
+     * عند كل دفع ناجح ولا تفعّل الاشتراك. الآن يتم تحديد النجاح من التحقق
+     * السيرفي المباشر لدى البوابة (verifyTransaction) ثم معاملات الرابط كاحتياط،
+     * والمعالجة Idempotent (لا تتكرر أبداً لنفس المعاملة).
      */
     public function easykashCallback(Request $request)
     {
         $params = $request->all();
         Log::info('EasyKash Callback Received: ', $params);
 
-        // رابط الواجهة الأمامية لإعادة توجيه الطالب إليها
-        $frontendUrl = 'https://codeshell.kesug.com/courses.html';
+        // رابط الواجهة الأمامية لإعادة توجيه الطالب إليها (قابل للتغيير من الإعدادات)
+        $frontendBase = rtrim((string) config('payment.frontend_url', 'https://codeshell.kesug.com'), '/');
+        $frontendUrl = $frontendBase . '/courses.html';
 
         // 1. استخراج مرجع المعاملة بكافة الخيارات المتوقعة من البوابة
-        $orderRef = $request->input('customerReference') 
-                 ?? $request->input('merchant_order_id') 
+        $orderRef = $request->input('customerReference')
+                 ?? $request->input('merchant_order_id')
                  ?? $request->input('order_id')
                  ?? $request->input('orderRef')
                  ?? $request->input('reference')
@@ -197,12 +205,12 @@ class PaymentController extends Controller
 
         $isWalletTopup = ($transaction->course_id === null) || data_get($transaction->payload, 'is_wallet_topup', false);
 
-        // إذا كانت المعاملة قد اكملت سابقاً بالفعل (مثلاً تم استلام الإشعار عبر webhook أولاً)، نعيد التوجيه فوراً بدون تكرار إضافة الرصيد
-        if ($transaction->status === Transaction::STATUS_COMPLETED) {
-            $redirectTarget = $isWalletTopup 
-                ? 'https://codeshell.kesug.com/wallet.html?status=success&tx=' . $transaction->id 
-                : $frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id;
+        $successRedirect = $isWalletTopup
+            ? $frontendBase . '/wallet.html?status=success&tx=' . $transaction->id
+            : $frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id;
 
+        // 2. إذا كانت المعاملة قد اكتملت سابقاً (مثلاً عبر الـ Webhook) نعيد التوجيه فوراً بدون تكرار
+        if ($transaction->status === Transaction::STATUS_COMPLETED) {
             if ($request->wantsJson() || $request->expectsJson()) {
                 return response()->json([
                     'status' => true,
@@ -210,22 +218,28 @@ class PaymentController extends Controller
                     'data'   => ['payment_status' => 'paid'],
                 ]);
             }
-            return redirect($redirectTarget);
+            return redirect($successRedirect);
         }
+
+        // 3. تحديد حالة الدفع: التحقق السيرفي من البوابة أولاً، ثم معاملات الرابط كاحتياط
+        $rawStatus = strtolower((string) ($request->input('status') ?? ''));
+        $providerRef = $request->input('providerRefNum') ?: ($transaction->gateway_transaction_id ?: $orderRef);
+        $verifiedStatus = $this->verifyGatewayTransaction($transaction, is_string($providerRef) ? $providerRef : null);
+
+        $successStatuses = ['paid', 'completed', 'success', 'successful', 'true', 'captured'];
+        $failureStatuses = ['failed', 'declined', 'error', 'cancelled', 'canceled'];
+
+        $isSuccess = $verifiedStatus === 'completed'
+            || ($verifiedStatus === null && in_array($rawStatus, $successStatuses, true));
+
+        $isFailure = $verifiedStatus === 'failed'
+            || ($verifiedStatus === null && in_array($rawStatus, $failureStatuses, true));
 
         if ($isSuccess) {
             DB::beginTransaction();
             try {
-                // تحديث حالة المعاملة إلى مكتملة
-                $transaction->update([
-                    'status'                 => Transaction::STATUS_COMPLETED,
-                    'paid_at'                => now(),
-                    'gateway_transaction_id' => $request->input('providerRefNum') ?? $orderRef ?? $transaction->gateway_transaction_id,
-                ]);
-
-                $isWalletTopup = ($transaction->course_id === null) || data_get($transaction->payload, 'is_wallet_topup', false);
-
                 if ($isWalletTopup) {
+                    // شحن المحفظة: إضافة المبلغ لرصيد المستخدم مع قفل الصف لمنع التكرار
                     $user = \App\Models\User::lockForUpdate()->find($transaction->user_id);
                     if ($user) {
                         $topupAmount = (float) $transaction->amount;
@@ -238,15 +252,24 @@ class PaymentController extends Controller
                             'amount'        => $topupAmount,
                             'balance_after' => (float) $user->wallet_balance,
                             'reference_id'  => (string) $transaction->id,
-                            'description'   => "شحن المحفظة عبر الدفع الإلكتروني (مرجع: {$transaction->gateway_transaction_id})",
+                            'description'   => "شحن المحفظة عبر الدفع الإلكتروني (مرجع: {$providerRef})",
                         ]);
                         Log::info("Wallet Topup Completed via Callback: User #{$user->id} credited with {$topupAmount} EGP (Tx #{$transaction->id})");
                     }
+
+                    $transaction->update([
+                        'status'                 => Transaction::STATUS_COMPLETED,
+                        'paid_at'                => now(),
+                        'gateway_transaction_id' => $providerRef,
+                    ]);
                 } else {
-                    // تفعيل الاشتراك صراحة عبر خدمة الاشتراكات
-                    if (isset($this->subscriptionService)) {
-                        $this->subscriptionService->activateFromTransaction($transaction, $params);
+                    // حفظ مرجع البوابة الحقيقي قبل التفعيل
+                    if ($providerRef && $providerRef !== $transaction->gateway_transaction_id) {
+                        $transaction->update(['gateway_transaction_id' => $providerRef]);
                     }
+
+                    // تفعيل الاشتراك رسمياً (يُكمل المعاملة ويعين المجموعة بشكل Idempotent)
+                    $this->subscriptionService->activateFromTransaction($transaction->fresh(), $params);
 
                     // ضمان إضافي مباشر لحفظ الاشتراك في قاعدة البيانات
                     DB::table('course_subscriptions')->updateOrInsert(
@@ -277,8 +300,7 @@ class PaymentController extends Controller
                 }
 
                 // توجيه الطالب مباشرة إلى واجهة الموقع مع معلمات النجاح
-                $redirectTarget = $isWalletTopup ? 'https://codeshell.kesug.com/wallet.html?status=success&tx=' . $transaction->id : $frontendUrl . '?status=success&course_id=' . $transaction->course_id . '&tx=' . $transaction->id;
-                return redirect($redirectTarget);
+                return redirect($successRedirect);
 
             } catch (\Throwable $e) {
                 DB::rollBack();
@@ -290,9 +312,127 @@ class PaymentController extends Controller
             }
         }
 
-        // في حالة الفشل أو الإلغاء
-        $this->subscriptionService->markFailedFromTransaction($transaction, 'Payment returned status: ' . $rawStatus);
-        return redirect($frontendUrl . '?status=failed&message=' . urlencode('لم تتم عملية الدفع بنجاح.'));
+        if ($isFailure) {
+            $this->subscriptionService->markFailedFromTransaction($transaction, 'Payment returned status: ' . ($verifiedStatus ?: $rawStatus));
+        }
+
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'status' => false,
+                'message' => $verifiedStatus === 'pending' ? 'الدفع قيد التأكيد من البوابة.' : 'لم تتم عملية الدفع بنجاح.',
+                'data'   => ['payment_status' => $verifiedStatus ?: ($rawStatus ?: 'unknown')],
+            ]);
+        }
+
+        return redirect($frontendUrl . '?status=failed&message=' . urlencode($verifiedStatus === 'pending' ? 'عملية الدفع قيد التأكيد من البوابة وسيتم تفعيل الاشتراك تلقائياً.' : 'لم تتم عملية الدفع بنجاح.'));
+    }
+
+    /**
+     * التحقق السيرفي المباشر من حالة المعاملة لدى بوابة EasyKash (Server-to-Server).
+     *
+     * @return string|null 'completed' | 'failed' | 'pending' | null عند تعذر الوصول للبوابة
+     */
+    private function verifyGatewayTransaction(Transaction $transaction, ?string $fallbackRef = null): ?string
+    {
+        $service = new EasyKashService();
+
+        $candidates = array_values(array_unique(array_filter([
+            (string) ($transaction->gateway_transaction_id ?? ''),
+            (string) ($fallbackRef ?? ''),
+        ], fn ($v) => $v !== '')));
+
+        foreach ($candidates as $verifyId) {
+            try {
+                $result = $service->verifyTransaction($verifyId);
+
+                // verification_attempted = تعذر الوصول للبوابة (خطأ شبكة/إعدادات) → جرّب المرجع التالي
+                if (!($result['raw_payload']['verification_attempted'] ?? false)) {
+                    return $result['status'];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Gateway verification failed for Tx #' . $transaction->id . ': ' . $e->getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * استرداد ذاتي للمعاملات المعلقة: POST /api/admin/reconcile-payments
+     * يمر على المعاملات المعلقة الأخيرة ويتحقق من حالتها لدى البوابة مباشرة،
+     * ويفعّل الاشتراك أو يشحن المحفظة لأي عملية دفع ناجحة لم تُكمل (مثل حالات
+     * انهيار الـ Callback القديم). آمن تماماً لأن التفعيل يتم فقط بعد تأكيد البوابة.
+     */
+    public function reconcilePendingPayments(Request $request): JsonResponse
+    {
+        $pending = Transaction::where('status', Transaction::STATUS_PENDING)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->whereNotNull('gateway_transaction_id')
+            ->orderBy('id')
+            ->limit(100)
+            ->get();
+
+        $activated = 0;
+        $markedFailed = 0;
+        $stillPending = 0;
+        $details = [];
+
+        foreach ($pending as $tx) {
+            $verified = $this->verifyGatewayTransaction($tx);
+
+            if ($verified === 'completed') {
+                $isWalletTopup = ($tx->course_id === null) || data_get($tx->payload, 'is_wallet_topup', false);
+
+                DB::transaction(function () use ($tx, $isWalletTopup) {
+                    $lockedTx = Transaction::whereKey($tx->id)->lockForUpdate()->first();
+                    if (!$lockedTx || $lockedTx->isCompleted()) {
+                        return;
+                    }
+
+                    if ($isWalletTopup) {
+                        $user = \App\Models\User::lockForUpdate()->find($lockedTx->user_id);
+                        if ($user) {
+                            $user->wallet_balance = (float) ($user->wallet_balance ?? 0) + (float) $lockedTx->amount;
+                            $user->save();
+
+                            \App\Models\WalletTransaction::create([
+                                'user_id'       => $user->id,
+                                'type'          => 'credit',
+                                'amount'        => (float) $lockedTx->amount,
+                                'balance_after' => (float) $user->wallet_balance,
+                                'reference_id'  => (string) $lockedTx->id,
+                                'description'   => "شحن المحفظة (استرداد تلقائي - مرجع: {$lockedTx->gateway_transaction_id})",
+                            ]);
+                        }
+                        $lockedTx->update(['status' => Transaction::STATUS_COMPLETED, 'paid_at' => now()]);
+                    } else {
+                        $this->subscriptionService->activateFromTransaction($lockedTx);
+                    }
+                });
+
+                $activated++;
+                $details[] = ['transaction_id' => $tx->id, 'user_id' => $tx->user_id, 'result' => 'activated'];
+            } elseif ($verified === 'failed') {
+                $this->subscriptionService->markFailedFromTransaction($tx, 'Reconcile: gateway reported failed');
+                $markedFailed++;
+                $details[] = ['transaction_id' => $tx->id, 'user_id' => $tx->user_id, 'result' => 'failed'];
+            } else {
+                $stillPending++;
+                $details[] = ['transaction_id' => $tx->id, 'user_id' => $tx->user_id, 'result' => 'pending'];
+            }
+        }
+
+        Log::info('Reconcile pending payments: ', ['checked' => $pending->count(), 'activated' => $activated, 'failed' => $markedFailed, 'still_pending' => $stillPending]);
+
+        return response()->json([
+            'status'        => true,
+            'message'       => 'تمت مراجعة المعاملات المعلقة ومزامنتها مع البوابة.',
+            'checked'       => $pending->count(),
+            'activated'     => $activated,
+            'marked_failed' => $markedFailed,
+            'still_pending' => $stillPending,
+            'details'       => $details,
+        ]);
     }
 
     /**
@@ -466,6 +606,8 @@ class PaymentController extends Controller
 
     /**
      * حالة آخر معاملة للمستخدم على كورس معين: GET /api/courses/{id}/payment-status
+     * يتضمن استرداداً ذاتياً: إذا وُجدت معاملة معلقة نتحقق من البوابة مباشرة
+     * ونفعّل الاشتراك فوراً إذا تأكد نجاح الدفع (معالجة حالات الـ Callback المفقود).
      */
     public function paymentStatus(Request $request, $courseId): JsonResponse
     {
@@ -476,6 +618,18 @@ class PaymentController extends Controller
             ->where('course_id', $course->id)
             ->latest()
             ->first();
+
+        // استرداد ذاتي: معاملة معلقة لها مرجع بوابة → تحقق مباشر من البوابة وفعّل إن اكتملت
+        if ($transaction
+            && $transaction->status === Transaction::STATUS_PENDING
+            && !empty($transaction->gateway_transaction_id)) {
+            $verified = $this->verifyGatewayTransaction($transaction);
+            if ($verified === 'completed') {
+                $this->subscriptionService->activateFromTransaction($transaction);
+                $transaction->refresh();
+                Log::info("Self-healed pending transaction #{$transaction->id} via payment-status polling.");
+            }
+        }
 
         $isSubscribed = $course->isUserSubscribed($user->id);
 

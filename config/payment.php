@@ -37,6 +37,12 @@ return [
     'webhook_path' => env('PAYMENT_WEBHOOK_PATH', '/api/payment/webhook'),
 
     /*
+    | رابط موقع الطالب الأساسي الذي يُعاد توجيه إليه بعد اكتمال الدفع
+    | (يُستخدم في إعادة التوجيه من الـ Callback بعد نجاح أو فشل العملية).
+    */
+    'frontend_url' => env('PAYMENT_FRONTEND_URL', 'https://codeshell.kesug.com'),
+
+    /*
     | بيانات كل بوابة.
     */
     'sandbox' => [

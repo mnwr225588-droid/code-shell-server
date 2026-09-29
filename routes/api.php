@@ -224,6 +224,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     // Dashboard Stats
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
 
+    // 💳 مزامنة المعاملات المالية المعلقة مع بوابة الدفع (تفعيل الاشتراكات المدفوعة المعلقة)
+    Route::post('/reconcile-payments', [\App\Http\Controllers\Api\PaymentController::class, 'reconcilePendingPayments']);
+
     // 📢 إرسال إشعارات من لوحة الأدمن (كل المستخدمين / مشتركو كورس / غير المشتركين / فردي بالإيميل) + صورة اختيارية
     Route::post('/send-notification', [NotificationController::class, 'send']);
     // 📋 سجل الإشعارات المرسلة سابقاً (لتطبيق الأدمن)
