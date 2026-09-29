@@ -172,7 +172,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/courses', [AdminContentController::class, 'getCourses']);
     Route::post('/categories', [AdminContentController::class, 'storeCategory']);
     Route::post('/courses', [AdminContentController::class, 'storeCourse']);
-    Route::put('/courses/{id}', [AdminContentController::class, 'updateCourse']);
+    Route::match(['put', 'post'], '/courses/{id}', [AdminContentController::class, 'updateCourse']);
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
     Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
     Route::get('/users', [AdminContentController::class, 'getUsers']);
