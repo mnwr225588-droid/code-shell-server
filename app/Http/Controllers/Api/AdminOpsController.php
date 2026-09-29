@@ -120,6 +120,18 @@ class AdminOpsController extends Controller
 
         Log::info("Admin credited wallet: User #{$result->id} +{$amount} EGP");
 
+        // 🔔 إشعار الطالب بأنه تم شحن محفظته مع المبلغ
+        try {
+            \App\Models\Notification::create([
+                'user_id' => $result->id,
+                'title'   => 'تم شحن رصيد محفظتك 💳',
+                'body'    => "تم شحن رصيد محفظتك بمبلغ {$amount} ج.م بواسطة إدارة كود شيل. رصيدك الحالي: " . number_format((float) $result->wallet_balance, 2) . " ج.م",
+                'type'    => 'wallet_topup',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Wallet topup notification failed: ' . $e->getMessage());
+        }
+
         return response()->json([
             'status'         => true,
             'message'        => "تم شحن {$amount} ج.م إلى محفظة الطالب بنجاح!",
@@ -197,6 +209,19 @@ class AdminOpsController extends Controller
         ]);
 
         Log::info("Admin subscribed student: User #{$student->id} → Course #{$course->id}");
+
+        // 🔔 إشعار الطالب بأنه تم اشتراكه في الكورس من خلال الإدارة
+        try {
+            \App\Models\Notification::create([
+                'user_id'   => $student->id,
+                'title'     => 'تم اشتراكك في كورس جديد 🎓',
+                'body'      => "تم اشتراكك في كورس \"{$course->title}\" من خلال إدارة كود شيل. يمكنك الآن الدخول لمحتوى الكورس ومتابعة دروسك.",
+                'type'      => 'course',
+                'course_id' => $course->id,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Admin subscribe notification failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'status'  => true,
