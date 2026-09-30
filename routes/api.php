@@ -115,8 +115,14 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::match(['put', 'post'], '/courses/{id}', [AdminContentController::class, 'updateCourse']);
     Route::post('/levels', [AdminContentController::class, 'storeLevel']);
     Route::post('/lessons', [AdminContentController::class, 'storeLessonWithQuiz']);
-    // الرفع المجزأ للدروس: تجميع مقاطع الفيديو وإنشاء الدرس (إيقاف مؤقت + استكمال)
+    // الرفع المجزأ للدروس: رفع مقاطع صغيرة + التحقق من الحالة + التجميع (إيقاف مؤقت + استكمال)
+    Route::post('/lessons/upload-chunk', [AdminContentController::class, 'uploadLessonChunk']);
+    Route::get('/lessons/upload-status', [AdminContentController::class, 'checkUploadStatus']);
     Route::post('/lessons/complete-chunked', [AdminContentController::class, 'completeChunkedLesson']);
+    
+    // مهام الرفع: عرض جميع المهام النشطة والمكتملة
+    Route::get('/upload-tasks', [AdminContentController::class, 'getUploadTasks']);
+    Route::delete('/upload-tasks/{id}', [AdminContentController::class, 'deleteUploadTask']);
     Route::get('/users', [AdminContentController::class, 'getUsers']);
     Route::get('/users/{id}', [AdminContentController::class, 'showUser']);
     Route::post('/courses/{id}/toggle-publish', [AdminContentController::class, 'togglePublish']);

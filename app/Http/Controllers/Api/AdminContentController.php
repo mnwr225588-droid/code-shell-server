@@ -16,6 +16,7 @@ use App\Models\CoursePlan;
 use App\Models\Level;
 use App\Models\Lesson;
 use App\Models\PlanLesson;
+use App\Models\UploadTask;
 use App\Models\User;
 use App\Services\PricingService;
 use App\Services\VideoProcessor;
@@ -340,8 +341,114 @@ class AdminContentController extends Controller
         }
     }
 
-    // 4️⃣.ب استكمال رفع درس مجزأ (Chunked Upload):
-    // الفيديو يُقسم في المتصفح لمقاطع صغيرة تُرفع عبر /admin/upload-chunk،
+    // 4️⃣.ب رفع مقطع واحد من الفيديو (Chunked Upload for Lessons):
+    // يرفع تطبيق الأدمن الفيديو على شكل مقاطع صغيرة لتجنب الحد الأقصى للطلب
+    // ويدعم استكمال الرفع بعد انقطاع الاتصال
+    public function uploadLessonChunk(Request $request)
+    {
+        $request->validate([
+            'upload_id' => 'required|string|max:100',
+            'index' => 'required|integer|min:0|max:20000',
+            'total_chunks' => 'required|integer',
+            'filename' => 'nullable|string',
+            'data' => 'required|file|max:10240', // 10MB per chunk
+        ]);
+
+        $disk = Storage::disk('local');
+        $chunkDir = 'chunks/' . $request->upload_id;
+        
+        // تأكد من وجود المجلد
+        if (!$disk->exists($chunkDir)) {
+            $disk->makeDirectory($chunkDir);
+        }
+
+        $path = $request->file('data')->storeAs(
+            $chunkDir,
+            (int) $request->index . '.part',
+            'local'
+        );
+
+        // تحديث وقت آخر نشاط للرفع
+        $disk->put($chunkDir . '/.last_activity', now()->toIso8601String());
+
+        // تحديث أو إنشاء مهمة الرفع في قاعدة البيانات
+        $uploadTask = UploadTask::where('upload_id', $request->upload_id)->first();
+        if (!$uploadTask) {
+            $uploadTask = \App\Models\UploadTask::create([
+                'upload_id' => $request->upload_id,
+                'admin_id' => auth()->id(),
+                'task_type' => 'lesson',
+                'filename' => $request->filename,
+                'total_chunks' => (int) $request->total_chunks,
+                'status' => 'uploading',
+                'started_at' => now(),
+            ]);
+        }
+
+        // تحديث التقدم
+        $receivedChunks = 0;
+        for ($i = 0; $i < $uploadTask->total_chunks; $i++) {
+            if ($disk->exists($chunkDir . '/' . $i . '.part')) {
+                $receivedChunks++;
+            }
+        }
+
+        $uploadTask->received_chunks = $receivedChunks;
+        $uploadTask->progress = $uploadTask->total_chunks > 0 ? round(($receivedChunks / $uploadTask->total_chunks) * 100, 2) : 0;
+        $uploadTask->status = 'uploading';
+        $uploadTask->save();
+
+        return response()->json([
+            'status' => true,
+            'received' => (int) $request->index,
+            'path' => $path,
+            'progress' => $uploadTask->progress,
+        ], 200);
+    }
+
+    // 4️⃣.ج التحقق من حالة الرفع (Upload Status Check):
+    // يرجع عدد المقاطع المستلمة من إجمالي المقاطع المطلوبة
+    public function checkUploadStatus(Request $request)
+    {
+        $request->validate([
+            'upload_id' => 'required|string|max:100',
+            'total_chunks' => 'required|integer',
+        ]);
+
+        $disk = Storage::disk('local');
+        $chunkDir = 'chunks/' . $request->upload_id;
+        $totalChunks = (int) $request->total_chunks;
+
+        $received = 0;
+        $missing = [];
+
+        for ($i = 0; $i < $totalChunks; $i++) {
+            if ($disk->exists($chunkDir . '/' . $i . '.part')) {
+                $received++;
+            } else {
+                $missing[] = $i;
+            }
+        }
+
+        // تحقق من آخر نشاط (لتحديد الرفعات المنتهية)
+        $lastActivity = null;
+        if ($disk->exists($chunkDir . '/.last_activity')) {
+            $lastActivity = $disk->get($chunkDir . '/.last_activity');
+        }
+
+        return response()->json([
+            'status' => true,
+            'upload_id' => $request->upload_id,
+            'total_chunks' => $totalChunks,
+            'received_chunks' => $received,
+            'missing_chunks' => $missing,
+            'progress' => $totalChunks > 0 ? round(($received / $totalChunks) * 100, 2) : 0,
+            'last_activity' => $lastActivity,
+        ], 200);
+    }
+
+    // 4️⃣.د استكمال رفع درس مجزأ (Chunked Upload):
+    // الفيديو يُقسم في المتصفح لمقاطع صغيرة تُرفع عبر /admin/upload-lesson-chunk،
     // ثم هذا المسار يجمعها ويكمل نفس مسار R2 + Fast-Start المتبع في storeLessonWithQuiz.
     // يتيح: الإيقاف المؤقت، استكمال الرفع بعد انقطاع النت أو إعادة تحميل الصفحة.
     public function completeChunkedLesson(Request $request)
@@ -484,10 +591,19 @@ class AdminContentController extends Controller
                 }
             }
 
-            // 8. تنظيف مجلد المقاطع المؤقت
+            // 8. تحديث مهمة الرفع كمكتملة
+            $uploadTask = UploadTask::where('upload_id', $request->upload_id)->first();
+            if ($uploadTask) {
+                $uploadTask->status = 'completed';
+                $uploadTask->progress = 100;
+                $uploadTask->completed_at = now();
+                $uploadTask->save();
+            }
+
+            // 9. تنظيف مجلد المقاطع المؤقت
             try { $disk->deleteDirectory($chunkDir); } catch (\Throwable $e) {}
 
-            // 9. إشعار صامت للطلاب بتحديث المحتوى
+            // 10. إشعار صامت للطلاب بتحديث المحتوى
             try {
                 $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('topic', 'content_updates')
                     ->withData(['action' => 'refresh_content']);
@@ -503,11 +619,59 @@ class AdminContentController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Chunked lesson completion failed: ' . $e->getMessage());
+            
+            // تحديث مهمة الرفع كفاشلة
+            $uploadTask = UploadTask::where('upload_id', $request->upload_id)->first();
+            if ($uploadTask) {
+                $uploadTask->status = 'failed';
+                $uploadTask->error_message = $e->getMessage();
+                $uploadTask->save();
+            }
+            
             return response()->json([
                 'status'  => false,
                 'message' => 'فشل حفظ الدرس: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    // 4️⃣.ه عرض جميع مهام الرفع (Upload Tasks List)
+    public function getUploadTasks(Request $request)
+    {
+        $tasks = UploadTask::with('admin')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $tasks,
+        ]);
+    }
+
+    // 4️⃣.و حذف مهمة رفع (Delete Upload Task)
+    public function deleteUploadTask($id)
+    {
+        $task = UploadTask::find($id);
+        if (!$task) {
+            return response()->json([
+                'status' => false,
+                'message' => 'مهمة الرفع غير موجودة',
+            ], 404);
+        }
+
+        // تنظيف الملفات المؤقتة إذا وُجدت
+        if ($task->upload_id) {
+            $disk = Storage::disk('local');
+            $chunkDir = 'chunks/' . $task->upload_id;
+            try { $disk->deleteDirectory($chunkDir); } catch (\Throwable $e) {}
+        }
+
+        $task->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حذف مهمة الرفع بنجاح',
+        ]);
     }
 
     // 5️⃣ عرض كافة المستخدمين واشتراكاتهم المدفوعة فقط
