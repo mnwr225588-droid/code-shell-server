@@ -189,13 +189,23 @@ class AdminContentController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'order_num'   => 'required|integer',
-            'is_optional' => 'boolean'
+            'is_optional' => 'boolean',
+            'group_id'    => 'nullable|exists:course_groups,id'
         ]);
 
         $data = $request->all();
         $data['is_optional'] = $request->is_optional ?? false;
-        
+
         $level = Level::create($data);
+
+        // إذا تم تحديد مجموعة، قم بربط المستوى بالمجموعة
+        if ($request->has('group_id') && $request->group_id) {
+            $group = \App\Models\CourseGroup::find($request->group_id);
+            if ($group) {
+                $group->level_id = $level->id;
+                $group->save();
+            }
+        }
 
         // Send silent push to update content
         try {

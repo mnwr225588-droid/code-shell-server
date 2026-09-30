@@ -12,6 +12,7 @@ class CourseGroup extends Model
         'registration_deadline' => 'datetime',
         'duration_days' => 'integer',
         'is_auto_create' => 'boolean',
+        'include_all_levels' => 'boolean',
     ];
 
     public function course()
@@ -32,5 +33,10 @@ class CourseGroup extends Model
     public function teacher()
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
+    }
+
+    public function level()
+    {
+        return $this->belongsTo(Level::class, 'level_id');
     }
 }

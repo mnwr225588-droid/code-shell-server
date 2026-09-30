@@ -75,6 +75,9 @@ class CourseGroupService
     /**
      * إنشاء المجموعة التالية بنفس التسلسل (الأولى → الثانية → الثالثة...)
      * بنفس سعة المجموعة السابقة. تُنشأ دائماً بحالة "مفتوح للتسجيل".
+     * 
+     * ملاحظة مهمة: المجموعة الجديدة لا ترث المحاضرات الأونلاين من المجموعة السابقة
+     * يجب إضافة المحاضرات الأونلاين يدوياً لكل مجموعة جديدة.
      *
      * @return CourseGroup المجموعة المنشأة
      */
@@ -110,7 +113,11 @@ class CourseGroupService
             'status'                => 'open_for_registration',
         ]);
 
-        Log::info("Auto-spawned new group '{$newName}' (#{$newGroup->id}) for course {$previousGroup->course_id}");
+        // ✅ التأكد من عدم نسخ المحاضرات الأونلاين من المجموعة السابقة
+        // المحاضرات الأونلاين يجب إضافتها يدوياً لكل مجموعة جديدة
+        // هذا يمنع تلقائياً أي نسخ غير مقصود
+
+        Log::info("Auto-spawned new group '{$newName}' (#{$newGroup->id}) for course {$previousGroup->course_id} - No online lectures copied from previous group");
 
         return $newGroup;
     }

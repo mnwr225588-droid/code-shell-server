@@ -134,6 +134,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     
     // Groups & Online Lectures
     Route::get('/courses/{courseId}/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'index']);
+    Route::get('/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'index']);
     Route::post('/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'store']);
     Route::put('/groups/{id}', [\App\Http\Controllers\Api\AdminGroupController::class, 'update']);
     Route::post('/groups/{id}/activate', [\App\Http\Controllers\Api\AdminGroupController::class, 'activate']);
