@@ -611,6 +611,42 @@ class PaymentController extends Controller
                 \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
             }
 
+            // 10. التأكد النهائي من أن الاشتراك نشط
+            $finalSubscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->where('subscription_status', \App\Models\CourseSubscription::STATUS_ACTIVE)
+                ->first();
+
+            if (!$finalSubscription) {
+                // فرض التفعيل مرة أخرى
+                $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->first();
+
+                if ($subscription) {
+                    $subscription->subscription_status = \App\Models\CourseSubscription::STATUS_ACTIVE;
+                    $subscription->payment_status = \App\Models\CourseSubscription::PAYMENT_PAID;
+                    $subscription->paid_at = now();
+                    $subscription->save();
+                } else {
+                    // إنشاء اشتراك جديد
+                    $subscription = new \App\Models\CourseSubscription();
+                    $subscription->user_id = $user->id;
+                    $subscription->course_id = $course->id;
+                    $subscription->subscription_status = \App\Models\CourseSubscription::STATUS_ACTIVE;
+                    $subscription->payment_status = \App\Models\CourseSubscription::PAYMENT_PAID;
+                    $subscription->amount = (float) $amount;
+                    $subscription->currency_code = $pricing['currency_code'] ?? 'EGP';
+                    $subscription->course_price_at_purchase = (float) $amount;
+                    $subscription->payment_gateway = 'wallet';
+                    $subscription->paid_at = now();
+                    $subscription->save();
+
+                    // ربط المستخدم بمجموعة مفتوحة
+                    \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+                }
+            }
+
             DB::commit();
 
             return response()->json([
