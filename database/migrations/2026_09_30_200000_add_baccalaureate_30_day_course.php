@@ -31,7 +31,6 @@ return new class extends Migration
                 'prices' => json_encode(['EGP' => 500]),
                 'is_coming_soon' => false,
                 'is_active' => true,
-                'subscription_duration_days' => 30, // مدة الاشتراك 30 يوم
             ]);
         }
     }
