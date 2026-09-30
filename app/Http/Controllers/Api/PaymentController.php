@@ -583,7 +583,33 @@ class PaymentController extends Controller
             $transaction->save();
 
             // 8. تفعيل الاشتراك وإلحاق الطالب بمجموعة كورس مفتوحة
-            $this->subscriptionService->activateFromTransaction($transaction);
+            $activated = $this->subscriptionService->activateFromTransaction($transaction);
+
+            // 9. التأكد من تفعيل الاشتراك يدوياً في حالة فشل الخدمة
+            if (!$activated) {
+                // إنشاء اشتراك مباشر إذا لم يتم تفعيله
+                $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->first();
+
+                if (!$subscription) {
+                    $subscription = new \App\Models\CourseSubscription();
+                    $subscription->user_id = $user->id;
+                    $subscription->course_id = $course->id;
+                }
+
+                $subscription->subscription_status = \App\Models\CourseSubscription::STATUS_ACTIVE;
+                $subscription->payment_status = \App\Models\CourseSubscription::PAYMENT_PAID;
+                $subscription->amount = (float) $amount;
+                $subscription->currency_code = $pricing['currency_code'] ?? 'EGP';
+                $subscription->course_price_at_purchase = (float) $amount;
+                $subscription->payment_gateway = 'wallet';
+                $subscription->paid_at = now();
+                $subscription->save();
+
+                // ربط المستخدم بمجموعة مفتوحة
+                \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+            }
 
             DB::commit();
 
