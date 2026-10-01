@@ -60,6 +60,10 @@ class AuthService
                 $user->save();
             }
 
+            // 🔒 جلسة واحدة نشطة: إبطال جميع الجلسات السابقة للحساب
+            // عند تسجيل دخول جديد — الجهاز القديم يُسجل خروجه تلقائياً
+            $user->tokens()->delete();
+
             $token = $user->createToken('CodeShell')->plainTextToken;
 
             // determination of user type: admin if is_admin=1, teacher if hasTeacher relationship or isTeacher, else student
@@ -83,6 +87,9 @@ class AuthService
         $teacher = Teacher::where('email', $data['email'])->first();
 
         if ($teacher && Hash::check($data['password'], $teacher->password)) {
+            // 🔒 جلسة واحدة نشطة: إبطال جلسات المدرس السابقة عند الدخول الجديد
+            $teacher->tokens()->delete();
+
             $token = $teacher->createToken('CodeShell')->plainTextToken;
 
             $teacher->user_type = 'teacher';
