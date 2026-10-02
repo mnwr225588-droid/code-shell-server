@@ -119,11 +119,12 @@ class OnlineLectureController extends Controller
             return response()->json(['status' => false, 'data' => []]);
         }
 
+        // جلب معرفات المجموعات التي ينتمي لها الطالب
         $groupIds = $user->groups()->pluck('course_groups.id')->toArray();
-        $courseIds = $user->subscribedCourses()->pluck('courses.id')->toArray();
 
+        // جلب المحاضرات الأونلاين فقط للمجموعات التي ينتمي لها الطالب
+        // إزالة orWhereIn('course_id') لضمان أن كل مجموعة ترى محاضراتها الخاصة فقط
         $lectures = OnlineLecture::whereIn('group_id', $groupIds)
-            ->orWhereIn('course_id', $courseIds)
             ->with(['teacher', 'course', 'group', 'level'])
             ->orderBy('start_date_time', 'asc')
             ->get();
