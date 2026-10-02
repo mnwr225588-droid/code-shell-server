@@ -81,6 +81,20 @@ class CourseController extends Controller
             ->withCount('students')
             ->get();
 
+        // حساب الأيام المتبقية حتى التفعيل التلقائي
+        $groups->each(function($group) {
+            if ($group->activation_scheduled_at && $group->status === 'waiting_for_students') {
+                $now = now();
+                $scheduledAt = \Carbon\Carbon::parse($group->activation_scheduled_at);
+                $remainingDays = $now->diffInDays($scheduledAt, false);
+                $group->remaining_days = max(0, $remainingDays);
+                $group->activation_date = $scheduledAt->toIso8601String();
+            } else {
+                $group->remaining_days = null;
+                $group->activation_date = null;
+            }
+        });
+
         return response()->json([
             'status' => true,
             'data'   => $groups

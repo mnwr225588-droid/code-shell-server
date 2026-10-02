@@ -13,6 +13,8 @@ class CourseGroup extends Model
         'duration_days' => 'integer',
         'is_auto_create' => 'boolean',
         'include_all_levels' => 'boolean',
+        'activation_scheduled_at' => 'datetime',
+        'registration_period_days' => 'integer',
     ];
 
     public function course()

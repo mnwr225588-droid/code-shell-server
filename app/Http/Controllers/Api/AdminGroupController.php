@@ -33,12 +33,16 @@ class AdminGroupController extends Controller
             'is_auto_create' => 'nullable|boolean',
             'teacher_id' => 'nullable',
             'teacher_name' => 'nullable|string',
+            'registration_period_days' => 'nullable|integer|min:1',
         ]);
 
-        $data = $request->only(['course_id', 'name', 'capacity', 'registration_deadline', 'status', 'duration_days', 'is_auto_create', 'teacher_id']);
+        $data = $request->only(['course_id', 'name', 'capacity', 'registration_deadline', 'status', 'duration_days', 'is_auto_create', 'teacher_id', 'registration_period_days']);
 
         // ⚡ الإنشاء التلقائي للمجموعة التالية مفعّل افتراضياً
         $data['is_auto_create'] = $request->boolean('is_auto_create', true);
+
+        // مدة التسجيل الافتراضية 7 أيام
+        $data['registration_period_days'] = $request->integer('registration_period_days', 7);
 
         if (empty($data['teacher_id']) || !\App\Models\Teacher::where('id', $data['teacher_id'])->exists()) {
             $data['teacher_id'] = null;
@@ -46,6 +50,11 @@ class AdminGroupController extends Controller
 
         if (!empty($data['duration_days']) && $data['duration_days'] > 0) {
             $data['registration_deadline'] = now()->addDays($data['duration_days']);
+        }
+
+        // إذا كانت المجموعة في حالة انتظار، حدد موعد التفعيل التلقائي
+        if ($data['status'] === 'waiting_for_students' && empty($data['activation_scheduled_at'])) {
+            $data['activation_scheduled_at'] = now()->addDays($data['registration_period_days']);
         }
 
         $group = CourseGroup::create($data);
