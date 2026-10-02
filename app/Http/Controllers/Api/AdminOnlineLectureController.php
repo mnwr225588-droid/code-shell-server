@@ -22,7 +22,6 @@ class AdminOnlineLectureController extends Controller
     {
         $request->validate([
             'course_id' => 'required|exists:courses,id',
-            'level_id' => 'required|exists:levels,id',
             'group_id' => 'required|exists:course_groups,id',
             'teacher_id' => 'nullable',
             'title' => 'required|string|max:255',
@@ -80,7 +79,6 @@ class AdminOnlineLectureController extends Controller
         }
         $lecture = OnlineLecture::create([
             'course_id' => $request->course_id,
-            'level_id' => $request->level_id,
             'group_id' => $request->group_id,
             'teacher_id' => $teacherId,
             'title' => $request->title,
