@@ -77,13 +77,21 @@ class CourseController extends Controller
     public function getGroups($courseId)
     {
         $groups = \App\Models\CourseGroup::where('course_id', $courseId)
-            ->with(['onlineLectures' => function($query) {
-                // فلتر المحاضرات الأونلاين: كل مجموعة تجلب محاضراتها الخاصة فقط
-                $query->whereColumn('online_lectures.group_id', 'course_groups.id')
-                      ->with('teacher');
-            }, 'teacher'])
+            ->with(['teacher'])
             ->withCount('students')
             ->get();
+
+        // جلب المحاضرات الأونلاين لجميع المجموعات دفعة واحدة
+        $groupIds = $groups->pluck('id')->toArray();
+        $lectures = \App\Models\OnlineLecture::whereIn('group_id', $groupIds)
+            ->with('teacher')
+            ->get()
+            ->groupBy('group_id');
+
+        // ربط المحاضرات بكل مجموعة
+        $groups->each(function($group) use ($lectures) {
+            $group->setRelation('onlineLectures', $lectures->get($group->id, collect()));
+        });
 
         // حساب الأيام المتبقية حتى التفعيل التلقائي
         $groups->each(function($group) {
