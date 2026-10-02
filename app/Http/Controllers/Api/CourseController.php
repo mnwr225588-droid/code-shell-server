@@ -77,7 +77,11 @@ class CourseController extends Controller
     public function getGroups($courseId)
     {
         $groups = \App\Models\CourseGroup::where('course_id', $courseId)
-            ->with(['onlineLectures.teacher', 'teacher'])
+            ->with(['onlineLectures' => function($query) {
+                // فلتر المحاضرات الأونلاين: كل مجموعة تجلب محاضراتها الخاصة فقط
+                $query->whereColumn('online_lectures.group_id', 'course_groups.id')
+                      ->with('teacher');
+            }, 'teacher'])
             ->withCount('students')
             ->get();
 
@@ -150,13 +154,22 @@ class CourseController extends Controller
             ->with(['lessons' => function($q) {
                 $q->orderBy('order_num', 'asc')->with('questions.options');
             }])
-            ->with(['onlineLectures' => function($q) use ($groupId, $isAdmin) {
-                if (!$isAdmin && $groupId) {
-                    $q->where('group_id', $groupId);
-                }
-                $q->with('teacher');
-            }])
             ->get();
+
+        // جلب المحاضرات الأونلاين بشكل منفصل ومفلتر حسب المجموعة
+        $lecturesQuery = \App\Models\OnlineLecture::where('course_id', $course_id)
+            ->with('teacher');
+        
+        if (!$isAdmin && $groupId) {
+            $lecturesQuery->where('group_id', $groupId);
+        }
+        
+        $onlineLectures = $lecturesQuery->get()->groupBy('level_id');
+
+        // إضافة المحاضرات الأونلاين المفلترة لكل مستوى
+        foreach ($levels as $level) {
+            $level->setRelation('onlineLectures', $onlineLectures->get($level->id, collect()));
+        }
 
         $completedLessonIds = [];
         if ($userId) {
