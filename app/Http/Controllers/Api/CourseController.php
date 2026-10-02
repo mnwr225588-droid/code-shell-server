@@ -22,32 +22,97 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CourseController extends Controller
 {
     /// API: GET /api/courses
+    /// ⚡ محسّنة: كانت تستغرق ~22 ثانية (استعلامات لكل كورس على حدة داخل toArray)
+    /// الآن: 4 استعلامات مجمعة إجمالاً + كاش قصير لكل مستخدم
     public function index(Request $request)
     {
-        try { Course::findCourseSafely(10); } catch (\Exception $e) {}
-
         $user = auth('sanctum')->user() ?: $request->user();
-        $courses = Course::with(['category', 'groups' => function ($q) {
-                $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
-                  ->withCount('students');
-            }])
-            ->where('is_active', true)
-            ->orderBy('id', 'desc')
-            ->get();
+        $userId = $user?->id;
+        $isAdmin = $user ? $user->is_admin : false;
 
-        $courses->transform(function ($course) use ($user) {
-            $data = $course->toArray();
-            $data['is_subscribed'] = $user ? $course->isUserSubscribed($user->id) : false;
-            return $data;
+        // كاش قصير لكل مستخدم — التحميلات المتكررة ترد فوراً من الكاش
+        $cacheKey = 'courses_index_u' . ($userId ?? 'guest');
+
+        $payload = \Cache::remember($cacheKey, 30, function () use ($userId, $isAdmin) {
+            try { Course::findCourseSafely(10); } catch (\Exception $e) {}
+
+            $courses = Course::with(['category', 'groups' => function ($q) {
+                    $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
+                      ->withCount('students');
+                }])
+                ->where('is_active', true)
+                ->orderBy('id', 'desc')
+                ->get();
+
+            $courseIds = $courses->pluck('id');
+
+            // ===== استعلامات مجمعة (4 استعلامات بدل ~80) =====
+            // 1. كورسات المستخدم المشترك بها فعلياً
+            $subscribedIds = $userId
+                ? DB::table('course_subscriptions')
+                    ->where('user_id', $userId)
+                    ->where(function ($q) {
+                        $q->whereNull('subscription_status')
+                          ->orWhere('subscription_status', 'active');
+                    })
+                    ->whereIn('course_id', $courseIds)
+                    ->pluck('course_id')
+                : collect();
+
+            // 2. عدد المشتركين النشطين لكل كورس
+            $subCounts = DB::table('course_subscriptions')
+                ->whereIn('course_id', $courseIds)
+                ->where(function ($q) {
+                    $q->whereNull('subscription_status')
+                      ->orWhere('subscription_status', 'active');
+                })
+                ->groupBy('course_id')
+                ->selectRaw('course_id, COUNT(*) as c')
+                ->pluck('c', 'course_id');
+
+            // 3. عدد الحجوزات لكل كورس
+            $resCounts = DB::table('course_reservations')
+                ->whereIn('course_id', $courseIds)
+                ->groupBy('course_id')
+                ->selectRaw('course_id, COUNT(*) as c')
+                ->pluck('c', 'course_id');
+
+            // 4. عدد المستويات والدروس لكل كورس
+            $levelCounts = DB::table('levels')
+                ->whereIn('course_id', $courseIds)
+                ->groupBy('course_id')
+                ->selectRaw('course_id, COUNT(*) as c')
+                ->pluck('c', 'course_id');
+
+            $lessonCounts = DB::table('lessons')
+                ->join('levels', 'lessons.level_id', '=', 'levels.id')
+                ->whereIn('levels.course_id', $courseIds)
+                ->groupBy('levels.course_id')
+                ->selectRaw('levels.course_id as cid, COUNT(*) as c')
+                ->pluck('c', 'cid');
+
+            // تعبئة القيم مسبقاً — تمنع استعلامات الـ Accessors داخل toArray()
+            $courses->each(function ($course) use ($subCounts, $resCounts, $levelCounts, $lessonCounts, $subscribedIds, $isAdmin) {
+                $cid = $course->id;
+                $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
+                $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
+                $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
+                $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
+                $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
+                $course->setAttribute('is_subscribed', $isAdmin || $subscribedIds->contains($cid));
+            });
+
+            return $courses->toArray();
         });
 
         return response()->json([
             'status' => true,
-            'data'   => $courses
+            'data'   => $payload
         ]);
     }
 
@@ -133,7 +198,7 @@ class CourseController extends Controller
         $groupId = null;
         $groupStatus = null;
         if ($userId && !$isAdmin) {
-            $subscription = \DB::table('course_subscriptions')
+            $subscription = DB::table('course_subscriptions')
                 ->where('user_id', $userId)
                 ->where('course_id', $course_id)
                 ->first();
@@ -268,7 +333,7 @@ class CourseController extends Controller
 
         $groupId = null;
         if ($userId && !$isAdmin) {
-            $subscription = \DB::table('course_subscriptions')
+            $subscription = DB::table('course_subscriptions')
                 ->where('user_id', $userId)
                 ->where('course_id', $course_id)
                 ->first();
