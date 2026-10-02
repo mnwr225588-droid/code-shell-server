@@ -113,9 +113,10 @@ class CourseGroupService
             'status'                => 'open_for_registration',
         ]);
 
-        // ✅ التأكد من عدم نسخ المحاضرات الأونلاين من المجموعة السابقة
+        // ⚠️⚠️⚠️ مهم جداً: المجموعة الجديدة لا ترث المحاضرات الأونلاين من المجموعة السابقة ⚠️⚠️⚠️
         // المحاضرات الأونلاين يجب إضافتها يدوياً لكل مجموعة جديدة
         // هذا يمنع تلقائياً أي نسخ غير مقصود
+        // لا يوجد أي كود هنا يقوم بنسخ online_lectures
 
         Log::info("Auto-spawned new group '{$newName}' (#{$newGroup->id}) for course {$previousGroup->course_id} - No online lectures copied from previous group");
 
