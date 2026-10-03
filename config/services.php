@@ -40,8 +40,8 @@ return [
     | Telegram Security Bot Service
     |--------------------------------------------------------------------------
     */
-'telegram' => [
-        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN', '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U'),
         'secret_token' => env('TELEGRAM_BOT_SECRET', 'CodeShellSecretKey123'),
     ],
 

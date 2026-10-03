@@ -10,7 +10,7 @@ class TelegramService
 
     public function __construct()
     {
-        $this->botToken = env('TELEGRAM_BOT_TOKEN', '');
+        $this->botToken = (string) config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U'));
     }
 
     /**
