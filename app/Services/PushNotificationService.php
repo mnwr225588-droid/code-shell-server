@@ -67,10 +67,10 @@ class PushNotificationService
                 try {
                     $cleanTitle = e($title);
                     $cleanBody = e($body);
-                    $telegramText = "🔔 *{$cleanTitle}*\n━━━━━━━━━━━━━━━━━━━\n\n{$cleanBody}";
+                    $telegramText = "🔔 <b>{$cleanTitle}</b>\n━━━━━━━━━━━━━━━━━━━\n\n{$cleanBody}";
                     $botToken = (string) config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
                     if (!empty($botToken)) {
-                        \Illuminate\Support\Facades\Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                        \Illuminate\Support\Facades\Http::timeout(3)->connectTimeout(2)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
                             'chat_id'    => $user->telegram_chat_id,
                             'text'       => $telegramText,
                             'parse_mode' => 'HTML',

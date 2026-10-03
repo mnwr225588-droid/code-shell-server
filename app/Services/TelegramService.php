@@ -42,12 +42,14 @@ class TelegramService
         }
 
         try {
-            $response = Http::timeout(5)->connectTimeout(3)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
-                'chat_id' => $user->telegram_chat_id,
-                'text'    => "🔔 *{$title}*
+            $cleanTitle = e($title);
+            $cleanBody = e($body);
+            $text = "🔔 <b>{$cleanTitle}</b>\n━━━━━━━━━━━━━━━━━━━\n\n{$cleanBody}";
 
-{$body}",
-                'parse_mode' => 'Markdown',
+            $response = Http::timeout(4)->connectTimeout(2)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
+                'chat_id'    => $user->telegram_chat_id,
+                'text'       => $text,
+                'parse_mode' => 'HTML',
             ]);
             return $response->successful();
         } catch (\Throwable $e) {
