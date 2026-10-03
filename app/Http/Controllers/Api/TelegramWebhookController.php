@@ -560,7 +560,7 @@ class TelegramWebhookController extends Controller
         }
 
         try {
-            $response = Http::post("https://api.telegram.org/bot{$this->botToken}/{$method}", $params);
+            $response = Http::timeout(8)->connectTimeout(3)->post("https://api.telegram.org/bot{$this->botToken}/{$method}", $params);
             return $response->json();
         } catch (\Exception $e) {
             Log::error("Telegram Exception [{$method}]: " . $e->getMessage());

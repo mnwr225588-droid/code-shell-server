@@ -208,7 +208,9 @@ class NotificationController extends Controller
         // 📱 جسر تلجرام: كل مستخدم مربوط يستقبل الإشعار في بوت تلجرام
         try {
             $telegram = app(\App\Services\TelegramService::class);
-            foreach ($users as $tgUser) {
+            // ⚡ أرسل فقط للمربوطين — مع مهلة صارمة في الخدمة نفسها
+            $linkedUsers = $users->filter(fn ($u) => !empty($u->telegram_chat_id));
+            foreach ($linkedUsers as $tgUser) {
                 $telegram->notify($tgUser, $request->title, $request->body);
             }
         } catch (\Throwable $e) {

@@ -24,7 +24,7 @@ class TelegramService
         $message .= "⏱️ *الكود صالح لمدة 5 دقائق فقط.*\n";
         $message .= "⚠️ لا تشارك هذا الكود مع أي شخص.";
 
-        return Http::post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
+        return Http::timeout(5)->connectTimeout(3)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'MarkdownV2',
@@ -42,7 +42,7 @@ class TelegramService
         }
 
         try {
-            $response = Http::post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
+            $response = Http::timeout(5)->connectTimeout(3)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
                 'chat_id' => $user->telegram_chat_id,
                 'text'    => "🔔 *{$title}*
 

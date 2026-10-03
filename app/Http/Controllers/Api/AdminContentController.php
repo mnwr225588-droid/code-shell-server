@@ -30,12 +30,13 @@ class AdminContentController extends Controller
     // 0️⃣ جلب جميع الكورسات (بما فيها غير المنشورة)
     public function getCourses(Request $request)
     {
-        // تأكد من وجود كورس البكالوريا بالسيرفر للأدمن
-        try { Course::findCourseSafely(10); } catch (\Exception $e) {}
-
-        // تنظيف تلقائي: دمج أي كورسات بكالوريا مكررة في كورس واحد (لا يكلف شيئاً عند عدم وجود تكرار)
-        try { Course::deduplicateBaccalaureate(); } catch (\Throwable $e) {
-            \Log::warning('Baccalaureate deduplication skipped: ' . $e->getMessage());
+        // ⚡ إصلاحات البنية تُنفذ مرة واحدة فقط (متوسط زمن الاستجابة بعد الإصلاح)
+        if (!\Cache::has('admin_courses_fixed')) {
+            try { Course::findCourseSafely(10); } catch (\Exception $e) {}
+            try { Course::deduplicateBaccalaureate(); } catch (\Throwable $e) {
+                \Log::warning('Baccalaureate deduplication skipped: ' . $e->getMessage());
+            }
+            \Cache::put('admin_courses_fixed', true, now()->addDays(30));
         }
 
         // Admin needs to see all courses to manage them
