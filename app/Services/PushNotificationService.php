@@ -62,7 +62,24 @@ class PushNotificationService
                         : [],
                 ),
             ]);
-            $saved++;
+            // 2.5) إرسال الإشعار فورياً عبر التليجرام إذا كان حساب الطالب مربوطاً بالبوت
+            if (!empty($user->telegram_chat_id)) {
+                try {
+                    $cleanTitle = e($title);
+                    $cleanBody = e($body);
+                    $telegramText = "🔔 *{$cleanTitle}*\n━━━━━━━━━━━━━━━━━━━\n\n{$cleanBody}";
+                    $botToken = (string) config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
+                    if (!empty($botToken)) {
+                        \Illuminate\Support\Facades\Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                            'chat_id'    => $user->telegram_chat_id,
+                            'text'       => $telegramText,
+                            'parse_mode' => 'HTML',
+                        ]);
+                    }
+                } catch (\Exception $tgErr) {
+                    Log::error("Failed to send Telegram notification to user #{$user->id}: " . $tgErr->getMessage());
+                }
+            }
 
             // 3) الإرسال الفوري عبر FCM
             if (empty($user->fcm_token)) {

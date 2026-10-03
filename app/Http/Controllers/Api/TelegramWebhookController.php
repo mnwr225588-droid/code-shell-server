@@ -570,7 +570,9 @@ class TelegramWebhookController extends Controller
 
     protected function getFullName($user): string
     {
-        return trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->name ?? 'مستخدم');
+        // الاسم الثلاثي الكامل كما سُجل في المنصة
+        $full = trim(($user->first_name ?? '') . ' ' . ($user->middle_name ?? '') . ' ' . ($user->last_name ?? ''));
+        return $full !== '' ? $full : ($user->name ?? 'مستخدم');
     }
 
     protected function maskEmail(string $email): string

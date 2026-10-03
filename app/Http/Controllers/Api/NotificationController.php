@@ -205,6 +205,16 @@ class NotificationController extends Controller
             'sent_at'     => now(),
         ]);
 
+        // 📱 جسر تلجرام: كل مستخدم مربوط يستقبل الإشعار في بوت تلجرام
+        try {
+            $telegram = app(\App\Services\TelegramService::class);
+            foreach ($users as $tgUser) {
+                $telegram->notify($tgUser, $request->title, $request->body);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Telegram bridge failed: ' . $e->getMessage());
+        }
+
         // إذا كان الاستهداف لشخص واحد (مثل البريد)، يُنفّذ الإرسال بشكل synchronous
         if ($users->count() === 1) {
             $result = PushNotificationService::sendToUsers(

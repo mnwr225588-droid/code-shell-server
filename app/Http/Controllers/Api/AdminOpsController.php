@@ -120,6 +120,14 @@ class AdminOpsController extends Controller
 
         Log::info("Admin credited wallet: User #{$result->id} +{$amount} EGP");
 
+        // 📱 جسر تلجرام: إرسال الإشعار لبوت المستخدم إذا كان مربوطاً
+        try {
+            app(\App\Services\TelegramService::class)->notify($result,
+                'تم شحن رصيد محفظتك 💳',
+                "تم شحن رصيد محفظتك بمبلغ {$amount} ج.م بواسطة إدارة كود شيل. رصيدك الحالي: " . number_format((float) $result->wallet_balance, 2) . " ج.م"
+            );
+        } catch (\Throwable $e) {}
+
         // 🔔 إشعار الطالب بأنه تم شحن محفظته مع المبلغ
         try {
             \App\Models\Notification::create([
@@ -209,6 +217,14 @@ class AdminOpsController extends Controller
         ]);
 
         Log::info("Admin subscribed student: User #{$student->id} → Course #{$course->id}");
+
+        // 📱 جسر تلجرام: إشعار الاشتراك للبوت
+        try {
+            app(\App\Services\TelegramService::class)->notify($student,
+                'تم اشتراكك في كورس جديد 🎓',
+                "تم اشتراكك في كورس \"{$course->title}\" من خلال إدارة كود شيل. يمكنك الآن الدخول لمحتوى الكورس."
+            );
+        } catch (\Throwable $e) {}
 
         // 🔔 إشعار الطالب بأنه تم اشتراكه في الكورس من خلال الإدارة
         try {

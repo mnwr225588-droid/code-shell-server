@@ -30,4 +30,28 @@ class TelegramService
             'parse_mode' => 'MarkdownV2',
         ]);
     }
+
+    /**
+     * 🔔 إرسال إشعار المنصة إلى حساب تلجرام المستخدم (إذا كان مربوطاً).
+     * يُستخدم كجسر: كل إشعار يُنشأ في المنصة يُرسل تلقائياً للبوت.
+     */
+    public function notify($user, string $title, string $body): bool
+    {
+        if (empty($this->botToken) || empty($user?->telegram_chat_id)) {
+            return false;
+        }
+
+        try {
+            $response = Http::post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
+                'chat_id' => $user->telegram_chat_id,
+                'text'    => "🔔 *{$title}*
+
+{$body}",
+                'parse_mode' => 'Markdown',
+            ]);
+            return $response->successful();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
 }
