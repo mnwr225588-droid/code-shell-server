@@ -100,6 +100,8 @@ class AdminContentController extends Controller
             'thumbnail'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'is_free'        => 'required|boolean',
             'price'          => 'nullable|numeric',
+            'original_price' => 'nullable|numeric',
+            'has_discount'   => 'nullable|boolean',
             'is_coming_soon' => 'boolean',
             'prices'         => 'nullable',
             'prices.*'       => 'nullable|numeric',
@@ -112,6 +114,13 @@ class AdminContentController extends Controller
 
         $prices = PricingService::normalizePrices($request->input('prices'));
 
+        // حساب نسبة التخفيض تلقائياً
+        $discountPercentage = null;
+        $hasDiscount = $request->has_discount ?? false;
+        if ($hasDiscount && $request->original_price && $request->price) {
+            $discountPercentage = round((($request->original_price - $request->price) / $request->original_price) * 100);
+        }
+
         try {
             $course = Course::create([
                 'category_id'    => $request->category_id,
@@ -121,6 +130,9 @@ class AdminContentController extends Controller
                 'is_free'        => $request->is_free,
                 // العمود القديم للتوافق؛ المصدر الحقيقي هو مصفوفة prices (EGP افتراضياً).
                 'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
+                'original_price' => $request->original_price,
+                'discount_percentage' => $discountPercentage,
+                'has_discount'   => $hasDiscount,
                 'prices'         => $prices,
                 'is_coming_soon' => $request->is_coming_soon ?? false,
                 'is_active'      => true,
@@ -155,6 +167,9 @@ class AdminContentController extends Controller
             'is_free'        => 'sometimes|boolean',
             'is_active'      => 'sometimes|boolean',
             'is_coming_soon' => 'sometimes|boolean',
+            'price'          => 'sometimes|numeric',
+            'original_price' => 'sometimes|numeric',
+            'has_discount'   => 'sometimes|boolean',
             'prices'         => 'nullable',
             'prices.*'       => 'nullable|numeric',
         ]);
@@ -176,6 +191,23 @@ class AdminContentController extends Controller
         }
         if ($request->has('is_coming_soon')) {
             $course->is_coming_soon = $request->is_coming_soon;
+        }
+        if ($request->has('price')) {
+            $course->price = $request->price;
+        }
+        if ($request->has('original_price')) {
+            $course->original_price = $request->original_price;
+        }
+        if ($request->has('has_discount')) {
+            $course->has_discount = $request->has_discount;
+        }
+        // حساب نسبة التخفيض تلقائياً عند التعديل
+        if ($request->has('has_discount') && $request->has('original_price') && $request->has('price')) {
+            if ($request->has_discount && $request->original_price && $request->price) {
+                $course->discount_percentage = round((($request->original_price - $request->price) / $request->original_price) * 100);
+            } else {
+                $course->discount_percentage = null;
+            }
         }
         if ($request->has('prices')) {
             $course->prices = PricingService::normalizePrices($request->input('prices'));
