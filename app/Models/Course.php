@@ -30,6 +30,8 @@ class Course extends Model
         'discount_percentage',
         'has_discount',
         'prices',
+        'discount_prices',
+        'original_prices',
         'is_active',
         'is_coming_soon',
         'sort_order',
@@ -48,6 +50,8 @@ class Course extends Model
         'original_price' => 'decimal:2',
         'discount_percentage' => 'integer',
         'prices'         => 'json',
+        'discount_prices' => 'json',
+        'original_prices' => 'json',
         'features'       => 'json',
         'what_will_learn'=> 'json',
     ];

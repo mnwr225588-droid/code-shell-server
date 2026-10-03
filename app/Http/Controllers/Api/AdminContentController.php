@@ -117,8 +117,20 @@ class AdminContentController extends Controller
         // حساب نسبة التخفيض تلقائياً
         $discountPercentage = null;
         $hasDiscount = $request->has_discount ?? false;
-        if ($hasDiscount && $request->original_price && $request->price) {
-            $discountPercentage = round((($request->original_price - $request->price) / $request->original_price) * 100);
+        if ($hasDiscount && $request->original_prices && $request->discount_prices) {
+            $originalPrices = PricingService::normalizePrices($request->input('original_prices'));
+            $discountPrices = PricingService::normalizePrices($request->input('discount_prices'));
+            
+            // حساب متوسط نسبة التخفيض من جميع العملات
+            $totalDiscount = 0;
+            $count = 0;
+            foreach ($originalPrices as $code => $originalPrice) {
+                if (isset($discountPrices[$code]) && $originalPrice > 0 && $discountPrices[$code] < $originalPrice) {
+                    $totalDiscount += (($originalPrice - $discountPrices[$code]) / $originalPrice) * 100;
+                    $count++;
+                }
+            }
+            $discountPercentage = $count > 0 ? round($totalDiscount / $count) : null;
         }
 
         try {
@@ -130,10 +142,12 @@ class AdminContentController extends Controller
                 'is_free'        => $request->is_free,
                 // العمود القديم للتوافق؛ المصدر الحقيقي هو مصفوفة prices (EGP افتراضياً).
                 'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
-                'original_price' => $request->original_price,
+                'original_price' => $request->original_price ?? ($originalPrices['EGP'] ?? null),
                 'discount_percentage' => $discountPercentage,
                 'has_discount'   => $hasDiscount,
                 'prices'         => $prices,
+                'discount_prices' => $request->discount_prices ?? null,
+                'original_prices' => $request->original_prices ?? null,
                 'is_coming_soon' => $request->is_coming_soon ?? false,
                 'is_active'      => true,
             ]);
@@ -202,11 +216,27 @@ class AdminContentController extends Controller
             $course->has_discount = $request->has_discount;
         }
         // حساب نسبة التخفيض تلقائياً عند التعديل
-        if ($request->has('has_discount') && $request->has('original_price') && $request->has('price')) {
-            if ($request->has_discount && $request->original_price && $request->price) {
-                $course->discount_percentage = round((($request->original_price - $request->price) / $request->original_price) * 100);
+        if ($request->has('has_discount') && $request->has('original_prices') && $request->has('discount_prices')) {
+            if ($request->has_discount) {
+                $originalPrices = PricingService::normalizePrices($request->input('original_prices'));
+                $discountPrices = PricingService::normalizePrices($request->input('discount_prices'));
+                
+                // حساب متوسط نسبة التخفيض من جميع العملات
+                $totalDiscount = 0;
+                $count = 0;
+                foreach ($originalPrices as $code => $originalPrice) {
+                    if (isset($discountPrices[$code]) && $originalPrice > 0 && $discountPrices[$code] < $originalPrice) {
+                        $totalDiscount += (($originalPrice - $discountPrices[$code]) / $originalPrice) * 100;
+                        $count++;
+                    }
+                }
+                $course->discount_percentage = $count > 0 ? round($totalDiscount / $count) : null;
+                $course->original_prices = $originalPrices;
+                $course->discount_prices = $discountPrices;
             } else {
                 $course->discount_percentage = null;
+                $course->original_prices = null;
+                $course->discount_prices = null;
             }
         }
         if ($request->has('prices')) {
