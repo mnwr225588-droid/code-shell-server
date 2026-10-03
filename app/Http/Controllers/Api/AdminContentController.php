@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\PricingService;
 use App\Services\VideoProcessor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -41,6 +42,23 @@ class AdminContentController extends Controller
 
         // Admin needs to see all courses to manage them
         $courses = Course::with('category')->orderBy('id', 'desc')->get();
+        $courseIds = $courses->pluck('id');
+
+        // ⚡ استعلامات مجمعة تمنع استعلامات الـ Accessors لكل كورس (كانت سبب 16 ثانية)
+        $levelCounts = DB::table('levels')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+        $lessonCounts = DB::table('lessons')->join('levels', 'lessons.level_id', '=', 'levels.id')->whereIn('levels.course_id', $courseIds)->groupBy('levels.course_id')->selectRaw('levels.course_id as cid, COUNT(*) as c')->pluck('c', 'cid');
+        $subCounts = DB::table('course_subscriptions')->whereIn('course_id', $courseIds)->where(function ($q) { $q->whereNull('subscription_status')->orWhere('subscription_status', 'active'); })->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+        $resCounts = DB::table('course_reservations')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+
+        $courses->each(function ($course) use ($levelCounts, $lessonCounts, $subCounts, $resCounts) {
+            $cid = $course->id;
+            $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
+            $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
+            $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
+            $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
+            $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
+        });
+
         return response()->json([
             'status' => true,
             'data'   => $courses
