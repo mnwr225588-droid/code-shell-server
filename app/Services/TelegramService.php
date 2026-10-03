@@ -44,7 +44,12 @@ class TelegramService
         try {
             $cleanTitle = e($title);
             $cleanBody = e($body);
-            $text = "🔔 <b>{$cleanTitle}</b>\n━━━━━━━━━━━━━━━━━━━\n\n{$cleanBody}";
+            $text = "📣 <b>C O D E  S H E L L</b> │ <i>إشـعـار جـديـد</i>\n";
+            $text .= "🔷 <b>══════════════════════════</b> 🔷\n\n";
+            $text .= "🔔 <b>{$cleanTitle}</b>\n\n";
+            $text .= "<blockquote>{$cleanBody}</blockquote>\n\n";
+            $text .= "🔷 <b>══════════════════════════</b> 🔷\n";
+            $text .= "✨ <i>Code Shell Platform</i>";
 
             $response = Http::timeout(4)->connectTimeout(2)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
                 'chat_id'    => $user->telegram_chat_id,

@@ -105,6 +105,30 @@ class NotificationController extends Controller
     }
 
     /**
+     * حذف مجموعة من الإشعارات المحددة دفعة واحدة.
+     */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids) || !is_array($ids)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لم يتم تحديد أي إشعارات للحذف',
+            ], 400);
+        }
+
+        $deletedCount = Notification::where('user_id', $request->user()->id)
+            ->whereIn('id', $ids)
+            ->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => "تم حذف {$deletedCount} إشعار بنجاح",
+            'deleted_count' => $deletedCount,
+        ]);
+    }
+
+    /**
      * إرسال إشعار من لوحة الأدمن (يُستدعى فقط ضمن مجموعة مسارات admin):
      * - target=all            : جميع المستخدمين (خلفية)
      * - target=course         : المحجوزون/المشتركون في كورس محدد (خلفية)

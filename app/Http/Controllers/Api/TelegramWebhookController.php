@@ -121,12 +121,16 @@ class TelegramWebhookController extends Controller
         $fullName    = e($this->getFullName($user));
         $maskedEmail = e($this->maskEmail($user->email));
 
-        $text = "🎉 <b>تم ربط حسابك بـ Code Shell بنجاح!</b>\n";
-        $text .= "━━━━━━━━━━━━━━━━━━━\n\n";
-        $text .= "👤 <b>الاسم:</b> {$fullName}\n";
-        $text .= "📧 <b>البريد الإلكتروني:</b> <code>{$maskedEmail}</code>\n";
-        $text .= "✅ <b>الحالة:</b> حسابك متصل ومفعل بالمنصة.\n\n";
-        $text .= "🔔 ستصلك جميع إشعارات المنصة، والاشتراكات، والمحاضرات، وشحن المحفظة هنا فوراً!";
+        $text = "💎 <b>C O D E  S H E L L</b> │ <i>Security Bot</i>\n";
+        $text .= "🔷 <b>══════════════════════════</b> 🔷\n\n";
+        $text .= "🎉 <b>تـم ربـط الـحـسـاب وتـفـعـيـلـه بـنـجـاح!</b>\n\n";
+        $text .= "📌 <b>بـيـانـات الـحـسـاب الـمُـوثّـقـة:</b>\n";
+        $text .= "👤 <b>الاسم الثلاثي:</b> <code>{$fullName}</code>\n";
+        $text .= "📧 <b>البريد المحمي:</b> <code>{$maskedEmail}</code>\n";
+        $text .= "🟢 <b>الحالة التشغيلية:</b> <code>مـُتـصِـل ومـُفـعّـل ✅</code>\n\n";
+        $text .= "<blockquote>⚡ <b>نـظـام الإشـعـارات الـلـحـظـيـة:</b>\nتصلك الآن إشعارات شحن المحفظة 💳، الاشتراكات 🎓، المحاضرات 🎥، والتحديثات الرسمية في هذه المحادثة فوراً.</blockquote>\n\n";
+        $text .= "🔷 <b>══════════════════════════</b> 🔷\n";
+        $text .= "✨ <i>Code Shell Platform — التميز والذكاء الرقمي</i>";
 
         $this->sendMessage($chatId, $text);
     }
@@ -142,15 +146,23 @@ class TelegramWebhookController extends Controller
             $fullName    = e($this->getFullName($user));
             $maskedEmail = e($this->maskEmail($user->email));
 
-            $text = "🤖 <b>مرحباً بك في بوت منصة Code Shell الرسمية</b>\n";
-            $text .= "━━━━━━━━━━━━━━━━━━━\n\n";
-            $text .= "👤 <b>الاسم:</b> {$fullName}\n";
-            $text .= "📧 <b>البريد الإلكتروني:</b> <code>{$maskedEmail}</code>\n";
-            $text .= "✅ <b>الحالة:</b> حسابك مربوط بنجاح وجميع الإشعارات تصلك هنا مباشرة.";
+            $text = "💎 <b>C O D E  S H E L L</b> │ <i>Smart Assistant</i>\n";
+            $text .= "🔷 <b>══════════════════════════</b> 🔷\n\n";
+            $text .= "👋 أهـلاً بـك <b>{$fullName}</b>\n\n";
+            $text .= "📊 <b>حـالـة الـحـسـاب الـحـالـيـة:</b>\n";
+            $text .= "👤 <b>المستخدم:</b> <code>{$fullName}</code>\n";
+            $text .= "📧 <b>البريد:</b> <code>{$maskedEmail}</code>\n";
+            $text .= "🟢 <b>الربط:</b> <code>مُـقـتـرن ومـُتـصِـل ⚡</code>\n\n";
+            $text .= "<blockquote>💡 <b>خدمات البوت المفعلة:</b>\nاستلام كافة الإشعارات والعمليات المالية والرسائل الإدارية لحظياً دون تأخير.</blockquote>\n\n";
+            $text .= "🔷 <b>══════════════════════════</b> 🔷\n";
+            $text .= "✨ <i>Code Shell Platform</i>";
         } else {
-            $text = "🤖 <b>مرحباً بك في بوت منصة Code Shell الرسمية</b>\n";
-            $text .= "━━━━━━━━━━━━━━━━━━━\n\n";
-            $text .= "لتلقي إشعارات الحساب فورياً، يرجى الضغط على زر <b>ربط حساب التلجرام</b> من داخل منصة Code Shell.";
+            $text = "💎 <b>C O D E  S H E L L</b> │ <i>Smart Assistant</i>\n";
+            $text .= "🔷 <b>══════════════════════════</b> 🔷\n\n";
+            $text .= "⚠️ <b>حـسـابـك غـيـر مـربـوط مـع الـمـنـصـة!</b>\n\n";
+            $text .= "<blockquote>📱 <b>خطوات التفعيل السريعة:</b>\nقم بفتح منصة <b>Code Shell</b>، واضغط على زر <b>'ربط بوت التلجرام'</b> ليتم اقتران حسابك فوراً واستلام جميع تنبيهاتك هنا.</blockquote>\n\n";
+            $text .= "🔷 <b>══════════════════════════</b> 🔷\n";
+            $text .= "✨ <i>Code Shell Platform</i>";
         }
 
         $this->sendMessage($chatId, $text);

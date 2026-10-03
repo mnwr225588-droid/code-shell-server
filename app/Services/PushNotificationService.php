@@ -65,9 +65,12 @@ class PushNotificationService
             // 2.5) إرسال الإشعار فورياً عبر التليجرام إذا كان حساب الطالب مربوطاً بالبوت
             if (!empty($user->telegram_chat_id)) {
                 try {
-                    $cleanTitle = e($title);
-                    $cleanBody = e($body);
-                    $telegramText = "🔔 <b>{$cleanTitle}</b>\n━━━━━━━━━━━━━━━━━━━\n\n{$cleanBody}";
+                    $telegramText = "📣 <b>C O D E  S H E L L</b> │ <i>إشـعـار جـديـد</i>\n";
+                    $telegramText .= "🔷 <b>══════════════════════════</b> 🔷\n\n";
+                    $telegramText .= "🔔 <b>{$cleanTitle}</b>\n\n";
+                    $telegramText .= "<blockquote>{$cleanBody}</blockquote>\n\n";
+                    $telegramText .= "🔷 <b>══════════════════════════</b> 🔷\n";
+                    $telegramText .= "✨ <i>Code Shell Platform</i>";
                     $botToken = (string) config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U'));
                     if (!empty($botToken)) {
                         \Illuminate\Support\Facades\Http::timeout(3)->connectTimeout(2)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
