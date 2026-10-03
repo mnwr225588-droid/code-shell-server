@@ -40,6 +40,14 @@ class CourseSubscriptionController extends Controller
         $course = Course::findCourseSafely($courseId);
         $user = $request->user();
 
+        // ⚡ كاش قصير (30 ثانية) لحالة الاشتراك — تكرار الفتحات يرد فوراً
+        // يُبطل تلقائياً عند الاشتراك/الإلغاء
+        $cacheKey = 'sub_status_u' . $user->id . '_c' . $course->id;
+        $cached = \Cache::get($cacheKey);
+        if ($cached) {
+            return response()->json($cached);
+        }
+
         // التحقق من حالة الاشتراك
         $isSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
 
@@ -121,7 +129,7 @@ class CourseSubscriptionController extends Controller
         }
 
         // إرجاع الاستجابة بجميع المعلومات المطلوبة
-        return response()->json([
+        $payload = [
             'status'        => true,
             'is_subscribed' => $isSubscribed,
             'group'         => $group ? [
@@ -145,7 +153,9 @@ class CourseSubscriptionController extends Controller
             'subscription_duration_days' => $durationDays,
             'first_lecture_date' => $firstLectureDate,
             'is_expired' => $subscription ? $subscription->is_expired : false,
-        ]);
+        ];
+        \Cache::put($cacheKey, $payload, 30);
+        return response()->json($payload);
     }
 
     /**
@@ -255,6 +265,9 @@ class CourseSubscriptionController extends Controller
             ]
         );
 
+        // ⚡ إبطال كاش حالة الاشتراك بعد التغيير
+        \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
+
         // إرجاع استجابة النجاح مع معلومات الباقة
         return response()->json([
             'status'        => true,
@@ -331,6 +344,9 @@ class CourseSubscriptionController extends Controller
             if (method_exists($user, 'subscribedCourses')) {
                 $user->subscribedCourses()->detach($courseId);
             }
+
+            // ⚡ إبطال كاش حالة الاشتراك بعد الإلغاء
+            \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
 
             // 2. إذا كان الكورس مدفوعاً، أضف المبلغ المحسوب إلى محفظة المستخدم
             if ($refundAmount > 0) {
