@@ -25,4 +25,9 @@ class Level extends Model
     {
         return $this->hasMany(OnlineLecture::class);
     }
+
+    public function plan()
+    {
+        return $this->belongsTo(CoursePlan::class, 'plan_id');
+    }
 }

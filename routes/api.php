@@ -130,7 +130,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     // الباقات (Plans) للكورسات
     Route::get('/courses/{id}/plans', [AdminContentController::class, 'getCoursePlans']);
     Route::post('/courses/{id}/plans', [AdminContentController::class, 'storeCoursePlan']);
-    Route::put('/plans/{id}', [AdminContentController::class, 'updateCoursePlan']);
+    Route::match(['put', 'post'], '/plans/{id}', [AdminContentController::class, 'updateCoursePlan']);
     Route::delete('/plans/{id}', [AdminContentController::class, 'deleteCoursePlan']);
     
     // ربط المحاضرات بالباقات (Plan Lessons)
@@ -208,6 +208,8 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
 // جلب المجموعات המتاحة لكورس معين
 Route::get('/courses/{id}/groups', [CourseController::class, 'getGroups']);
+// جلب باقات كورس معين
+Route::get('/courses/{id}/plans', [CourseController::class, 'getCoursePlans']);
 
 /*
 |--------------------------------------------------------------------------

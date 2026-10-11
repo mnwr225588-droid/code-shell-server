@@ -33,18 +33,43 @@ class PaymentController extends Controller
         $user = $request->user();
         $course = Course::findCourseSafely($courseId);
 
-        // 1. الكورسات المجانية: إنشاء اشتراك مجاني فعال عبر السيرفر دون استدعاء EasyKash
-        if ($course->is_free || (float)$course->price === 0.0) {
+        $planId = $request->input('plan_id');
+        $plan = null;
+        if ($planId) {
+            $plan = \App\Models\CoursePlan::where('course_id', $course->id)->find($planId);
+        }
+
+        // 1. الكورسات أو الباقات المجانية: إنشاء اشتراك مجاني فعال عبر السيرفر دون استدعاء بوابة الدفع
+        $isFree = false;
+        if ($plan) {
+            $planEffectivePrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
+            $isFree = ($planEffectivePrice === 0.0);
+        } else {
+            $hasPlans = \App\Models\CoursePlan::where('course_id', $course->id)->where('is_active', true)->exists();
+            if (!$hasPlans && ($course->is_free || ($course->price !== null && (float)$course->price === 0.0))) {
+                $isFree = true;
+            }
+        }
+
+        if ($isFree) {
             $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
+            if ($plan) {
+                $freeSub->update([
+                    'plan_id' => $plan->id,
+                    'started_at' => now(),
+                    'expired_at' => $plan->duration_days ? now()->addDays($plan->duration_days) : null,
+                ]);
+            }
 
             return response()->json([
                 'status'             => true,
-                'message'            => 'تم تفعيل الاشتراك في الكورس المجاني بنجاح!',
+                'message'            => 'تم تفعيل الاشتراك المجاني بنجاح!',
                 'already_subscribed' => true,
                 'is_subscribed'      => true,
                 'data'               => [
                     'subscription_id' => $freeSub->id,
                     'course_id'       => $course->id,
+                    'plan_id'         => $plan?->id,
                     'amount'          => 0.0,
                     'status'          => 'active',
                 ],
@@ -60,14 +85,34 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        // 3. احتساب السعر والعملة من قاعدة البيانات على السيرفر فقط
-        $prices = $course->prices ?? [];
-        if (empty($prices)) {
-            $prices = PricingService::defaults();
+        // 3. احتساب السعر والعملة من قاعدة البيانات على السيرفر فقط (بناءً على الباقة أو الكورس)
+        if ($plan) {
+            $prices = [];
+            if ($plan->has_discount && !empty($plan->discount_prices)) {
+                $prices = $plan->discount_prices;
+            } elseif (!empty($plan->prices)) {
+                $prices = $plan->prices;
+            }
+            if (empty($prices)) {
+                $planPrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
+                $prices = ['EG' => ['price' => $planPrice, 'currency_code' => $plan->currency ?: 'EGP', 'currency_symbol' => 'ج.م']];
+            }
+            $pricing = PricingService::priceFor($user->country, $prices);
+            $amount = $pricing['price'];
+            $currency = $pricing['currency_code'];
+            $planType = $plan->name;
+            $planDurationDays = $plan->duration_days;
+        } else {
+            $prices = $course->prices ?? [];
+            if (empty($prices)) {
+                $prices = PricingService::defaults();
+            }
+            $pricing = PricingService::priceFor($user->country, $prices);
+            $amount = $pricing['price'];
+            $currency = $pricing['currency_code'];
+            $planType = $request->input('plan_type') ?? $request->input('plan') ?? 'monthly';
+            $planDurationDays = $course->subscription_duration_days ?? 30;
         }
-        $pricing = PricingService::priceFor($user->country, $prices);
-        $amount = $pricing['price'];
-        $currency = $pricing['currency_code'];
 
         $gateway = PaymentGatewayManager::active();
 
@@ -96,8 +141,6 @@ class PaymentController extends Controller
             }
         }
 
-        $planType = $request->input('plan_type') ?? $request->input('plan') ?? 'monthly';
-
         // 5. إنشاء معاملة مالية جديدة في DB
         $transaction = new Transaction([
             'user_id'         => $user->id,
@@ -107,9 +150,11 @@ class PaymentController extends Controller
             'payment_gateway' => $gateway->name(),
             'status'          => Transaction::STATUS_PENDING,
             'payload'         => [
-                'auto_assign_group' => true,
-                'course_price'      => $amount,
-                'plan_type'         => $planType,
+                'auto_assign_group'  => true,
+                'course_price'       => $amount,
+                'plan_type'          => $planType,
+                'plan_id'            => $plan ? $plan->id : null,
+                'plan_duration_days' => $planDurationDays,
             ],
         ]);
         $transaction->save();
@@ -517,12 +562,36 @@ class PaymentController extends Controller
         $user = $request->user();
         $course = Course::findCourseSafely($courseId);
 
-        // 1. الكورسات المجانية لا تحتاج خصم من المحفظة
-        if ($course->is_free || (float)$course->price === 0.0) {
+        $planId = $request->input('plan_id');
+        $plan = null;
+        if ($planId) {
+            $plan = \App\Models\CoursePlan::where('course_id', $course->id)->find($planId);
+        }
+
+        // 1. الكورسات أو الباقات المجانية لا تحتاج خصم من المحفظة
+        $isFree = false;
+        if ($plan) {
+            $planEffectivePrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
+            $isFree = ($planEffectivePrice === 0.0);
+        } else {
+            $hasPlans = \App\Models\CoursePlan::where('course_id', $course->id)->where('is_active', true)->exists();
+            if (!$hasPlans && ($course->is_free || ($course->price !== null && (float)$course->price === 0.0))) {
+                $isFree = true;
+            }
+        }
+
+        if ($isFree) {
             $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
+            if ($plan) {
+                $freeSub->update([
+                    'plan_id' => $plan->id,
+                    'started_at' => now(),
+                    'expired_at' => $plan->duration_days ? now()->addDays($plan->duration_days) : null,
+                ]);
+            }
             return response()->json([
                 'status'        => true,
-                'message'       => 'الكورس مجاني وتم تفعيل اشتراكك بنجاح!',
+                'message'       => 'تم تفعيل الاشتراك المجاني بنجاح!',
                 'is_subscribed' => true,
             ]);
         }
@@ -536,13 +605,34 @@ class PaymentController extends Controller
             ], 422);
         }
 
-        // 3. حساب سعر الكورس بناءً على دولة المستخدم
-        $prices = $course->prices ?? [];
-        if (empty($prices)) {
-            $prices = PricingService::defaults();
+        // 3. حساب السعر بناءً على الباقة أو الكورس
+        if ($plan) {
+            $prices = [];
+            if ($plan->has_discount && !empty($plan->discount_prices)) {
+                $prices = $plan->discount_prices;
+            } elseif (!empty($plan->prices)) {
+                $prices = $plan->prices;
+            }
+            if (empty($prices)) {
+                $planPrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
+                $prices = ['EG' => ['price' => $planPrice, 'currency_code' => $plan->currency ?: 'EGP', 'currency_symbol' => 'ج.م']];
+            }
+            $pricing = PricingService::priceFor($user->country, $prices);
+            $amount = (float) $pricing['price'];
+            $planType = $plan->name;
+            $planDurationDays = $plan->duration_days;
+            $walletDesc = "شراء باقة ({$plan->name}) لكورس ({$course->title}) خصماً من رصيد المحفظة";
+        } else {
+            $prices = $course->prices ?? [];
+            if (empty($prices)) {
+                $prices = PricingService::defaults();
+            }
+            $pricing = PricingService::priceFor($user->country, $prices);
+            $amount = (float) $pricing['price'];
+            $planType = $request->input('plan_type') ?? 'monthly';
+            $planDurationDays = $course->subscription_duration_days ?? 30;
+            $walletDesc = "شراء كورس ({$course->title}) خصماً من رصيد المحفظة";
         }
-        $pricing = PricingService::priceFor($user->country, $prices);
-        $amount = (float) $pricing['price'];
 
         // 4. التحقق من كفاية رصيد المحفظة لدى المستخدم
         if ((float) $user->wallet_balance < $amount) {
@@ -567,7 +657,7 @@ class PaymentController extends Controller
                 'amount'        => $amount,
                 'balance_after' => (float) $user->wallet_balance,
                 'reference_id'  => (string) $course->id,
-                'description'   => "شراء كورس ({$course->title}) خصماً من رصيد المحفظة",
+                'description'   => $walletDesc,
             ]);
 
             // 7. إنشاء المعاملة المالية المحلية
@@ -579,6 +669,13 @@ class PaymentController extends Controller
                 'payment_gateway' => 'wallet',
                 'status'          => Transaction::STATUS_COMPLETED,
                 'paid_at'         => now(),
+                'payload'         => [
+                    'auto_assign_group'  => true,
+                    'course_price'       => $amount,
+                    'plan_type'          => $planType,
+                    'plan_id'            => $plan ? $plan->id : null,
+                    'plan_duration_days' => $planDurationDays,
+                ],
             ]);
             $transaction->save();
 
@@ -605,6 +702,14 @@ class PaymentController extends Controller
                 $subscription->course_price_at_purchase = (float) $amount;
                 $subscription->payment_gateway = 'wallet';
                 $subscription->paid_at = now();
+                if ($plan) {
+                    $subscription->plan_id = $plan->id;
+                    if ($planDurationDays > 0) {
+                        $subscription->started_at = now();
+                        $subscription->expired_at = now()->addDays($planDurationDays);
+                        $subscription->is_expired = false;
+                    }
+                }
                 $subscription->save();
 
                 // ربط المستخدم بمجموعة مفتوحة

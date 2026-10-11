@@ -125,6 +125,10 @@ class SubscriptionService
             if (isset($transaction->payload['plan_type'])) {
                 $metadata['plan_type'] = $transaction->payload['plan_type'];
             }
+            if (isset($transaction->payload['plan_id'])) {
+                $subscription->plan_id = $transaction->payload['plan_id'];
+                $metadata['plan_id'] = $transaction->payload['plan_id'];
+            }
             $subscription->metadata = $metadata;
             $subscription->save();
 
@@ -184,6 +188,16 @@ class SubscriptionService
             $metadata = $subscription->metadata ?? [];
             if (isset($lockedTx->payload['plan_type'])) {
                 $metadata['plan_type'] = $lockedTx->payload['plan_type'];
+            }
+            if (isset($lockedTx->payload['plan_id'])) {
+                $subscription->plan_id = $lockedTx->payload['plan_id'];
+                $metadata['plan_id'] = $lockedTx->payload['plan_id'];
+            }
+            $durationDays = (int)($lockedTx->payload['plan_duration_days'] ?? 0);
+            if ($durationDays > 0) {
+                $subscription->started_at = now();
+                $subscription->expired_at = now()->addDays($durationDays);
+                $subscription->is_expired = false;
             }
             $subscription->metadata = $metadata;
             $subscription->save();

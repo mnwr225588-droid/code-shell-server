@@ -38,4 +38,9 @@ class OnlineLecture extends Model
     {
         return $this->hasMany(LectureAttendance::class);
     }
+
+    public function plan()
+    {
+        return $this->belongsTo(CoursePlan::class, 'plan_id');
+    }
 }

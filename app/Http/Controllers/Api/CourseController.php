@@ -194,19 +194,25 @@ class CourseController extends Controller
             ], 403);
         }
 
-        // إذا كان يوزر عادي، نجيب الـ Group الخاص به
+        // إذا كان يوزر عادي، نجيب الـ Group و الـ Plan الخاصين باشتراكه
         $groupId = null;
         $groupStatus = null;
+        $userPlanId = null;
         if ($userId && !$isAdmin) {
             $subscription = DB::table('course_subscriptions')
                 ->where('user_id', $userId)
                 ->where('course_id', $course_id)
                 ->first();
             
-            if ($subscription && $subscription->group_id) {
-                $groupId = $subscription->group_id;
-                $group = \App\Models\CourseGroup::find($groupId);
-                $groupStatus = $group ? $group->status : null;
+            if ($subscription) {
+                if ($subscription->group_id) {
+                    $groupId = $subscription->group_id;
+                    $group = \App\Models\CourseGroup::find($groupId);
+                    $groupStatus = $group ? $group->status : null;
+                }
+                if (!empty($subscription->plan_id)) {
+                    $userPlanId = $subscription->plan_id;
+                }
             }
         }
 
@@ -222,17 +228,36 @@ class CourseController extends Controller
         }
 
         // إتاحة الوصول للمستويات والدروس عند تفعيل المجموعة والاشتراك
-        $levels = \App\Models\Level::where('course_id', $course_id)
+        $levelsQuery = \App\Models\Level::where('course_id', $course_id)
+            ->with(['plan'])
             ->orderBy('order_num', 'asc')
             ->with(['lessons' => function($q) {
                 $q->orderBy('order_num', 'asc')->with('questions.options');
-            }])
-            ->get();
+            }]);
 
-        // جلب المحاضرات الأونلاين بشكل منفصل ومفلتر حسب المجموعة
+        if ($request->has('plan_id') && $request->filled('plan_id')) {
+            $levelsQuery->where('plan_id', $request->plan_id);
+        } elseif (!$isAdmin && $userPlanId) {
+            // فلترة المستويات التابعة لباقة الطالب + المستويات العامة للكورس
+            $levelsQuery->where(function($q) use ($userPlanId) {
+                $q->where('plan_id', $userPlanId)->orWhereNull('plan_id');
+            });
+        }
+
+        $levels = $levelsQuery->get();
+
+        // جلب المحاضرات الأونلاين بشكل منفصل ومفلتر حسب المجموعة أو الباقة
         $lecturesQuery = \App\Models\OnlineLecture::where('course_id', $course_id)
-            ->with('teacher');
+            ->with(['teacher', 'plan']);
         
+        if ($request->has('plan_id') && $request->filled('plan_id')) {
+            $lecturesQuery->where('plan_id', $request->plan_id);
+        } elseif (!$isAdmin && $userPlanId) {
+            $lecturesQuery->where(function($q) use ($userPlanId) {
+                $q->where('plan_id', $userPlanId)->orWhereNull('plan_id');
+            });
+        }
+
         if (!$isAdmin && $groupId) {
             $lecturesQuery->where('group_id', $groupId);
         }
@@ -354,6 +379,60 @@ class CourseController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $lectures
+        ]);
+    }
+
+    /**
+     * جلب باقات كورس محدد مع حالة الاشتراك
+     */
+    public function getCoursePlans(Request $request, $courseId)
+    {
+        $user = auth('sanctum')->user() ?: $request->user();
+        $course = Course::findCourseSafely($courseId);
+
+        $plans = \App\Models\CoursePlan::where('course_id', $courseId)
+            ->where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $userSubscriptions = $user
+            ? DB::table('course_subscriptions')
+                ->where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->where(function ($q) {
+                    $q->whereNull('subscription_status')
+                      ->orWhere('subscription_status', 'active');
+                })
+                ->get()
+            : collect();
+
+        $isCourseSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
+
+        $plansData = $plans->map(function ($plan) use ($userSubscriptions, $isCourseSubscribed) {
+            $planArr = $plan->toArray();
+            
+            // التحقق من اشتراك الطالب في هذه الباقة أو الكورس
+            $isSubscribedToThisPlan = $userSubscriptions->contains(function ($sub) use ($plan) {
+                return (int)$sub->plan_id === (int)$plan->id;
+            });
+
+            $planArr['is_subscribed'] = $isSubscribedToThisPlan || $isCourseSubscribed;
+            return $planArr;
+        });
+
+        return response()->json([
+            'status' => true,
+            'course' => [
+                'id' => $course->id,
+                'title' => $course->title,
+                'description' => $course->description,
+                'image' => $course->image,
+                'icon' => $course->icon,
+                'icon_url' => $course->icon_url,
+                'is_subscribed' => $isCourseSubscribed,
+            ],
+            'data' => $plansData
         ]);
     }
 }

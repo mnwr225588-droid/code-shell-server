@@ -39,21 +39,23 @@ class Course extends Model
         'difficulty',
         'features',
         'what_will_learn',
+        'subscription_duration_days',
     ];
 
     protected $casts = [
-        'is_free'        => 'boolean',
-        'is_active'      => 'boolean',
-        'is_coming_soon' => 'boolean',
-        'has_discount'   => 'boolean',
-        'price'          => 'decimal:2',
-        'original_price' => 'decimal:2',
-        'discount_percentage' => 'integer',
-        'prices'         => 'json',
-        'discount_prices' => 'json',
-        'original_prices' => 'json',
-        'features'       => 'json',
-        'what_will_learn'=> 'json',
+        'is_free'                    => 'boolean',
+        'is_active'                  => 'boolean',
+        'is_coming_soon'             => 'boolean',
+        'has_discount'               => 'boolean',
+        'price'                      => 'decimal:2',
+        'original_price'             => 'decimal:2',
+        'discount_percentage'        => 'integer',
+        'subscription_duration_days' => 'integer',
+        'prices'                     => 'json',
+        'discount_prices'            => 'json',
+        'original_prices'            => 'json',
+        'features'                   => 'json',
+        'what_will_learn'            => 'json',
     ];
 
     protected $appends = [
@@ -67,6 +69,7 @@ class Course extends Model
         'price',
         'currency_code',
         'currency_symbol',
+        'all_prices',
     ];
 
     public function getThumbnailUrlAttribute()
@@ -255,6 +258,16 @@ class Course extends Model
         }
         $country = auth('sanctum')->user()?->country;
         return PricingService::priceFor($country, $prices)['currency_symbol'];
+    }
+
+    /** إرجاع كل الأسعار كما هي من قاعدة البيانات (للأدمن فقط). */
+    public function getAllPricesAttribute(): array
+    {
+        $prices = $this->prices ?? [];
+        if (empty($prices)) {
+            $prices = PricingService::defaults();
+        }
+        return $prices;
     }
 
     public function category()

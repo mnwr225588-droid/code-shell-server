@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AdminContentController extends Controller
 {
@@ -150,6 +151,7 @@ class AdminContentController extends Controller
                 'original_prices' => $request->original_prices ?? null,
                 'is_coming_soon' => $request->is_coming_soon ?? false,
                 'is_active'      => true,
+                'subscription_duration_days' => $request->subscription_duration_days ?? 90,
             ]);
         } catch (\Illuminate\Database\QueryException $e) {
             // قيد العنوان الفريد: منع إنشاء كورسات بنفس العنوان بدل 500 غامضة
@@ -242,6 +244,9 @@ class AdminContentController extends Controller
         if ($request->has('prices')) {
             $course->prices = PricingService::normalizePrices($request->input('prices'));
         }
+        if ($request->has('subscription_duration_days')) {
+            $course->subscription_duration_days = $request->subscription_duration_days;
+        }
 
         try {
             $course->save();
@@ -263,11 +268,12 @@ class AdminContentController extends Controller
         ]);
     }
 
-    // 3️⃣ إضافة مستوى داخل كورس
+    // 3️⃣ إضافة مستوى داخل كورس أو باقة
     public function storeLevel(Request $request)
     {
         $request->validate([
             'course_id'   => 'required|exists:courses,id',
+            'plan_id'     => 'nullable|exists:course_plans,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'order_num'   => 'required|integer',
@@ -275,6 +281,7 @@ class AdminContentController extends Controller
         ]);
 
         $data = $request->all();
+        $data['plan_id'] = $request->filled('plan_id') ? $request->plan_id : null;
         $data['is_optional'] = $request->is_optional ?? false;
 
         $level = Level::create($data);
@@ -1013,45 +1020,105 @@ class AdminContentController extends Controller
     /**
      * إضافة باقة جديدة لكورس
      */
-    public function storeCoursePlan(Request $request, $courseId)
-    {
-        $course = Course::findCourseSafely($courseId);
+     public function storeCoursePlan(Request $request, $courseId)
+     {
+         $course = Course::findCourseSafely($courseId);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'name_en' => 'nullable|string|max:255',
-            'slug' => 'required|string|max:255|unique:course_plans,slug,NULL,id,course_id,' . $courseId,
-            'description' => 'nullable|string',
-            'price' => 'required|numeric',
-            'currency' => 'required|string|max:3',
-            'duration_days' => 'required|integer|min:1',
-            'duration_type' => 'required|string|in:days,months,years',
-            'is_active' => 'sometimes|boolean',
-            'sort_order' => 'sometimes|integer',
-            'features' => 'nullable|array',
-        ]);
+         $request->validate([
+             'name' => 'required|string|max:255',
+             'name_en' => 'nullable|string|max:255',
+             'slug' => 'nullable|string|max:255',
+             'description' => 'nullable|string',
+             'price' => 'nullable|numeric',
+             'original_price' => 'nullable|numeric',
+             'discount_price' => 'nullable|numeric',
+             'currency' => 'sometimes|string|max:3',
+             'duration_days' => 'sometimes|integer|min:1',
+             'duration_type' => 'sometimes|string|in:days,months,years',
+             'is_active' => 'sometimes',
+             'sort_order' => 'sometimes|integer',
+             'features' => 'nullable',
+             'image' => 'nullable',
+         ]);
 
-        $plan = CoursePlan::create([
-            'course_id' => $courseId,
-            'name' => $request->name,
-            'name_en' => $request->name_en,
-            'slug' => $request->slug,
-            'description' => $request->description,
-            'price' => $request->price,
-            'currency' => $request->currency,
-            'duration_days' => $request->duration_days,
-            'duration_type' => $request->duration_type,
-            'is_active' => $request->is_active ?? true,
-            'sort_order' => $request->sort_order ?? 0,
-            'features' => $request->features,
-        ]);
+         // معالجة الرابط الفريد تلقائياً إذا لم يُدخل
+         $slug = $request->slug;
+         if (empty($slug)) {
+             $slug = Str::slug($request->name ?: 'plan') . '-' . substr(uniqid(), -6);
+         }
+         // التأكد من عدم تكراره لنفس الكورس
+         while (CoursePlan::where('course_id', $courseId)->where('slug', $slug)->exists()) {
+             $slug = Str::slug($request->name ?: 'plan') . '-' . rand(1000, 9999);
+         }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'تمت إضافة الباقة بنجاح',
-            'data' => $plan
-        ]);
-    }
+         // معالجة رفع صورة الباقة
+         $imagePath = null;
+         if ($request->hasFile('image')) {
+             $file = $request->file('image');
+             $stored = $file->store('plans', 'public');
+             $imagePath = 'storage/' . $stored;
+         } elseif ($request->filled('image') && is_string($request->image)) {
+             $imagePath = $request->image;
+         }
+
+         // احتساب السعر والتخفيض
+         $hasDiscount = filter_var($request->has_discount, FILTER_VALIDATE_BOOLEAN);
+         $originalPrice = $request->original_price !== null ? (float)$request->original_price : (float)($request->price ?? 0);
+         $discountPrice = $request->discount_price !== null ? (float)$request->discount_price : $originalPrice;
+         
+         if ($hasDiscount && $originalPrice > 0 && $discountPrice < $originalPrice) {
+             $discountPercentage = (int) round((($originalPrice - $discountPrice) / $originalPrice) * 100);
+             $effectivePrice = $discountPrice;
+         } else {
+             $hasDiscount = false;
+             $discountPercentage = 0;
+             $effectivePrice = $originalPrice > 0 ? $originalPrice : (float)($request->price ?? 0);
+         }
+
+         // معالجة جداول الأسعار للعملات المتعددة
+         $parseJson = function ($val) {
+             if (empty($val)) return null;
+             if (is_array($val)) return $val;
+             if (is_string($val)) {
+                 $decoded = json_decode($val, true);
+                 return is_array($decoded) ? $decoded : null;
+             }
+             return null;
+         };
+
+         $prices = $parseJson($request->prices);
+         $originalPrices = $parseJson($request->original_prices);
+         $discountPrices = $parseJson($request->discount_prices);
+
+         $plan = CoursePlan::create([
+             'course_id' => $courseId,
+             'name' => $request->name,
+             'name_en' => $request->name_en,
+             'slug' => $slug,
+             'description' => $request->description,
+             'image' => $imagePath,
+             'price' => $effectivePrice,
+             'original_price' => $originalPrice,
+             'discount_price' => $discountPrice,
+             'has_discount' => $hasDiscount,
+             'discount_percentage' => $discountPercentage,
+             'currency' => $request->currency ?: 'EGP',
+             'prices' => $prices,
+             'original_prices' => $originalPrices,
+             'discount_prices' => $discountPrices,
+             'duration_days' => $request->duration_days ?: 30,
+             'duration_type' => $request->duration_type ?: 'days',
+             'is_active' => filter_var($request->is_active ?? true, FILTER_VALIDATE_BOOLEAN),
+             'sort_order' => $request->sort_order ?? 0,
+             'features' => $parseJson($request->features),
+         ]);
+
+         return response()->json([
+             'status' => true,
+             'message' => 'تمت إضافة الباقة بنجاح',
+             'data' => $plan
+         ]);
+     }
 
     /**
      * تعديل باقة موجودة
@@ -1065,26 +1132,78 @@ class AdminContentController extends Controller
             'name_en' => 'nullable|string|max:255',
             'slug' => 'sometimes|string|max:255|unique:course_plans,slug,' . $id . ',id',
             'description' => 'nullable|string',
-            'price' => 'sometimes|numeric',
+            'price' => 'nullable|numeric',
+            'original_price' => 'nullable|numeric',
+            'discount_price' => 'nullable|numeric',
             'currency' => 'sometimes|string|max:3',
             'duration_days' => 'sometimes|integer|min:1',
             'duration_type' => 'sometimes|string|in:days,months,years',
-            'is_active' => 'sometimes|boolean',
+            'is_active' => 'sometimes',
             'sort_order' => 'sometimes|integer',
-            'features' => 'nullable|array',
+            'features' => 'nullable',
+            'image' => 'nullable',
         ]);
 
         if ($request->has('name')) $plan->name = $request->name;
         if ($request->has('name_en')) $plan->name_en = $request->name_en;
         if ($request->has('slug')) $plan->slug = $request->slug;
         if ($request->has('description')) $plan->description = $request->description;
-        if ($request->has('price')) $plan->price = $request->price;
         if ($request->has('currency')) $plan->currency = $request->currency;
         if ($request->has('duration_days')) $plan->duration_days = $request->duration_days;
         if ($request->has('duration_type')) $plan->duration_type = $request->duration_type;
-        if ($request->has('is_active')) $plan->is_active = $request->is_active;
+        if ($request->has('is_active')) $plan->is_active = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
         if ($request->has('sort_order')) $plan->sort_order = $request->sort_order;
-        if ($request->has('features')) $plan->features = $request->features;
+
+        // معالجة رفع صورة جديدة للباقة
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $stored = $file->store('plans', 'public');
+            $plan->image = 'storage/' . $stored;
+        } elseif ($request->filled('image') && is_string($request->image)) {
+            $plan->image = $request->image;
+        }
+
+        // تحديث التخفيضات والأسعار
+        if ($request->has('has_discount')) {
+            $plan->has_discount = filter_var($request->has_discount, FILTER_VALIDATE_BOOLEAN);
+        }
+        if ($request->has('original_price')) {
+            $plan->original_price = $request->original_price !== null ? (float)$request->original_price : null;
+        }
+        if ($request->has('discount_price')) {
+            $plan->discount_price = $request->discount_price !== null ? (float)$request->discount_price : null;
+        }
+
+        // احتساب السعر الفعلي الفعال
+        $orig = $plan->original_price ?? (float)$plan->price;
+        $disc = $plan->discount_price ?? $orig;
+        if ($plan->has_discount && $orig > 0 && $disc < $orig) {
+            $plan->discount_percentage = (int) round((($orig - $disc) / $orig) * 100);
+            $plan->price = $disc;
+        } else {
+            $plan->has_discount = false;
+            $plan->discount_percentage = 0;
+            if ($request->has('price') && $request->price !== null) {
+                $plan->price = (float)$request->price;
+            } elseif ($orig > 0) {
+                $plan->price = $orig;
+            }
+        }
+
+        $parseJson = function ($val) {
+            if (empty($val)) return null;
+            if (is_array($val)) return $val;
+            if (is_string($val)) {
+                $decoded = json_decode($val, true);
+                return is_array($decoded) ? $decoded : null;
+            }
+            return null;
+        };
+
+        if ($request->has('prices')) $plan->prices = $parseJson($request->prices);
+        if ($request->has('original_prices')) $plan->original_prices = $parseJson($request->original_prices);
+        if ($request->has('discount_prices')) $plan->discount_prices = $parseJson($request->discount_prices);
+        if ($request->has('features')) $plan->features = $parseJson($request->features);
 
         $plan->save();
 

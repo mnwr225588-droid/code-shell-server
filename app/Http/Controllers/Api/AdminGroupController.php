@@ -8,12 +8,17 @@ use Illuminate\Http\Request;
 
 class AdminGroupController extends Controller
 {
-    public function index($courseId)
+    public function index(Request $request, $courseId)
     {
-        $groups = CourseGroup::where('course_id', $courseId)
-            ->with(['teacher'])
-            ->withCount('students')
-            ->get();
+        $query = CourseGroup::where('course_id', $courseId)
+            ->with(['teacher', 'plan'])
+            ->withCount('students');
+
+        if ($request->has('plan_id') && $request->filled('plan_id')) {
+            $query->where('plan_id', $request->plan_id);
+        }
+
+        $groups = $query->get();
 
         return response()->json([
             'status' => true,
@@ -25,6 +30,7 @@ class AdminGroupController extends Controller
     {
         $request->validate([
             'course_id' => 'required|exists:courses,id',
+            'plan_id' => 'nullable|exists:course_plans,id',
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'registration_deadline' => 'nullable|date',
@@ -36,7 +42,8 @@ class AdminGroupController extends Controller
             'registration_period_days' => 'nullable|integer|min:1',
         ]);
 
-        $data = $request->only(['course_id', 'name', 'capacity', 'registration_deadline', 'status', 'duration_days', 'is_auto_create', 'teacher_id', 'registration_period_days']);
+        $data = $request->only(['course_id', 'plan_id', 'name', 'capacity', 'registration_deadline', 'status', 'duration_days', 'is_auto_create', 'teacher_id', 'registration_period_days']);
+        $data['plan_id'] = $request->filled('plan_id') ? $request->plan_id : null;
 
         // ⚡ الإنشاء التلقائي للمجموعة التالية مفعّل افتراضياً
         $data['is_auto_create'] = $request->boolean('is_auto_create', true);
@@ -61,8 +68,8 @@ class AdminGroupController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'تم إضافة والمجموعة بنجاح',
-            'data' => $group->load('teacher')
+            'message' => 'تم إضافة المجموعة بنجاح',
+            'data' => $group->load(['teacher', 'plan'])
         ]);
     }
 
@@ -71,6 +78,7 @@ class AdminGroupController extends Controller
         $group = CourseGroup::findOrFail($id);
 
         $request->validate([
+            'plan_id' => 'nullable|exists:course_plans,id',
             'name' => 'sometimes|string|max:255',
             'capacity' => 'sometimes|integer|min:1',
             'registration_deadline' => 'nullable|date',
@@ -80,6 +88,9 @@ class AdminGroupController extends Controller
         ]);
         
         $data = $request->all();
+        if ($request->has('plan_id')) {
+            $data['plan_id'] = $request->filled('plan_id') ? $request->plan_id : null;
+        }
         if (isset($data['duration_days']) && $data['duration_days'] > 0) {
             $data['registration_deadline'] = now()->addDays($data['duration_days']);
         }

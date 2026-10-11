@@ -41,4 +41,9 @@ class CourseGroup extends Model
     {
         return $this->belongsTo(Level::class, 'level_id');
     }
+
+    public function plan()
+    {
+        return $this->belongsTo(CoursePlan::class, 'plan_id');
+    }
 }
