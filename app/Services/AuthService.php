@@ -64,7 +64,10 @@ class AuthService
             // عند تسجيل دخول جديد — الجهاز القديم يُسجل خروجه تلقائياً
             $user->tokens()->delete();
 
-            $token = $user->createToken('CodeShell')->plainTextToken;
+        $tokenResult = $user->createToken('CodeShell');
+        $token = $tokenResult->plainTextToken;
+        $user->current_token_id = $tokenResult->accessToken->id;
+        $user->save();
 
             // determination of user type: admin if is_admin=1, teacher if hasTeacher relationship or isTeacher, else student
             $userType = 'student';
