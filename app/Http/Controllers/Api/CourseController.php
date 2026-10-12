@@ -4,16 +4,15 @@
  * ====================================================
  * اسم الملف: CourseController.php
  * المسار: app/Http/Controllers/Api/CourseController.php
- * 
+ *
  * الوصف والمهمة الرئيسية:
  * هذا الملف مسؤول عن جلب بيانات الكورسات، المستويات، والدروس، والمجموعات والمحاضرات للطلاب في تطبيق الموبايل وموقع الويب.
- * 
- * وظائف الملف التفصيلية:
- * 1. index: عرض كل الكورسات المتاحة والقادمة قريباً مرتبة.
- * 2. show: جلب تفاصيل كورس معين بواسطة ID.
- * 3. getGroups: جلب المجموعات الدراسية التابعة لكورس معين.
- * 4. getLevels: جلب المستويات والدروس الخاصة بالطالب مع قفل المحتوى إذا لم يمتلك اشتراكاً نَشِطاً.
- * 5. getLessonsForLevel: جلب دروس مستوى محدد بحماية الاشتراك.
+ *
+ * التحسينات المطبقة:
+ * 1. إزالة الاستعلام الغير ضروري (findCourseSafely)
+ * 2. زيادة مدة الكاش من 30 ثانية إلى 5 دقائق
+ * 3. تحسين استعلامات الـ groups بدون N+1 problem
+ * 4. تجميع جميع الاستعلامات (5 استعلامات بدلاً من 80+)
  * ====================================================
  */
 
@@ -28,18 +27,18 @@ class CourseController extends Controller
 {
     /// API: GET /api/courses
     /// ⚡ محسّنة: كانت تستغرق ~22 ثانية (استعلامات لكل كورس على حدة داخل toArray)
-    /// الآن: 4 استعلامات مجمعة إجمالاً + كاش قصير لكل مستخدم
+    /// الآن: 5 استعلامات مجمعة إجمالاً + كاش 5 دقائق
     public function index(Request $request)
     {
         $user = auth('sanctum')->user() ?: $request->user();
         $userId = $user?->id;
         $isAdmin = $user ? $user->is_admin : false;
 
-        // كاش قصير لكل مستخدم — التحميلات المتكررة ترد فوراً من الكاش
-        $cacheKey = 'courses_index_u' . ($userId ?? 'guest');
+        // كاش لمدة 5 دقائق بدلاً من 30 ثانية
+        $cacheKey = 'courses_index_u' . ($userId ?? 'guest') . '_v2';
 
-        $payload = \Cache::remember($cacheKey, 30, function () use ($userId, $isAdmin) {
-            try { Course::findCourseSafely(10); } catch (\Exception $e) {}
+        $payload = \Cache::remember($cacheKey, 300, function () use ($userId, $isAdmin) {
+            // تم إزالة السطر الغير ضروري: Course::findCourseSafely(10)
 
             $courses = Course::with(['category', 'groups' => function ($q) {
                     $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
@@ -51,7 +50,7 @@ class CourseController extends Controller
 
             $courseIds = $courses->pluck('id');
 
-            // ===== استعلامات مجمعة (4 استعلامات بدل ~80) =====
+            // ===== استعلامات مجمعة (5 استعلامات بدل ~80) =====
             // 1. كورسات المستخدم المشترك بها فعلياً
             $subscribedIds = $userId
                 ? DB::table('course_subscriptions')
@@ -203,7 +202,7 @@ class CourseController extends Controller
                 ->where('user_id', $userId)
                 ->where('course_id', $course_id)
                 ->first();
-            
+
             if ($subscription) {
                 if ($subscription->group_id) {
                     $groupId = $subscription->group_id;
@@ -249,7 +248,7 @@ class CourseController extends Controller
         // جلب المحاضرات الأونلاين بشكل منفصل ومفلتر حسب المجموعة أو الباقة
         $lecturesQuery = \App\Models\OnlineLecture::where('course_id', $course_id)
             ->with(['teacher', 'plan']);
-        
+
         if ($request->has('plan_id') && $request->filled('plan_id')) {
             $lecturesQuery->where('plan_id', $request->plan_id);
         } elseif (!$isAdmin && $userPlanId) {
@@ -261,7 +260,7 @@ class CourseController extends Controller
         if (!$isAdmin && $groupId) {
             $lecturesQuery->where('group_id', $groupId);
         }
-        
+
         $onlineLectures = $lecturesQuery->get()->groupBy('level_id');
 
         // إضافة المحاضرات الأونلاين المفلترة لكل مستوى
@@ -333,7 +332,7 @@ class CourseController extends Controller
             ->where('level_id', $level_id)
             ->orderBy('order_num', 'asc')
             ->get();
-            
+
         return response()->json([
             'status' => true,
             'data'   => $lessons
@@ -411,7 +410,7 @@ class CourseController extends Controller
 
         $plansData = $plans->map(function ($plan) use ($userSubscriptions, $isCourseSubscribed) {
             $planArr = $plan->toArray();
-            
+
             // التحقق من اشتراك الطالب في هذه الباقة أو الكورس
             $isSubscribedToThisPlan = $userSubscriptions->contains(function ($sub) use ($plan) {
                 return (int)$sub->plan_id === (int)$plan->id;
