@@ -43,7 +43,7 @@ class PaymentController extends Controller
         $isFree = false;
         if ($plan) {
             $planEffectivePrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
-            $isFree = ($planEffectivePrice === 0.0);
+            $isFree = ($plan->is_free || $planEffectivePrice === 0.0);
         } else {
             $hasPlans = \App\Models\CoursePlan::where('course_id', $course->id)->where('is_active', true)->exists();
             if (!$hasPlans && ($course->is_free || ($course->price !== null && (float)$course->price === 0.0))) {
@@ -572,7 +572,7 @@ class PaymentController extends Controller
         $isFree = false;
         if ($plan) {
             $planEffectivePrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
-            $isFree = ($planEffectivePrice === 0.0);
+            $isFree = ($plan->is_free || $planEffectivePrice === 0.0);
         } else {
             $hasPlans = \App\Models\CoursePlan::where('course_id', $course->id)->where('is_active', true)->exists();
             if (!$hasPlans && ($course->is_free || ($course->price !== null && (float)$course->price === 0.0))) {

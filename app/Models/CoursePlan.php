@@ -39,6 +39,8 @@ class CoursePlan extends Model
         'duration_days',       // مدة الاشتراك بالأيام
         'duration_type',       // نوع المدة (days, months, years)
         'is_active',           // هل الباقة مفعلة ومتاحة للاشتراك
+        'is_free',             // هل الباقة مجانية بالكامل
+        'what_you_will_learn', // ماذا ستتعلم في هذا الكورس
         'sort_order',          // ترتيب العرض
         'features',            // مميزات الباقة (JSON)
         'metadata',            // بيانات إضافية (JSON)
@@ -60,6 +62,7 @@ class CoursePlan extends Model
         'original_price' => 'decimal:2',
         'discount_price' => 'decimal:2',
         'has_discount' => 'boolean',
+        'is_free' => 'boolean',       // تحويل لقيمة منطقية
         'prices' => 'array',          // تحويل الأسعار لـ JSON Array
         'original_prices' => 'array',
         'discount_prices' => 'array',

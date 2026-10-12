@@ -276,6 +276,8 @@ class AdminContentController extends Controller
             'plan_id'     => 'nullable|exists:course_plans,id',
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
+            'what_you_will_learn' => 'nullable|string',
+            'what_you_will_learn' => 'nullable|string',
             'order_num'   => 'required|integer',
             'is_optional' => 'boolean'
         ]);
@@ -366,6 +368,7 @@ class AdminContentController extends Controller
                 'level_id'    => $request->level_id,
                 'title'       => $request->title,
                 'description' => $request->description,
+            'what_you_will_learn' => $request->what_you_will_learn,
                 'video_url'   => $videoPath,
                 'thumbnail'   => $thumbnailPath,
                 'order_num'   => $request->order_num,
@@ -1061,18 +1064,27 @@ class AdminContentController extends Controller
              $imagePath = $request->image;
          }
 
-         // احتساب السعر والتخفيض
-         $hasDiscount = filter_var($request->has_discount, FILTER_VALIDATE_BOOLEAN);
-         $originalPrice = $request->original_price !== null ? (float)$request->original_price : (float)($request->price ?? 0);
-         $discountPrice = $request->discount_price !== null ? (float)$request->discount_price : $originalPrice;
-         
-         if ($hasDiscount && $originalPrice > 0 && $discountPrice < $originalPrice) {
-             $discountPercentage = (int) round((($originalPrice - $discountPrice) / $originalPrice) * 100);
-             $effectivePrice = $discountPrice;
-         } else {
+         // احتساب السعر والتخفيض ومراعاة الباقة المجانية
+         $isFree = filter_var($request->is_free, FILTER_VALIDATE_BOOLEAN);
+         if ($isFree) {
              $hasDiscount = false;
              $discountPercentage = 0;
-             $effectivePrice = $originalPrice > 0 ? $originalPrice : (float)($request->price ?? 0);
+             $originalPrice = 0.0;
+             $discountPrice = 0.0;
+             $effectivePrice = 0.0;
+         } else {
+             $hasDiscount = filter_var($request->has_discount, FILTER_VALIDATE_BOOLEAN);
+             $originalPrice = $request->original_price !== null ? (float)$request->original_price : (float)($request->price ?? 0);
+             $discountPrice = $request->discount_price !== null ? (float)$request->discount_price : $originalPrice;
+             
+             if ($hasDiscount && $originalPrice > 0 && $discountPrice < $originalPrice) {
+                 $discountPercentage = (int) round((($originalPrice - $discountPrice) / $originalPrice) * 100);
+                 $effectivePrice = $discountPrice;
+             } else {
+                 $hasDiscount = false;
+                 $discountPercentage = 0;
+                 $effectivePrice = $originalPrice > 0 ? $originalPrice : (float)($request->price ?? 0);
+             }
          }
 
          // معالجة جداول الأسعار للعملات المتعددة
@@ -1097,6 +1109,7 @@ class AdminContentController extends Controller
              'slug' => $slug,
              'description' => $request->description,
              'image' => $imagePath,
+             'is_free' => $isFree,
              'price' => $effectivePrice,
              'original_price' => $originalPrice,
              'discount_price' => $discountPrice,
@@ -1148,6 +1161,7 @@ class AdminContentController extends Controller
         if ($request->has('name_en')) $plan->name_en = $request->name_en;
         if ($request->has('slug')) $plan->slug = $request->slug;
         if ($request->has('description')) $plan->description = $request->description;
+        if ($request->has('what_you_will_learn')) $plan->what_you_will_learn = $request->what_you_will_learn;
         if ($request->has('currency')) $plan->currency = $request->currency;
         if ($request->has('duration_days')) $plan->duration_days = $request->duration_days;
         if ($request->has('duration_type')) $plan->duration_type = $request->duration_type;
@@ -1163,30 +1177,42 @@ class AdminContentController extends Controller
             $plan->image = $request->image;
         }
 
-        // تحديث التخفيضات والأسعار
-        if ($request->has('has_discount')) {
-            $plan->has_discount = filter_var($request->has_discount, FILTER_VALIDATE_BOOLEAN);
-        }
-        if ($request->has('original_price')) {
-            $plan->original_price = $request->original_price !== null ? (float)$request->original_price : null;
-        }
-        if ($request->has('discount_price')) {
-            $plan->discount_price = $request->discount_price !== null ? (float)$request->discount_price : null;
+        // تحديث الباقة المجانية والأسعار
+        if ($request->has('is_free')) {
+            $plan->is_free = filter_var($request->is_free, FILTER_VALIDATE_BOOLEAN);
         }
 
-        // احتساب السعر الفعلي الفعال
-        $orig = $plan->original_price ?? (float)$plan->price;
-        $disc = $plan->discount_price ?? $orig;
-        if ($plan->has_discount && $orig > 0 && $disc < $orig) {
-            $plan->discount_percentage = (int) round((($orig - $disc) / $orig) * 100);
-            $plan->price = $disc;
-        } else {
+        if ($plan->is_free) {
+            $plan->price = 0.0;
+            $plan->original_price = 0.0;
+            $plan->discount_price = 0.0;
             $plan->has_discount = false;
             $plan->discount_percentage = 0;
-            if ($request->has('price') && $request->price !== null) {
-                $plan->price = (float)$request->price;
-            } elseif ($orig > 0) {
-                $plan->price = $orig;
+        } else {
+            if ($request->has('has_discount')) {
+                $plan->has_discount = filter_var($request->has_discount, FILTER_VALIDATE_BOOLEAN);
+            }
+            if ($request->has('original_price')) {
+                $plan->original_price = $request->original_price !== null ? (float)$request->original_price : null;
+            }
+            if ($request->has('discount_price')) {
+                $plan->discount_price = $request->discount_price !== null ? (float)$request->discount_price : null;
+            }
+
+            // احتساب السعر الفعلي الفعال
+            $orig = $plan->original_price ?? (float)$plan->price;
+            $disc = $plan->discount_price ?? $orig;
+            if ($plan->has_discount && $orig > 0 && $disc < $orig) {
+                $plan->discount_percentage = (int) round((($orig - $disc) / $orig) * 100);
+                $plan->price = $disc;
+            } else {
+                $plan->has_discount = false;
+                $plan->discount_percentage = 0;
+                if ($request->has('price') && $request->price !== null) {
+                    $plan->price = (float)$request->price;
+                } elseif ($orig > 0) {
+                    $plan->price = $orig;
+                }
             }
         }
 
