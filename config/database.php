@@ -97,10 +97,6 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
-            'options' => [
-                PDO::ATTR_TIMEOUT => 120,
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ],
         ],
 
         'sqlsrv' => [
