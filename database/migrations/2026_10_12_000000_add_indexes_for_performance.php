@@ -170,6 +170,14 @@ return new class extends Migration
                 
                 $result = DB::select($query, [$table, $index]);
                 return $result[0]->count > 0;
+            } elseif ($driver === 'sqlite') {
+                $query = "SELECT COUNT(*) as count 
+                          FROM sqlite_master 
+                          WHERE type = 'index' 
+                          AND tbl_name = ? 
+                          AND name = ?";
+                $result = DB::select($query, [$table, $index]);
+                return $result[0]->count > 0;
             } else {
                 // MySQL
                 $dbName = DB::connection()->getDatabaseName();
