@@ -345,20 +345,22 @@ class Course extends Model
      */
     public static function findBaccalaureateCourse()
     {
-        // slug إنجليزي (ASCII) = مطابقة آمنة على أي قاعدة بيانات — بشرط وجود العمود
-        if (\Schema::hasTable('categories') && \Schema::hasColumn('categories', 'slug')) {
-            $category = Category::where('slug', 'baccalaureate')->first();
-            if ($category) {
-                $byCategory = self::where('category_id', $category->id)->orderBy('id')->first();
-                if ($byCategory) {
-                    return $byCategory;
+        return \Cache::remember('baccalaureate_course_id_v2', 300, function () {
+            // slug إنجليزي (ASCII) = مطابقة آمنة على أي قاعدة بيانات — بشرط وجود العمود
+            if (\Schema::hasTable('categories') && \Schema::hasColumn('categories', 'slug')) {
+                $category = Category::where('slug', 'baccalaureate')->first();
+                if ($category) {
+                    $byCategory = self::where('category_id', $category->id)->orderBy('id')->first();
+                    if ($byCategory) {
+                        return $byCategory;
+                    }
                 }
             }
-        }
 
-        // مطابقة العنوان داخل PHP — تعمل حتى لو كانت مطابقة العربية معطلة في SQL
-        return self::orderBy('id')->get()
-            ->first(fn ($c) => str_contains((string) $c->title, 'بكالوريا'));
+            // مطابقة العنوان داخل PHP — تعمل حتى لو كانت مطابقة العربية معطلة في SQL
+            return self::orderBy('id')->where('title', 'like', '%بكالوريا%')->first()
+                ?? self::orderBy('id')->get()->first(fn ($c) => str_contains((string) $c->title, 'بكالوريا'));
+        });
     }
 
     /**
