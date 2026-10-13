@@ -34,10 +34,10 @@ class CourseController extends Controller
         $userId = $user?->id;
         $isAdmin = $user ? $user->is_admin : false;
 
-        // كاش لمدة 5 دقائق بدلاً من 30 ثانية
+        // كاش لمدة دقيقة واحدة
         $cacheKey = 'courses_index_u' . ($userId ?? 'guest') . '_v2';
 
-        $payload = \Cache::remember($cacheKey, 300, function () use ($user, $userId, $isAdmin) {
+        $payload = \Cache::remember($cacheKey, 60, function () use ($user, $userId, $isAdmin) {
             // تم إزالة السطر الغير ضروري: Course::findCourseSafely(10)
 
             $courses = Course::with(['category', 'groups' => function ($q) {

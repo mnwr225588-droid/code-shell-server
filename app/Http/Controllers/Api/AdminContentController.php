@@ -23,7 +23,7 @@ class AdminContentController extends Controller
 {
     public function getCourses(Request $request)
     {
-        return \Cache::remember('admin_all_courses_v2', 300, function () {
+        return \Cache::remember('admin_all_courses_v2', 60, function () {
             $courses = Course::with('category')->orderBy('id', 'desc')->get();
             $courseIds = $courses->pluck('id');
 
@@ -215,6 +215,11 @@ class AdminContentController extends Controller
             }
             throw $e;
         }
+
+        \Cache::forget('admin_all_courses_v2');
+        \Cache::forget('all_courses_v2');
+        \Cache::forget('courses_index_u' . auth()->id() . '_v2');
+        \Cache::forget('courses_index_uguest_v2');
 
         return response()->json([
             'status'  => true,
@@ -830,6 +835,7 @@ class AdminContentController extends Controller
             'name_en' => 'nullable|string|max:255',
             'slug' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'what_you_will_learn' => 'nullable|string',
             'price' => 'nullable|numeric',
             'original_price' => 'nullable|numeric',
             'discount_price' => 'nullable|numeric',
@@ -839,7 +845,8 @@ class AdminContentController extends Controller
             'is_active' => 'sometimes',
             'sort_order' => 'sometimes|integer',
             'features' => 'nullable',
-            'image' => 'nullable',
+            'image' => $request->hasFile('image') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
+            'image_path' => $request->hasFile('image_path') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
         ]);
 
         $slug = $request->slug;
@@ -850,11 +857,14 @@ class AdminContentController extends Controller
             $slug = Str::slug($request->name ?: 'plan') . '-' . rand(1000, 9999);
         }
 
+        $imageField = $request->hasFile('image_path') ? 'image_path' : 'image';
         $imagePath = null;
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
+        if ($request->hasFile($imageField)) {
+            $file = $request->file($imageField);
             $stored = $file->store('plans', 'public');
             $imagePath = 'storage/' . $stored;
+        } elseif ($request->filled('image_path') && is_string($request->image_path)) {
+            $imagePath = $request->image_path;
         } elseif ($request->filled('image') && is_string($request->image)) {
             $imagePath = $request->image;
         }
@@ -901,6 +911,7 @@ class AdminContentController extends Controller
             'name_en' => $request->name_en,
             'slug' => $slug,
             'description' => $request->description,
+            'what_you_will_learn' => $request->what_you_will_learn,
             'image' => $imagePath,
             'is_free' => $isFree,
             'price' => $effectivePrice,
@@ -919,6 +930,11 @@ class AdminContentController extends Controller
             'features' => $parseJson($request->features),
         ]);
 
+        \Cache::forget('admin_all_courses_v2');
+        \Cache::forget('all_courses_v2');
+        \Cache::forget('courses_index_u' . auth()->id() . '_v2');
+        \Cache::forget('courses_index_uguest_v2');
+
         return response()->json(['status' => true, 'message' => 'تمت إضافة الباقة بنجاح', 'data' => $plan]);
     }
 
@@ -931,6 +947,7 @@ class AdminContentController extends Controller
             'name_en' => 'nullable|string|max:255',
             'slug' => 'sometimes|string|max:255|unique:course_plans,slug,' . $id . ',id',
             'description' => 'nullable|string',
+            'what_you_will_learn' => 'sometimes|nullable|string',
             'price' => 'nullable|numeric',
             'original_price' => 'nullable|numeric',
             'discount_price' => 'nullable|numeric',
@@ -940,23 +957,33 @@ class AdminContentController extends Controller
             'is_active' => 'sometimes',
             'sort_order' => 'sometimes|integer',
             'features' => 'nullable',
-            'image' => 'nullable',
+            'image' => $request->hasFile('image') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
+            'image_path' => $request->hasFile('image_path') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
         ]);
 
         if ($request->has('name')) $plan->name = $request->name;
         if ($request->has('name_en')) $plan->name_en = $request->name_en;
         if ($request->has('slug')) $plan->slug = $request->slug;
         if ($request->has('description')) $plan->description = $request->description;
+        if ($request->has('what_you_will_learn')) $plan->what_you_will_learn = $request->what_you_will_learn;
         if ($request->has('currency')) $plan->currency = $request->currency;
         if ($request->has('duration_days')) $plan->duration_days = $request->duration_days;
         if ($request->has('duration_type')) $plan->duration_type = $request->duration_type;
         if ($request->has('is_active')) $plan->is_active = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
         if ($request->has('sort_order')) $plan->sort_order = $request->sort_order;
 
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
+        $oldImagePathToDelete = null;
+        $imageField = $request->hasFile('image_path') ? 'image_path' : 'image';
+        if ($request->hasFile($imageField)) {
+            $file = $request->file($imageField);
             $stored = $file->store('plans', 'public');
+            $oldImagePathToDelete = ltrim((string) $plan->image, '/');
+            if (str_starts_with($oldImagePathToDelete, 'storage/')) {
+                $oldImagePathToDelete = substr($oldImagePathToDelete, strlen('storage/'));
+            }
             $plan->image = 'storage/' . $stored;
+        } elseif ($request->filled('image_path') && is_string($request->image_path)) {
+            $plan->image = $request->image_path;
         } elseif ($request->filled('image') && is_string($request->image)) {
             $plan->image = $request->image;
         }
@@ -1014,6 +1041,15 @@ class AdminContentController extends Controller
         if ($request->has('features')) $plan->features = $parseJson($request->features);
 
         $plan->save();
+
+        if ($oldImagePathToDelete !== null && $oldImagePathToDelete !== '' && !preg_match('#^https?://#i', $oldImagePathToDelete) && !str_starts_with($oldImagePathToDelete, 'assets/') && Storage::disk('public')->exists($oldImagePathToDelete)) {
+            Storage::disk('public')->delete($oldImagePathToDelete);
+        }
+
+        \Cache::forget('admin_all_courses_v2');
+        \Cache::forget('all_courses_v2');
+        \Cache::forget('courses_index_u' . auth()->id() . '_v2');
+        \Cache::forget('courses_index_uguest_v2');
 
         return response()->json(['status' => true, 'message' => 'تم تحديث الباقة بنجاح', 'data' => $plan]);
     }
