@@ -95,7 +95,7 @@ class CourseController extends Controller
                 ->selectRaw('levels.course_id as cid, COUNT(*) as c')
                 ->pluck('c', 'cid');
 
-            $userCountry = $user?->country;
+            $userCountry = ($user && isset($user->country)) ? $user->country : null;
 
             $courses->each(function ($course) use ($subCounts, $resCounts, $levelCounts, $lessonCounts, $subscribedIds, $isAdmin, $userCountry) {
                 $cid = $course->id;
@@ -142,7 +142,7 @@ class CourseController extends Controller
         $course->setAttribute('reservations_count', $course->reservedUsers()->count());
         $course->setAttribute('subscriptions_count', $course->subscribedUsers()->count());
 
-        if ($user) {
+        if ($user && isset($user->country)) {
             $pricing = \App\Services\PricingService::priceFor($user->country, $course->prices);
             $course->setAttribute('price', $pricing['price']);
             $course->setAttribute('currency_code', $pricing['currency_code']);
