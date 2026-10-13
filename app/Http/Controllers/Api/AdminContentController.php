@@ -1,13 +1,13 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
-/// الـ AdminContentController
-/// ده العصب الرئيسي لتطبيق الإدارة (code_shell_admin).
-/// مسؤول عن إضافة/تعديل/حذف: الأقسام، الكورسات، المستويات، والدروس.
-/// وكمان بيعرض بيانات المستخدمين والحجوزات.
-/// ⚠️ مهم: كل الـ Routes اللي بتشاور على الـ Controller ده محمية بـ auth:sanctum في routes/api.php
-/// وأي تعديل هنا هيسمّع في الـ Providers والـ Services في تطبيق الأدمن (Flutter).
+/// Ø§Ù„Ù€ AdminContentController
+/// Ø¯Ù‡ Ø§Ù„Ø¹ØµØ¨ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ù„ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© (code_shell_admin).
+/// Ù…Ø³Ø¤ÙˆÙ„ Ø¹Ù† Ø¥Ø¶Ø§ÙØ©/ØªØ¹Ø¯ÙŠÙ„/Ø­Ø°Ù: Ø§Ù„Ø£Ù‚Ø³Ø§Ù…ØŒ Ø§Ù„ÙƒÙˆØ±Ø³Ø§ØªØŒ Ø§Ù„Ù…Ø³ØªÙˆÙŠØ§ØªØŒ ÙˆØ§Ù„Ø¯Ø±ÙˆØ³.
+/// ÙˆÙƒÙ…Ø§Ù† Ø¨ÙŠØ¹Ø±Ø¶ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† ÙˆØ§Ù„Ø­Ø¬ÙˆØ²Ø§Øª.
+/// âš ï¸ Ù…Ù‡Ù…: ÙƒÙ„ Ø§Ù„Ù€ Routes Ø§Ù„Ù„ÙŠ Ø¨ØªØ´Ø§ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ù€ Controller Ø¯Ù‡ Ù…Ø­Ù…ÙŠØ© Ø¨Ù€ auth:sanctum ÙÙŠ routes/api.php
+/// ÙˆØ£ÙŠ ØªØ¹Ø¯ÙŠÙ„ Ù‡Ù†Ø§ Ù‡ÙŠØ³Ù…Ù‘Ø¹ ÙÙŠ Ø§Ù„Ù€ Providers ÙˆØ§Ù„Ù€ Services ÙÙŠ ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø£Ø¯Ù…Ù† (Flutter).
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
@@ -29,44 +29,38 @@ use Illuminate\Support\Str;
 
 class AdminContentController extends Controller
 {
-    // 0️⃣ جلب جميع الكورسات (بما فيها غير المنشورة)
+    // 0ï¸âƒ£ Ø¬Ù„Ø¨ Ø¬Ù…ÙŠØ¹ Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª (Ø¨Ù…Ø§ ÙÙŠÙ‡Ø§ ØºÙŠØ± Ø§Ù„Ù…Ù†Ø´ÙˆØ±Ø©)
     public function getCourses(Request $request)
     {
-        // ⚡ إصلاحات البنية تُنفذ مرة واحدة فقط (متوسط زمن الاستجابة بعد الإصلاح)
-        if (!\Cache::has('admin_courses_fixed')) {
-            try { Course::findCourseSafely(10); } catch (\Exception $e) {}
-            try { Course::deduplicateBaccalaureate(); } catch (\Throwable $e) {
-                \Log::warning('Baccalaureate deduplication skipped: ' . $e->getMessage());
-            }
-            \Cache::put('admin_courses_fixed', true, now()->addDays(30));
-        }
+        // âš¡ ÙƒØ§Ø´ 5 Ø¯Ù‚Ø§Ø¦Ù‚ Ù„ØªØ³Ø±ÙŠØ¹ ØªØ­Ù…ÙŠÙ„ Ù„ÙˆØ­Ø© Ø§Ù„Ø£Ø¯Ù…Ù†
+        return \Cache::remember('admin_all_courses_v2', 300, function () {
+            // Admin needs to see all courses to manage them
+            $courses = Course::with('category')->orderBy('id', 'desc')->get();
+            $courseIds = $courses->pluck('id');
 
-        // Admin needs to see all courses to manage them
-        $courses = Course::with('category')->orderBy('id', 'desc')->get();
-        $courseIds = $courses->pluck('id');
+            // âš¡ Ø§Ø³ØªØ¹Ù„Ø§Ù…Ø§Øª Ù…Ø¬Ù…Ø¹Ø© ØªÙ…Ù†Ø¹ Ø§Ø³ØªØ¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù€ Accessors Ù„ÙƒÙ„ ÙƒÙˆØ±Ø³ (ÙƒØ§Ù†Øª Ø³Ø¨Ø¨ 16 Ø«Ø§Ù†ÙŠØ©)
+            $levelCounts = DB::table('levels')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+            $lessonCounts = DB::table('lessons')->join('levels', 'lessons.level_id', '=', 'levels.id')->whereIn('levels.course_id', $courseIds)->groupBy('levels.course_id')->selectRaw('levels.course_id as cid, COUNT(*) as c')->pluck('c', 'cid');
+            $subCounts = DB::table('course_subscriptions')->whereIn('course_id', $courseIds)->where(function ($q) { $q->whereNull('subscription_status')->orWhere('subscription_status', 'active'); })->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+            $resCounts = DB::table('course_reservations')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
 
-        // ⚡ استعلامات مجمعة تمنع استعلامات الـ Accessors لكل كورس (كانت سبب 16 ثانية)
-        $levelCounts = DB::table('levels')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
-        $lessonCounts = DB::table('lessons')->join('levels', 'lessons.level_id', '=', 'levels.id')->whereIn('levels.course_id', $courseIds)->groupBy('levels.course_id')->selectRaw('levels.course_id as cid, COUNT(*) as c')->pluck('c', 'cid');
-        $subCounts = DB::table('course_subscriptions')->whereIn('course_id', $courseIds)->where(function ($q) { $q->whereNull('subscription_status')->orWhere('subscription_status', 'active'); })->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
-        $resCounts = DB::table('course_reservations')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+            $courses->each(function ($course) use ($levelCounts, $lessonCounts, $subCounts, $resCounts) {
+                $cid = $course->id;
+                $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
+                $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
+                $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
+                $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
+                $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
+            });
 
-        $courses->each(function ($course) use ($levelCounts, $lessonCounts, $subCounts, $resCounts) {
-            $cid = $course->id;
-            $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
-            $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
-            $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
-            $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
-            $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
+            return response()->json([
+                'status' => true,
+                'data'   => $courses
+            ]);
         });
-
-        return response()->json([
-            'status' => true,
-            'data'   => $courses
-        ]);
     }
 
-    // 1️⃣ إضافة/تحديث قسم أو لغة برمجة مع الأيقونة
+    // 1ï¸âƒ£ Ø¥Ø¶Ø§ÙØ©/ØªØ­Ø¯ÙŠØ« Ù‚Ø³Ù… Ø£Ùˆ Ù„ØºØ© Ø¨Ø±Ù…Ø¬Ø© Ù…Ø¹ Ø§Ù„Ø£ÙŠÙ‚ÙˆÙ†Ø©
     public function storeCategory(Request $request)
     {
         $request->validate([
@@ -86,12 +80,12 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'تمت إضافة القسم بنجاح',
+            'message' => 'ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ù‚Ø³Ù… Ø¨Ù†Ø¬Ø§Ø­',
             'data'    => $category
         ]);
     }
 
-    // 2️⃣ إضافة كورس مع الغلاف والنوع (مجاني/مدفوع/قريباً)
+    // 2ï¸âƒ£ Ø¥Ø¶Ø§ÙØ© ÙƒÙˆØ±Ø³ Ù…Ø¹ Ø§Ù„ØºÙ„Ø§Ù ÙˆØ§Ù„Ù†ÙˆØ¹ (Ù…Ø¬Ø§Ù†ÙŠ/Ù…Ø¯ÙÙˆØ¹/Ù‚Ø±ÙŠØ¨Ø§Ù‹)
     public function storeCourse(Request $request)
     {
         $request->validate([
@@ -115,14 +109,14 @@ class AdminContentController extends Controller
 
         $prices = PricingService::normalizePrices($request->input('prices'));
 
-        // حساب نسبة التخفيض تلقائياً
+        // Ø­Ø³Ø§Ø¨ Ù†Ø³Ø¨Ø© Ø§Ù„ØªØ®ÙÙŠØ¶ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
         $discountPercentage = null;
         $hasDiscount = $request->has_discount ?? false;
         if ($hasDiscount && $request->original_prices && $request->discount_prices) {
             $originalPrices = PricingService::normalizePrices($request->input('original_prices'));
             $discountPrices = PricingService::normalizePrices($request->input('discount_prices'));
             
-            // حساب متوسط نسبة التخفيض من جميع العملات
+            // Ø­Ø³Ø§Ø¨ Ù…ØªÙˆØ³Ø· Ù†Ø³Ø¨Ø© Ø§Ù„ØªØ®ÙÙŠØ¶ Ù…Ù† Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¹Ù…Ù„Ø§Øª
             $totalDiscount = 0;
             $count = 0;
             foreach ($originalPrices as $code => $originalPrice) {
@@ -141,7 +135,7 @@ class AdminContentController extends Controller
                 'description'    => $request->description,
                 'thumbnail'      => $thumbnailPath,
                 'is_free'        => $request->is_free,
-                // العمود القديم للتوافق؛ المصدر الحقيقي هو مصفوفة prices (EGP افتراضياً).
+                // Ø§Ù„Ø¹Ù…ÙˆØ¯ Ø§Ù„Ù‚Ø¯ÙŠÙ… Ù„Ù„ØªÙˆØ§ÙÙ‚Ø› Ø§Ù„Ù…ØµØ¯Ø± Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ Ù‡Ùˆ Ù…ØµÙÙˆÙØ© prices (EGP Ø§ÙØªØ±Ø§Ø¶ÙŠØ§Ù‹).
                 'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
                 'original_price' => $request->original_price ?? ($originalPrices['EGP'] ?? null),
                 'discount_percentage' => $discountPercentage,
@@ -154,11 +148,11 @@ class AdminContentController extends Controller
                 'subscription_duration_days' => $request->subscription_duration_days ?? 90,
             ]);
         } catch (\Illuminate\Database\QueryException $e) {
-            // قيد العنوان الفريد: منع إنشاء كورسات بنفس العنوان بدل 500 غامضة
+            // Ù‚ÙŠØ¯ Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ÙØ±ÙŠØ¯: Ù…Ù†Ø¹ Ø¥Ù†Ø´Ø§Ø¡ ÙƒÙˆØ±Ø³Ø§Øª Ø¨Ù†ÙØ³ Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø¨Ø¯Ù„ 500 ØºØ§Ù…Ø¶Ø©
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json([
                     'status'  => false,
-                    'message' => 'يوجد كورس بنفس العنوان بالفعل. يرجى استخدام عنوان مختلف أو تعديل الكورس الموجود.',
+                    'message' => 'ÙŠÙˆØ¬Ø¯ ÙƒÙˆØ±Ø³ Ø¨Ù†ÙØ³ Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø¨Ø§Ù„ÙØ¹Ù„. ÙŠØ±Ø¬Ù‰ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø¹Ù†ÙˆØ§Ù† Ù…Ø®ØªÙ„Ù Ø£Ùˆ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„ÙƒÙˆØ±Ø³ Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯.',
                 ], 422);
             }
             throw $e;
@@ -166,12 +160,12 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'تمت إضافة الكورس بنجاح',
+            'message' => 'ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ø§Ù„ÙƒÙˆØ±Ø³ Ø¨Ù†Ø¬Ø§Ø­',
             'data'    => $course
         ]);
     }
 
-    // 2️⃣.ب تعديل كورس (البيانات الأساسية + الأسعار متعددة العملات)
+    // 2ï¸âƒ£.Ø¨ ØªØ¹Ø¯ÙŠÙ„ ÙƒÙˆØ±Ø³ (Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© + Ø§Ù„Ø£Ø³Ø¹Ø§Ø± Ù…ØªØ¹Ø¯Ø¯Ø© Ø§Ù„Ø¹Ù…Ù„Ø§Øª)
     public function updateCourse(Request $request, $id)
     {
         $course = Course::findCourseSafely($id);
@@ -217,13 +211,13 @@ class AdminContentController extends Controller
         if ($request->has('has_discount')) {
             $course->has_discount = $request->has_discount;
         }
-        // حساب نسبة التخفيض تلقائياً عند التعديل
+        // Ø­Ø³Ø§Ø¨ Ù†Ø³Ø¨Ø© Ø§Ù„ØªØ®ÙÙŠØ¶ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¹Ù†Ø¯ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„
         if ($request->has('has_discount') && $request->has('original_prices') && $request->has('discount_prices')) {
             if ($request->has_discount) {
                 $originalPrices = PricingService::normalizePrices($request->input('original_prices'));
                 $discountPrices = PricingService::normalizePrices($request->input('discount_prices'));
                 
-                // حساب متوسط نسبة التخفيض من جميع العملات
+                // Ø­Ø³Ø§Ø¨ Ù…ØªÙˆØ³Ø· Ù†Ø³Ø¨Ø© Ø§Ù„ØªØ®ÙÙŠØ¶ Ù…Ù† Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¹Ù…Ù„Ø§Øª
                 $totalDiscount = 0;
                 $count = 0;
                 foreach ($originalPrices as $code => $originalPrice) {
@@ -251,11 +245,11 @@ class AdminContentController extends Controller
         try {
             $course->save();
         } catch (\Illuminate\Database\QueryException $e) {
-            // قيد العنوان الفريد: رسالة واضحة بدل خطأ سيرفر غامض
+            // Ù‚ÙŠØ¯ Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ÙØ±ÙŠØ¯: Ø±Ø³Ø§Ù„Ø© ÙˆØ§Ø¶Ø­Ø© Ø¨Ø¯Ù„ Ø®Ø·Ø£ Ø³ÙŠØ±ÙØ± ØºØ§Ù…Ø¶
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json([
                     'status'  => false,
-                    'message' => 'يوجد كورس آخر بنفس العنوان. يرجى استخدام عنوان مختلف.',
+                    'message' => 'ÙŠÙˆØ¬Ø¯ ÙƒÙˆØ±Ø³ Ø¢Ø®Ø± Ø¨Ù†ÙØ³ Ø§Ù„Ø¹Ù†ÙˆØ§Ù†. ÙŠØ±Ø¬Ù‰ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø¹Ù†ÙˆØ§Ù† Ù…Ø®ØªÙ„Ù.',
                 ], 422);
             }
             throw $e;
@@ -263,12 +257,12 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'تم تحديث الكورس بنجاح',
+            'message' => 'ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„ÙƒÙˆØ±Ø³ Ø¨Ù†Ø¬Ø§Ø­',
             'data'    => $course
         ]);
     }
 
-    // 3️⃣ إضافة مستوى داخل كورس أو باقة
+    // 3ï¸âƒ£ Ø¥Ø¶Ø§ÙØ© Ù…Ø³ØªÙˆÙ‰ Ø¯Ø§Ø®Ù„ ÙƒÙˆØ±Ø³ Ø£Ùˆ Ø¨Ø§Ù‚Ø©
     public function storeLevel(Request $request)
     {
         $request->validate([
@@ -299,21 +293,21 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'تم إنشاء المستوى بنجاح',
+            'message' => 'ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ø³ØªÙˆÙ‰ Ø¨Ù†Ø¬Ø§Ø­',
             'data'    => $level
         ]);
     }
 
-    // 4️⃣ إضافة درس + فيديو + أسئلة الاختبار التابع له
-    /// ⚠️ Flow الرفع (Upload Flow) للفيديوهات:
-    /// الدرس ممكن يستقبل رابط (URL) أو ملف فيديو حقيقي.
-    /// لو ملف:
-    /// 1. بيرفع الملف على Cloudflare R2 (Storage: disk('r2')).
-    /// 2. بيستخدم `VideoProcessor` علشان يعمل Fast-Start (ينقل الـ moov atom لأول الملف)
-    ///    ده بيخلي تطبيق الطالب يقدر يعمل Stream للفيديو فوراً من غير ما يستنى تحميله بالكامل.
-    /// 3. بيسجل الأسئلة (Quiz) التابعة للدرس في نفس الـ Request علشان يقلل الـ API calls.
-    /// 4. بيبعت Firebase Notification صامت (Silent Push) علشان يخلي أجهزة الطلاب
-    ///    تعمل Refresh للمحتوى تلقائياً بدون ما اليوزر يعمل Pull to refresh.
+    // 4ï¸âƒ£ Ø¥Ø¶Ø§ÙØ© Ø¯Ø±Ø³ + ÙÙŠØ¯ÙŠÙˆ + Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø± Ø§Ù„ØªØ§Ø¨Ø¹ Ù„Ù‡
+    /// âš ï¸ Flow Ø§Ù„Ø±ÙØ¹ (Upload Flow) Ù„Ù„ÙÙŠØ¯ÙŠÙˆÙ‡Ø§Øª:
+    /// Ø§Ù„Ø¯Ø±Ø³ Ù…Ù…ÙƒÙ† ÙŠØ³ØªÙ‚Ø¨Ù„ Ø±Ø§Ø¨Ø· (URL) Ø£Ùˆ Ù…Ù„Ù ÙÙŠØ¯ÙŠÙˆ Ø­Ù‚ÙŠÙ‚ÙŠ.
+    /// Ù„Ùˆ Ù…Ù„Ù:
+    /// 1. Ø¨ÙŠØ±ÙØ¹ Ø§Ù„Ù…Ù„Ù Ø¹Ù„Ù‰ Cloudflare R2 (Storage: disk('r2')).
+    /// 2. Ø¨ÙŠØ³ØªØ®Ø¯Ù… `VideoProcessor` Ø¹Ù„Ø´Ø§Ù† ÙŠØ¹Ù…Ù„ Fast-Start (ÙŠÙ†Ù‚Ù„ Ø§Ù„Ù€ moov atom Ù„Ø£ÙˆÙ„ Ø§Ù„Ù…Ù„Ù)
+    ///    Ø¯Ù‡ Ø¨ÙŠØ®Ù„ÙŠ ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø·Ø§Ù„Ø¨ ÙŠÙ‚Ø¯Ø± ÙŠØ¹Ù…Ù„ Stream Ù„Ù„ÙÙŠØ¯ÙŠÙˆ ÙÙˆØ±Ø§Ù‹ Ù…Ù† ØºÙŠØ± Ù…Ø§ ÙŠØ³ØªÙ†Ù‰ ØªØ­Ù…ÙŠÙ„Ù‡ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„.
+    /// 3. Ø¨ÙŠØ³Ø¬Ù„ Ø§Ù„Ø£Ø³Ø¦Ù„Ø© (Quiz) Ø§Ù„ØªØ§Ø¨Ø¹Ø© Ù„Ù„Ø¯Ø±Ø³ ÙÙŠ Ù†ÙØ³ Ø§Ù„Ù€ Request Ø¹Ù„Ø´Ø§Ù† ÙŠÙ‚Ù„Ù„ Ø§Ù„Ù€ API calls.
+    /// 4. Ø¨ÙŠØ¨Ø¹Øª Firebase Notification ØµØ§Ù…Øª (Silent Push) Ø¹Ù„Ø´Ø§Ù† ÙŠØ®Ù„ÙŠ Ø£Ø¬Ù‡Ø²Ø© Ø§Ù„Ø·Ù„Ø§Ø¨
+    ///    ØªØ¹Ù…Ù„ Refresh Ù„Ù„Ù…Ø­ØªÙˆÙ‰ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¨Ø¯ÙˆÙ† Ù…Ø§ Ø§Ù„ÙŠÙˆØ²Ø± ÙŠØ¹Ù…Ù„ Pull to refresh.
     public function storeLessonWithQuiz(Request $request)
     {
         $request->validate([
@@ -329,15 +323,15 @@ class AdminContentController extends Controller
         ]);
 
         try {
-            // رفع ملف الفيديو إن وجد أو أخذ الرابط
+            // Ø±ÙØ¹ Ù…Ù„Ù Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¥Ù† ÙˆØ¬Ø¯ Ø£Ùˆ Ø£Ø®Ø° Ø§Ù„Ø±Ø§Ø¨Ø·
             $videoPath = null;
             if ($request->hasFile('video')) {
                 $file = $request->file('video');
                 $key = $file->store('lessons/videos', 'r2');
                 Log::info('Video uploaded to R2: ' . $key);
 
-                // تحويل MP4 إلى Fast-Start (moov في البداية) حتى لا يتوقف
-                // البث بعد ثوانٍ من التشغيل — بدون إعادة ترميز (لا فقد جودة).
+                // ØªØ­ÙˆÙŠÙ„ MP4 Ø¥Ù„Ù‰ Fast-Start (moov ÙÙŠ Ø§Ù„Ø¨Ø¯Ø§ÙŠØ©) Ø­ØªÙ‰ Ù„Ø§ ÙŠØªÙˆÙ‚Ù
+                // Ø§Ù„Ø¨Ø« Ø¨Ø¹Ø¯ Ø«ÙˆØ§Ù†Ù Ù…Ù† Ø§Ù„ØªØ´ØºÙŠÙ„ â€” Ø¨Ø¯ÙˆÙ† Ø¥Ø¹Ø§Ø¯Ø© ØªØ±Ù…ÙŠØ² (Ù„Ø§ ÙÙ‚Ø¯ Ø¬ÙˆØ¯Ø©).
                 try {
                     $processor = new VideoProcessor();
                     $processed = $processor->fastStart($file->getRealPath(), $file->getClientOriginalName());
@@ -375,7 +369,7 @@ class AdminContentController extends Controller
                 'is_optional' => $isOptional,
             ]);
 
-            // إضافة الأسئلة إن وجدت مع الدرس بداخل نفس النموذج
+            // Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø£Ø³Ø¦Ù„Ø© Ø¥Ù† ÙˆØ¬Ø¯Øª Ù…Ø¹ Ø§Ù„Ø¯Ø±Ø³ Ø¨Ø¯Ø§Ø®Ù„ Ù†ÙØ³ Ø§Ù„Ù†Ù…ÙˆØ°Ø¬
             if ($request->has('questions') && is_array($request->questions)) {
                 foreach ($request->questions as $qData) {
                     $question = $lesson->questions()->create([
@@ -409,7 +403,7 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status'  => true,
-                'message' => 'تم حفظ الدرس مع الفيديو والأسئلة بنجاح',
+                'message' => 'ØªÙ… Ø­ÙØ¸ Ø§Ù„Ø¯Ø±Ø³ Ù…Ø¹ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØ§Ù„Ø£Ø³Ø¦Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­',
                 'data'    => $lesson->load('questions.options')
             ]);
 
@@ -417,14 +411,14 @@ class AdminContentController extends Controller
             Log::error('Error creating lesson: ' . $e->getMessage());
             return response()->json([
                 'status'  => false,
-                'message' => 'فشل في حفظ الدرس: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ ÙÙŠ Ø­ÙØ¸ Ø§Ù„Ø¯Ø±Ø³: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    // 4️⃣.ب رفع مقطع واحد من الفيديو (Chunked Upload for Lessons):
-    // يرفع تطبيق الأدمن الفيديو على شكل مقاطع صغيرة لتجنب الحد الأقصى للطلب
-    // ويدعم استكمال الرفع بعد انقطاع الاتصال
+    // 4ï¸âƒ£.Ø¨ Ø±ÙØ¹ Ù…Ù‚Ø·Ø¹ ÙˆØ§Ø­Ø¯ Ù…Ù† Ø§Ù„ÙÙŠØ¯ÙŠÙˆ (Chunked Upload for Lessons):
+    // ÙŠØ±ÙØ¹ ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø£Ø¯Ù…Ù† Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¹Ù„Ù‰ Ø´ÙƒÙ„ Ù…Ù‚Ø§Ø·Ø¹ ØµØºÙŠØ±Ø© Ù„ØªØ¬Ù†Ø¨ Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ø·Ù„Ø¨
+    // ÙˆÙŠØ¯Ø¹Ù… Ø§Ø³ØªÙƒÙ…Ø§Ù„ Ø§Ù„Ø±ÙØ¹ Ø¨Ø¹Ø¯ Ø§Ù†Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø§ØªØµØ§Ù„
     public function uploadLessonChunk(Request $request)
     {
         $request->validate([
@@ -438,7 +432,7 @@ class AdminContentController extends Controller
         $disk = Storage::disk('local');
         $chunkDir = 'chunks/' . $request->upload_id;
         
-        // تأكد من وجود المجلد
+        // ØªØ£ÙƒØ¯ Ù…Ù† ÙˆØ¬ÙˆØ¯ Ø§Ù„Ù…Ø¬Ù„Ø¯
         if (!$disk->exists($chunkDir)) {
             $disk->makeDirectory($chunkDir);
         }
@@ -449,10 +443,10 @@ class AdminContentController extends Controller
             'local'
         );
 
-        // تحديث وقت آخر نشاط للرفع
+        // ØªØ­Ø¯ÙŠØ« ÙˆÙ‚Øª Ø¢Ø®Ø± Ù†Ø´Ø§Ø· Ù„Ù„Ø±ÙØ¹
         $disk->put($chunkDir . '/.last_activity', now()->toIso8601String());
 
-        // تحديث أو إنشاء مهمة الرفع في قاعدة البيانات
+        // ØªØ­Ø¯ÙŠØ« Ø£Ùˆ Ø¥Ù†Ø´Ø§Ø¡ Ù…Ù‡Ù…Ø© Ø§Ù„Ø±ÙØ¹ ÙÙŠ Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª
         $uploadTask = UploadTask::where('upload_id', $request->upload_id)->first();
         if (!$uploadTask) {
             $uploadTask = \App\Models\UploadTask::create([
@@ -466,7 +460,7 @@ class AdminContentController extends Controller
             ]);
         }
 
-        // تحديث التقدم
+        // ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙ‚Ø¯Ù…
         $receivedChunks = 0;
         for ($i = 0; $i < $uploadTask->total_chunks; $i++) {
             if ($disk->exists($chunkDir . '/' . $i . '.part')) {
@@ -487,8 +481,8 @@ class AdminContentController extends Controller
         ], 200);
     }
 
-    // 4️⃣.ج التحقق من حالة الرفع (Upload Status Check):
-    // يرجع عدد المقاطع المستلمة من إجمالي المقاطع المطلوبة
+    // 4ï¸âƒ£.Ø¬ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø­Ø§Ù„Ø© Ø§Ù„Ø±ÙØ¹ (Upload Status Check):
+    // ÙŠØ±Ø¬Ø¹ Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù…Ø³ØªÙ„Ù…Ø© Ù…Ù† Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©
     public function checkUploadStatus(Request $request)
     {
         $request->validate([
@@ -511,7 +505,7 @@ class AdminContentController extends Controller
             }
         }
 
-        // تحقق من آخر نشاط (لتحديد الرفعات المنتهية)
+        // ØªØ­Ù‚Ù‚ Ù…Ù† Ø¢Ø®Ø± Ù†Ø´Ø§Ø· (Ù„ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø±ÙØ¹Ø§Øª Ø§Ù„Ù…Ù†ØªÙ‡ÙŠØ©)
         $lastActivity = null;
         if ($disk->exists($chunkDir . '/.last_activity')) {
             $lastActivity = $disk->get($chunkDir . '/.last_activity');
@@ -528,10 +522,10 @@ class AdminContentController extends Controller
         ], 200);
     }
 
-    // 4️⃣.د استكمال رفع درس مجزأ (Chunked Upload):
-    // الفيديو يُقسم في المتصفح لمقاطع صغيرة تُرفع عبر /admin/upload-lesson-chunk،
-    // ثم هذا المسار يجمعها ويكمل نفس مسار R2 + Fast-Start المتبع في storeLessonWithQuiz.
-    // يتيح: الإيقاف المؤقت، استكمال الرفع بعد انقطاع النت أو إعادة تحميل الصفحة.
+    // 4ï¸âƒ£.Ø¯ Ø§Ø³ØªÙƒÙ…Ø§Ù„ Ø±ÙØ¹ Ø¯Ø±Ø³ Ù…Ø¬Ø²Ø£ (Chunked Upload):
+    // Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙŠÙÙ‚Ø³Ù… ÙÙŠ Ø§Ù„Ù…ØªØµÙØ­ Ù„Ù…Ù‚Ø§Ø·Ø¹ ØµØºÙŠØ±Ø© ØªÙØ±ÙØ¹ Ø¹Ø¨Ø± /admin/upload-lesson-chunkØŒ
+    // Ø«Ù… Ù‡Ø°Ø§ Ø§Ù„Ù…Ø³Ø§Ø± ÙŠØ¬Ù…Ø¹Ù‡Ø§ ÙˆÙŠÙƒÙ…Ù„ Ù†ÙØ³ Ù…Ø³Ø§Ø± R2 + Fast-Start Ø§Ù„Ù…ØªØ¨Ø¹ ÙÙŠ storeLessonWithQuiz.
+    // ÙŠØªÙŠØ­: Ø§Ù„Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ù…Ø¤Ù‚ØªØŒ Ø§Ø³ØªÙƒÙ…Ø§Ù„ Ø§Ù„Ø±ÙØ¹ Ø¨Ø¹Ø¯ Ø§Ù†Ù‚Ø·Ø§Ø¹ Ø§Ù„Ù†Øª Ø£Ùˆ Ø¥Ø¹Ø§Ø¯Ø© ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙØ­Ø©.
     public function completeChunkedLesson(Request $request)
     {
         $request->validate([
@@ -552,7 +546,7 @@ class AdminContentController extends Controller
         if (!in_array($ext, ['mp4', 'mov', 'avi', 'mkv', 'wmv'])) {
             return response()->json([
                 'status'  => false,
-                'message' => 'صيغة ملف الفيديو غير مدعومة (المسموح: mp4, mov, avi, mkv, wmv).',
+                'message' => 'ØµÙŠØºØ© Ù…Ù„Ù Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© (Ø§Ù„Ù…Ø³Ù…ÙˆØ­: mp4, mov, avi, mkv, wmv).',
             ], 422);
         }
 
@@ -561,7 +555,7 @@ class AdminContentController extends Controller
         $totalChunks = (int) $request->total_chunks;
 
         try {
-            // 1. التأكد من وصول كل المقاطع
+            // 1. Ø§Ù„ØªØ£ÙƒØ¯ Ù…Ù† ÙˆØµÙˆÙ„ ÙƒÙ„ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹
             $missing = [];
             for ($i = 0; $i < $totalChunks; $i++) {
                 if (!$disk->exists($chunkDir . '/' . $i . '.part')) {
@@ -571,22 +565,22 @@ class AdminContentController extends Controller
             if (!empty($missing)) {
                 return response()->json([
                     'status'  => false,
-                    'message' => 'بعض مقاطع الفيديو لم تصل بعد. أعد المحاولة لاستكمالها.',
+                    'message' => 'Ø¨Ø¹Ø¶ Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ù„Ù… ØªØµÙ„ Ø¨Ø¹Ø¯. Ø£Ø¹Ø¯ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø³ØªÙƒÙ…Ø§Ù„Ù‡Ø§.',
                     'missing' => $missing,
                 ], 422);
             }
 
-            // 2. تجميع المقاطع بالترتيب في ملف مؤقت
+            // 2. ØªØ¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø¨Ø§Ù„ØªØ±ØªÙŠØ¨ ÙÙŠ Ù…Ù„Ù Ù…Ø¤Ù‚Øª
             $mergedTmp = $disk->path($chunkDir . '/merged.tmp');
             $out = @fopen($mergedTmp, 'wb');
             if (!$out) {
-                throw new \Exception('تعذر إنشاء ملف مؤقت للتجميع.');
+                throw new \Exception('ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ù…Ù„Ù Ù…Ø¤Ù‚Øª Ù„Ù„ØªØ¬Ù…ÙŠØ¹.');
             }
             for ($i = 0; $i < $totalChunks; $i++) {
                 $in = @fopen($disk->path($chunkDir . '/' . $i . '.part'), 'rb');
                 if (!$in) {
                     fclose($out);
-                    throw new \Exception('تعذر قراءة المقطع رقم ' . ($i + 1));
+                    throw new \Exception('ØªØ¹Ø°Ø± Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø±Ù‚Ù… ' . ($i + 1));
                 }
                 while (!feof($in)) {
                     fwrite($out, fread($in, 1024 * 512));
@@ -595,8 +589,8 @@ class AdminContentController extends Controller
             }
             fclose($out);
 
-            // 3. غلاف UploadedFile للمؤقت ليغذي نفس مسار R2 المتبع
-            // مع نوع MIME صحيح حسب الامتداد الأصلي (حتى لا يُخمَّن .bin)
+            // 3. ØºÙ„Ø§Ù UploadedFile Ù„Ù„Ù…Ø¤Ù‚Øª Ù„ÙŠØºØ°ÙŠ Ù†ÙØ³ Ù…Ø³Ø§Ø± R2 Ø§Ù„Ù…ØªØ¨Ø¹
+            // Ù…Ø¹ Ù†ÙˆØ¹ MIME ØµØ­ÙŠØ­ Ø­Ø³Ø¨ Ø§Ù„Ø§Ù…ØªØ¯Ø§Ø¯ Ø§Ù„Ø£ØµÙ„ÙŠ (Ø­ØªÙ‰ Ù„Ø§ ÙŠÙØ®Ù…ÙŽÙ‘Ù† .bin)
             $mimeMap = [
                 'mp4' => 'video/mp4', 'mov' => 'video/quicktime', 'avi' => 'video/x-msvideo',
                 'mkv' => 'video/x-matroska', 'wmv' => 'video/x-ms-wmv',
@@ -612,7 +606,7 @@ class AdminContentController extends Controller
             $key = $videoFile->store('lessons/videos', 'r2');
             Log::info('Chunked video uploaded to R2: ' . $key);
 
-            // 4. Fast-Start (نقل moov لأول الملف) بدون إعادة ترميز
+            // 4. Fast-Start (Ù†Ù‚Ù„ moov Ù„Ø£ÙˆÙ„ Ø§Ù„Ù…Ù„Ù) Ø¨Ø¯ÙˆÙ† Ø¥Ø¹Ø§Ø¯Ø© ØªØ±Ù…ÙŠØ²
             try {
                 $processor = new \App\Services\VideoProcessor();
                 $processed = $processor->fastStart($videoFile->getRealPath(), $videoFile->getClientOriginalName());
@@ -626,7 +620,7 @@ class AdminContentController extends Controller
             }
             $videoPath = $key;
 
-            // 5. الصورة المصغرة
+            // 5. Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù…ØµØºØ±Ø©
             $thumbnailPath = null;
             if ($request->hasFile('thumbnail')) {
                 $thumbnailPath = $request->file('thumbnail')->store('lessons/thumbnails', 'r2');
@@ -635,7 +629,7 @@ class AdminContentController extends Controller
 
             $isOptional = $request->is_optional === 'true' || $request->is_optional === '1' || $request->is_optional === true || $request->is_optional === 1;
 
-            // 6. إنشاء الدرس
+            // 6. Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¯Ø±Ø³
             $lesson = Lesson::create([
                 'level_id'    => $request->level_id,
                 'title'       => $request->title,
@@ -646,7 +640,7 @@ class AdminContentController extends Controller
                 'is_optional' => $isOptional,
             ]);
 
-            // 7. الأسئلة (تصل كسلسلة JSON من FormData أو مصفوفة)
+            // 7. Ø§Ù„Ø£Ø³Ø¦Ù„Ø© (ØªØµÙ„ ÙƒØ³Ù„Ø³Ù„Ø© JSON Ù…Ù† FormData Ø£Ùˆ Ù…ØµÙÙˆÙØ©)
             $questions = $request->questions;
             if (is_string($questions)) {
                 $questions = json_decode($questions, true);
@@ -672,7 +666,7 @@ class AdminContentController extends Controller
                 }
             }
 
-            // 8. تحديث مهمة الرفع كمكتملة
+            // 8. ØªØ­Ø¯ÙŠØ« Ù…Ù‡Ù…Ø© Ø§Ù„Ø±ÙØ¹ ÙƒÙ…ÙƒØªÙ…Ù„Ø©
             $uploadTask = UploadTask::where('upload_id', $request->upload_id)->first();
             if ($uploadTask) {
                 $uploadTask->status = 'completed';
@@ -681,10 +675,10 @@ class AdminContentController extends Controller
                 $uploadTask->save();
             }
 
-            // 9. تنظيف مجلد المقاطع المؤقت
+            // 9. ØªÙ†Ø¸ÙŠÙ Ù…Ø¬Ù„Ø¯ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù…Ø¤Ù‚Øª
             try { $disk->deleteDirectory($chunkDir); } catch (\Throwable $e) {}
 
-            // 10. إشعار صامت للطلاب بتحديث المحتوى
+            // 10. Ø¥Ø´Ø¹Ø§Ø± ØµØ§Ù…Øª Ù„Ù„Ø·Ù„Ø§Ø¨ Ø¨ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø­ØªÙˆÙ‰
             try {
                 $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('topic', 'content_updates')
                     ->withData(['action' => 'refresh_content']);
@@ -695,13 +689,13 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status'  => true,
-                'message' => 'تم رفع الدرس وحفظ الاختبارات بنجاح',
+                'message' => 'ØªÙ… Ø±ÙØ¹ Ø§Ù„Ø¯Ø±Ø³ ÙˆØ­ÙØ¸ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø¨Ù†Ø¬Ø§Ø­',
                 'data'    => $lesson->load('questions.options'),
             ]);
         } catch (\Exception $e) {
             Log::error('Chunked lesson completion failed: ' . $e->getMessage());
             
-            // تحديث مهمة الرفع كفاشلة
+            // ØªØ­Ø¯ÙŠØ« Ù…Ù‡Ù…Ø© Ø§Ù„Ø±ÙØ¹ ÙƒÙØ§Ø´Ù„Ø©
             $uploadTask = UploadTask::where('upload_id', $request->upload_id)->first();
             if ($uploadTask) {
                 $uploadTask->status = 'failed';
@@ -711,12 +705,12 @@ class AdminContentController extends Controller
             
             return response()->json([
                 'status'  => false,
-                'message' => 'فشل حفظ الدرس: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ Ø­ÙØ¸ Ø§Ù„Ø¯Ø±Ø³: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    // 4️⃣.ه عرض جميع مهام الرفع (Upload Tasks List)
+    // 4ï¸âƒ£.Ù‡ Ø¹Ø±Ø¶ Ø¬Ù…ÙŠØ¹ Ù…Ù‡Ø§Ù… Ø§Ù„Ø±ÙØ¹ (Upload Tasks List)
     public function getUploadTasks(Request $request)
     {
         $tasks = UploadTask::with('admin')
@@ -729,18 +723,18 @@ class AdminContentController extends Controller
         ]);
     }
 
-    // 4️⃣.و حذف مهمة رفع (Delete Upload Task)
+    // 4ï¸âƒ£.Ùˆ Ø­Ø°Ù Ù…Ù‡Ù…Ø© Ø±ÙØ¹ (Delete Upload Task)
     public function deleteUploadTask($id)
     {
         $task = UploadTask::find($id);
         if (!$task) {
             return response()->json([
                 'status' => false,
-                'message' => 'مهمة الرفع غير موجودة',
+                'message' => 'Ù…Ù‡Ù…Ø© Ø§Ù„Ø±ÙØ¹ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©',
             ], 404);
         }
 
-        // تنظيف الملفات المؤقتة إذا وُجدت
+        // ØªÙ†Ø¸ÙŠÙ Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø¤Ù‚ØªØ© Ø¥Ø°Ø§ ÙˆÙØ¬Ø¯Øª
         if ($task->upload_id) {
             $disk = Storage::disk('local');
             $chunkDir = 'chunks/' . $task->upload_id;
@@ -751,11 +745,11 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'تم حذف مهمة الرفع بنجاح',
+            'message' => 'ØªÙ… Ø­Ø°Ù Ù…Ù‡Ù…Ø© Ø§Ù„Ø±ÙØ¹ Ø¨Ù†Ø¬Ø§Ø­',
         ]);
     }
 
-    // 5️⃣ عرض كافة المستخدمين واشتراكاتهم المدفوعة فقط
+    // 5ï¸âƒ£ Ø¹Ø±Ø¶ ÙƒØ§ÙØ© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† ÙˆØ§Ø´ØªØ±Ø§ÙƒØ§ØªÙ‡Ù… Ø§Ù„Ù…Ø¯ÙÙˆØ¹Ø© ÙÙ‚Ø·
     public function getUsers(Request $request)
     {
         $users = User::select('id', 'first_name', 'middle_name', 'last_name', 'email', 'phone', 'birth_date', 'created_at')
@@ -767,7 +761,7 @@ class AdminContentController extends Controller
         ]);
     }
 
-    // 6️⃣ تفاصيل مستخدم كاملة (بيانات الحساب الكاملة من قاعدة البيانات)
+    // 6ï¸âƒ£ ØªÙØ§ØµÙŠÙ„ Ù…Ø³ØªØ®Ø¯Ù… ÙƒØ§Ù…Ù„Ø© (Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ Ø§Ù„ÙƒØ§Ù…Ù„Ø© Ù…Ù† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª)
     public function showUser(Request $request, $id)
     {
         $fields = [
@@ -782,9 +776,9 @@ class AdminContentController extends Controller
         $user = User::select($fields)->findOrFail($id);
 
         $userData = $user->toArray();
-        // حالة تأكيد البريد الإلكتروني — جاهزة لدعم نظام التحقق لاحقاً
+        // Ø­Ø§Ù„Ø© ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ â€” Ø¬Ø§Ù‡Ø²Ø© Ù„Ø¯Ø¹Ù… Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ­Ù‚Ù‚ Ù„Ø§Ø­Ù‚Ø§Ù‹
         $userData['email_verified'] = !is_null($user->email_verified_at);
-        // رابط صورة الحساب إن وجدت
+        // Ø±Ø§Ø¨Ø· ØµÙˆØ±Ø© Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¥Ù† ÙˆØ¬Ø¯Øª
         $userData['avatar_url'] = (!empty($user->avatar) && Schema::hasColumn('users', 'avatar'))
             ? $request->getSchemeAndHttpHost() . '/storage/' . $user->avatar
             : null;
@@ -795,39 +789,39 @@ class AdminContentController extends Controller
         ]);
     }
 
-    // 7️⃣ تفعيل/إلغاء تفعيل الكورس (Publish Toggle)
+    // 7ï¸âƒ£ ØªÙØ¹ÙŠÙ„/Ø¥Ù„ØºØ§Ø¡ ØªÙØ¹ÙŠÙ„ Ø§Ù„ÙƒÙˆØ±Ø³ (Publish Toggle)
     public function togglePublish($id)
     {
         $course = Course::findCourseSafely($id);
 
-        // حفظ الحالة القديمة قبل التبديل
+        // Ø­ÙØ¸ Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ù‚Ø¨Ù„ Ø§Ù„ØªØ¨Ø¯ÙŠÙ„
         $wasComingSoon = (bool) $course->is_coming_soon;
 
         $course->is_coming_soon = !$course->is_coming_soon;
         $course->save();
 
-        // 🎉 عند نشر الكورس (انتقال فعلي من is_coming_soon=true إلى false فقط):
-        // أرسل إشعاراً للطلاب المحجوزين عبر Queue.
+        // ðŸŽ‰ Ø¹Ù†Ø¯ Ù†Ø´Ø± Ø§Ù„ÙƒÙˆØ±Ø³ (Ø§Ù†ØªÙ‚Ø§Ù„ ÙØ¹Ù„ÙŠ Ù…Ù† is_coming_soon=true Ø¥Ù„Ù‰ false ÙÙ‚Ø·):
+        // Ø£Ø±Ø³Ù„ Ø¥Ø´Ø¹Ø§Ø±Ø§Ù‹ Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ù…Ø­Ø¬ÙˆØ²ÙŠÙ† Ø¹Ø¨Ø± Queue.
         if ($wasComingSoon && !$course->is_coming_soon) {
             $this->notifyCoursePublished($course);
         }
 
         return response()->json([
             'status' => true,
-            'message' => $course->is_coming_soon ? 'تم إخفاء الكورس (وضع الانتظار)' : 'تم نشر الكورس بنجاح',
+            'message' => $course->is_coming_soon ? 'ØªÙ… Ø¥Ø®ÙØ§Ø¡ Ø§Ù„ÙƒÙˆØ±Ø³ (ÙˆØ¶Ø¹ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±)' : 'ØªÙ… Ù†Ø´Ø± Ø§Ù„ÙƒÙˆØ±Ø³ Ø¨Ù†Ø¬Ø§Ø­',
             'data' => $course
         ]);
     }
 
     /**
-     * إشعار "الكورس أصبح متاحاً" للطلاب الذين حجزوا الكورس فقط.
-     * يُرسل عبر Queue لمنع Timeout عند وجود عدد كبير من المستخدمين.
-     * يستخدم type = course_available لمنع التكرار عبر PushNotificationService.
+     * Ø¥Ø´Ø¹Ø§Ø± "Ø§Ù„ÙƒÙˆØ±Ø³ Ø£ØµØ¨Ø­ Ù…ØªØ§Ø­Ø§Ù‹" Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ø°ÙŠÙ† Ø­Ø¬Ø²ÙˆØ§ Ø§Ù„ÙƒÙˆØ±Ø³ ÙÙ‚Ø·.
+     * ÙŠÙØ±Ø³Ù„ Ø¹Ø¨Ø± Queue Ù„Ù…Ù†Ø¹ Timeout Ø¹Ù†Ø¯ ÙˆØ¬ÙˆØ¯ Ø¹Ø¯Ø¯ ÙƒØ¨ÙŠØ± Ù…Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†.
+     * ÙŠØ³ØªØ®Ø¯Ù… type = course_available Ù„Ù…Ù†Ø¹ Ø§Ù„ØªÙƒØ±Ø§Ø± Ø¹Ø¨Ø± PushNotificationService.
      */
     private function notifyCoursePublished(Course $course): void
     {
         try {
-            // فقط المستخدمون الذين حجزوا الكورس (course_reservations)
+            // ÙÙ‚Ø· Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙˆÙ† Ø§Ù„Ø°ÙŠÙ† Ø­Ø¬Ø²ÙˆØ§ Ø§Ù„ÙƒÙˆØ±Ø³ (course_reservations)
             $userIds = \DB::table('course_reservations')
                 ->where('course_id', $course->id)
                 ->pluck('user_id')
@@ -836,12 +830,12 @@ class AdminContentController extends Controller
                 ->toArray();
 
             if (empty($userIds)) {
-                \Log::info("Course #{$course->id} published — no reservations found, skipping notification.");
+                \Log::info("Course #{$course->id} published â€” no reservations found, skipping notification.");
                 return;
             }
 
-            $title = 'الكورس أصبح متاحًا 🎉';
-            $body = "الكورس '{$course->title}' الذي قمت بحجزه أصبح متاحًا الآن.";
+            $title = 'Ø§Ù„ÙƒÙˆØ±Ø³ Ø£ØµØ¨Ø­ Ù…ØªØ§Ø­Ù‹Ø§ ðŸŽ‰';
+            $body = "Ø§Ù„ÙƒÙˆØ±Ø³ '{$course->title}' Ø§Ù„Ø°ÙŠ Ù‚Ù…Øª Ø¨Ø­Ø¬Ø²Ù‡ Ø£ØµØ¨Ø­ Ù…ØªØ§Ø­Ù‹Ø§ Ø§Ù„Ø¢Ù†.";
 
             \App\Jobs\SendPushNotificationJob::dispatch(
                 $userIds,
@@ -851,20 +845,20 @@ class AdminContentController extends Controller
                     'type' => 'course_available',
                     'course_id' => (string) $course->id,
                 ],
-                null, // لا توجد صورة
+                null, // Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙˆØ±Ø©
                 $course->id,
                 'course_available', // type for de-duplication
-                null // لا يوجد سجل NotificationSend لهذا النوع
+                null // Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø³Ø¬Ù„ NotificationSend Ù„Ù‡Ø°Ø§ Ø§Ù„Ù†ÙˆØ¹
             );
 
-            \Log::info("Course #{$course->id} published — dispatched notification job for " . count($userIds) . " reserved users.");
+            \Log::info("Course #{$course->id} published â€” dispatched notification job for " . count($userIds) . " reserved users.");
         } catch (\Throwable $e) {
-            // فشل الإشعارات لا يمنع نشر الكورس أبداً
+            // ÙØ´Ù„ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ù„Ø§ ÙŠÙ…Ù†Ø¹ Ù†Ø´Ø± Ø§Ù„ÙƒÙˆØ±Ø³ Ø£Ø¨Ø¯Ø§Ù‹
             \Log::error('notifyCoursePublished error for course #' . $course->id . ': ' . $e->getMessage());
         }
     }
 
-    // 7️⃣ حذف درس مع ملفاته وأسئلته
+    // 7ï¸âƒ£ Ø­Ø°Ù Ø¯Ø±Ø³ Ù…Ø¹ Ù…Ù„ÙØ§ØªÙ‡ ÙˆØ£Ø³Ø¦Ù„ØªÙ‡
     public function deleteLesson($id)
     {
         try {
@@ -899,19 +893,19 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم حذف الدرس وملفاته بنجاح'
+                'message' => 'ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¯Ø±Ø³ ÙˆÙ…Ù„ÙØ§ØªÙ‡ Ø¨Ù†Ø¬Ø§Ø­'
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error deleting lesson #' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'فشل في حذف الدرس: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ø¯Ø±Ø³: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    // 8️⃣ حذف مستوى بجميع دروسه وملفاته وأسئلته
+    // 8ï¸âƒ£ Ø­Ø°Ù Ù…Ø³ØªÙˆÙ‰ Ø¨Ø¬Ù…ÙŠØ¹ Ø¯Ø±ÙˆØ³Ù‡ ÙˆÙ…Ù„ÙØ§ØªÙ‡ ÙˆØ£Ø³Ø¦Ù„ØªÙ‡
     public function deleteLevel($id)
     {
         try {
@@ -951,19 +945,19 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم حذف المستوى ومحتوياته بالكامل'
+                'message' => 'ØªÙ… Ø­Ø°Ù Ø§Ù„Ù…Ø³ØªÙˆÙ‰ ÙˆÙ…Ø­ØªÙˆÙŠØ§ØªÙ‡ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„'
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error deleting level #' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'فشل في حذف المستوى: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ù…Ø³ØªÙˆÙ‰: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    // 9️⃣ حذف مستخدم نهائياً
+    // 9ï¸âƒ£ Ø­Ø°Ù Ù…Ø³ØªØ®Ø¯Ù… Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹
     public function deleteUser($id)
     {
         try {
@@ -991,21 +985,21 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم حذف الحساب نهائياً بنجاح'
+                'message' => 'ØªÙ… Ø­Ø°Ù Ø§Ù„Ø­Ø³Ø§Ø¨ Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ Ø¨Ù†Ø¬Ø§Ø­'
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error deleting user #' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'فشل في حذف الحساب: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ø­Ø³Ø§Ø¨: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    // 🔟 إدارة الباقات (Plans) للكورسات
+    // ðŸ”Ÿ Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¨Ø§Ù‚Ø§Øª (Plans) Ù„Ù„ÙƒÙˆØ±Ø³Ø§Øª
     /**
-     * جلب جميع الباقات لكورس معين
+     * Ø¬Ù„Ø¨ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¨Ø§Ù‚Ø§Øª Ù„ÙƒÙˆØ±Ø³ Ù…Ø¹ÙŠÙ†
      */
     public function getCoursePlans($courseId)
     {
@@ -1021,7 +1015,7 @@ class AdminContentController extends Controller
     }
 
     /**
-     * إضافة باقة جديدة لكورس
+     * Ø¥Ø¶Ø§ÙØ© Ø¨Ø§Ù‚Ø© Ø¬Ø¯ÙŠØ¯Ø© Ù„ÙƒÙˆØ±Ø³
      */
      public function storeCoursePlan(Request $request, $courseId)
      {
@@ -1044,17 +1038,17 @@ class AdminContentController extends Controller
              'image' => 'nullable',
          ]);
 
-         // معالجة الرابط الفريد تلقائياً إذا لم يُدخل
+         // Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø±Ø§Ø¨Ø· Ø§Ù„ÙØ±ÙŠØ¯ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¥Ø°Ø§ Ù„Ù… ÙŠÙØ¯Ø®Ù„
          $slug = $request->slug;
          if (empty($slug)) {
              $slug = Str::slug($request->name ?: 'plan') . '-' . substr(uniqid(), -6);
          }
-         // التأكد من عدم تكراره لنفس الكورس
+         // Ø§Ù„ØªØ£ÙƒØ¯ Ù…Ù† Ø¹Ø¯Ù… ØªÙƒØ±Ø§Ø±Ù‡ Ù„Ù†ÙØ³ Ø§Ù„ÙƒÙˆØ±Ø³
          while (CoursePlan::where('course_id', $courseId)->where('slug', $slug)->exists()) {
              $slug = Str::slug($request->name ?: 'plan') . '-' . rand(1000, 9999);
          }
 
-         // معالجة رفع صورة الباقة
+         // Ù…Ø¹Ø§Ù„Ø¬Ø© Ø±ÙØ¹ ØµÙˆØ±Ø© Ø§Ù„Ø¨Ø§Ù‚Ø©
          $imagePath = null;
          if ($request->hasFile('image')) {
              $file = $request->file('image');
@@ -1064,7 +1058,7 @@ class AdminContentController extends Controller
              $imagePath = $request->image;
          }
 
-         // احتساب السعر والتخفيض ومراعاة الباقة المجانية
+         // Ø§Ø­ØªØ³Ø§Ø¨ Ø§Ù„Ø³Ø¹Ø± ÙˆØ§Ù„ØªØ®ÙÙŠØ¶ ÙˆÙ…Ø±Ø§Ø¹Ø§Ø© Ø§Ù„Ø¨Ø§Ù‚Ø© Ø§Ù„Ù…Ø¬Ø§Ù†ÙŠØ©
          $isFree = filter_var($request->is_free, FILTER_VALIDATE_BOOLEAN);
          if ($isFree) {
              $hasDiscount = false;
@@ -1087,7 +1081,7 @@ class AdminContentController extends Controller
              }
          }
 
-         // معالجة جداول الأسعار للعملات المتعددة
+         // Ù…Ø¹Ø§Ù„Ø¬Ø© Ø¬Ø¯Ø§ÙˆÙ„ Ø§Ù„Ø£Ø³Ø¹Ø§Ø± Ù„Ù„Ø¹Ù…Ù„Ø§Øª Ø§Ù„Ù…ØªØ¹Ø¯Ø¯Ø©
          $parseJson = function ($val) {
              if (empty($val)) return null;
              if (is_array($val)) return $val;
@@ -1128,13 +1122,13 @@ class AdminContentController extends Controller
 
          return response()->json([
              'status' => true,
-             'message' => 'تمت إضافة الباقة بنجاح',
+             'message' => 'ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­',
              'data' => $plan
          ]);
      }
 
     /**
-     * تعديل باقة موجودة
+     * ØªØ¹Ø¯ÙŠÙ„ Ø¨Ø§Ù‚Ø© Ù…ÙˆØ¬ÙˆØ¯Ø©
      */
     public function updateCoursePlan(Request $request, $id)
     {
@@ -1168,7 +1162,7 @@ class AdminContentController extends Controller
         if ($request->has('is_active')) $plan->is_active = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
         if ($request->has('sort_order')) $plan->sort_order = $request->sort_order;
 
-        // معالجة رفع صورة جديدة للباقة
+        // Ù…Ø¹Ø§Ù„Ø¬Ø© Ø±ÙØ¹ ØµÙˆØ±Ø© Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù„Ø¨Ø§Ù‚Ø©
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $stored = $file->store('plans', 'public');
@@ -1177,7 +1171,7 @@ class AdminContentController extends Controller
             $plan->image = $request->image;
         }
 
-        // تحديث الباقة المجانية والأسعار
+        // ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¨Ø§Ù‚Ø© Ø§Ù„Ù…Ø¬Ø§Ù†ÙŠØ© ÙˆØ§Ù„Ø£Ø³Ø¹Ø§Ø±
         if ($request->has('is_free')) {
             $plan->is_free = filter_var($request->is_free, FILTER_VALIDATE_BOOLEAN);
         }
@@ -1199,7 +1193,7 @@ class AdminContentController extends Controller
                 $plan->discount_price = $request->discount_price !== null ? (float)$request->discount_price : null;
             }
 
-            // احتساب السعر الفعلي الفعال
+            // Ø§Ø­ØªØ³Ø§Ø¨ Ø§Ù„Ø³Ø¹Ø± Ø§Ù„ÙØ¹Ù„ÙŠ Ø§Ù„ÙØ¹Ø§Ù„
             $orig = $plan->original_price ?? (float)$plan->price;
             $disc = $plan->discount_price ?? $orig;
             if ($plan->has_discount && $orig > 0 && $disc < $orig) {
@@ -1235,13 +1229,13 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'تم تحديث الباقة بنجاح',
+            'message' => 'ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­',
             'data' => $plan
         ]);
     }
 
     /**
-     * حذف باقة
+     * Ø­Ø°Ù Ø¨Ø§Ù‚Ø©
      */
     public function deleteCoursePlan($id)
     {
@@ -1251,20 +1245,20 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم حذف الباقة بنجاح'
+                'message' => 'ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­'
             ]);
         } catch (\Exception $e) {
             Log::error('Error deleting plan #' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'فشل في حذف الباقة: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ø¨Ø§Ù‚Ø©: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    // 1️⃣1️⃣ إدارة ربط المحاضرات بالباقات (Plan Lessons)
+    // 1ï¸âƒ£1ï¸âƒ£ Ø¥Ø¯Ø§Ø±Ø© Ø±Ø¨Ø· Ø§Ù„Ù…Ø­Ø§Ø¶Ø±Ø§Øª Ø¨Ø§Ù„Ø¨Ø§Ù‚Ø§Øª (Plan Lessons)
     /**
-     * جلب المحاضرات المرتبطة بباقة معينة
+     * Ø¬Ù„Ø¨ Ø§Ù„Ù…Ø­Ø§Ø¶Ø±Ø§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø¨Ø§Ù‚Ø© Ù…Ø¹ÙŠÙ†Ø©
      */
     public function getPlanLessons($planId)
     {
@@ -1280,7 +1274,7 @@ class AdminContentController extends Controller
     }
 
     /**
-     * ربط محاضرة بباقة (أو مجموعة/مستوى)
+     * Ø±Ø¨Ø· Ù…Ø­Ø§Ø¶Ø±Ø© Ø¨Ø¨Ø§Ù‚Ø© (Ø£Ùˆ Ù…Ø¬Ù…ÙˆØ¹Ø©/Ù…Ø³ØªÙˆÙ‰)
      */
     public function assignLessonToPlan(Request $request, $planId)
     {
@@ -1307,13 +1301,13 @@ class AdminContentController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'تم ربط المحاضرة بالباقة بنجاح',
+            'message' => 'ØªÙ… Ø±Ø¨Ø· Ø§Ù„Ù…Ø­Ø§Ø¶Ø±Ø© Ø¨Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­',
             'data' => $planLesson
         ]);
     }
 
     /**
-     * إزالة ربط محاضرة من باقة
+     * Ø¥Ø²Ø§Ù„Ø© Ø±Ø¨Ø· Ù…Ø­Ø§Ø¶Ø±Ø© Ù…Ù† Ø¨Ø§Ù‚Ø©
      */
     public function removeLessonFromPlan($id)
     {
@@ -1323,13 +1317,13 @@ class AdminContentController extends Controller
 
             return response()->json([
                 'status' => true,
-                'message' => 'تم إزالة المحاضرة من الباقة بنجاح'
+                'message' => 'ØªÙ… Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù…Ø­Ø§Ø¶Ø±Ø© Ù…Ù† Ø§Ù„Ø¨Ø§Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­'
             ]);
         } catch (\Exception $e) {
             Log::error('Error removing lesson from plan #' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'فشل في إزالة المحاضرة: ' . $e->getMessage(),
+                'message' => 'ÙØ´Ù„ ÙÙŠ Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù…Ø­Ø§Ø¶Ø±Ø©: ' . $e->getMessage(),
             ], 500);
         }
     }
