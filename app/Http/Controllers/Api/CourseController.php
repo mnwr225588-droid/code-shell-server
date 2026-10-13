@@ -95,8 +95,9 @@ class CourseController extends Controller
                 ->selectRaw('levels.course_id as cid, COUNT(*) as c')
                 ->pluck('c', 'cid');
 
-            // تعبئة القيم مسبقاً — تمنع استعلامات الـ Accessors داخل toArray()
-            $courses->each(function ($course) use ($subCounts, $resCounts, $levelCounts, $lessonCounts, $subscribedIds, $isAdmin) {
+            $userCountry = $user?->country;
+
+            $courses->each(function ($course) use ($subCounts, $resCounts, $levelCounts, $lessonCounts, $subscribedIds, $isAdmin, $userCountry) {
                 $cid = $course->id;
                 $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
                 $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
@@ -104,6 +105,12 @@ class CourseController extends Controller
                 $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
                 $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
                 $course->setAttribute('is_subscribed', $isAdmin || $subscribedIds->contains($cid));
+
+                $pricing = \App\Services\PricingService::priceFor($userCountry, $course->prices);
+                $course->setAttribute('price', $pricing['price']);
+                $course->setAttribute('currency_code', $pricing['currency_code']);
+                $course->setAttribute('currency_symbol', $pricing['currency_symbol']);
+                $course->setAttribute('all_prices', $course->prices);
             });
 
             return $courses->toArray();
@@ -115,25 +122,41 @@ class CourseController extends Controller
         ]);
     }
 
-    // جلب كورس واحد
     public function show(Request $request, $id)
     {
         $course = Course::find($id);
         if (!$course) {
             $course = Course::findCourseSafely($id);
         }
-        $course->load(['category', 'groups' => function ($q) {
+        $course->loadMissing(['category', 'groups' => function ($q) {
             $q->whereIn('status', ['open_for_registration', 'waiting_for_students'])
               ->withCount('students');
         }]);
 
         $user = auth('sanctum')->user() ?: $request->user();
-        $courseData = $course->toArray();
-        $courseData['is_subscribed'] = $user ? $course->isUserSubscribed($user->id) : false;
+
+        $course->setAttribute('is_subscribed', $user ? $course->isUserSubscribed($user->id) : false);
+        $course->setAttribute('levels_count', $course->levels()->count());
+        $course->setAttribute('lessons_count', \App\Models\Lesson::whereIn('level_id', $course->levels()->pluck('id'))->count());
+        $course->setAttribute('students_count', $course->subscribedUsers()->count() + 120);
+        $course->setAttribute('reservations_count', $course->reservedUsers()->count());
+        $course->setAttribute('subscriptions_count', $course->subscribedUsers()->count());
+
+        if ($user) {
+            $pricing = \App\Services\PricingService::priceFor($user->country, $course->prices);
+            $course->setAttribute('price', $pricing['price']);
+            $course->setAttribute('currency_code', $pricing['currency_code']);
+            $course->setAttribute('currency_symbol', $pricing['currency_symbol']);
+        } else {
+            $course->setAttribute('price', $course->is_free ? 0 : ($course->prices['EGP'] ?? $course->price));
+            $course->setAttribute('currency_code', 'EGP');
+            $course->setAttribute('currency_symbol', 'ج.م');
+        }
+        $course->setAttribute('all_prices', $course->prices);
 
         return response()->json([
             'status' => true,
-            'data'   => $courseData
+            'data'   => $course->toArray()
         ]);
     }
 

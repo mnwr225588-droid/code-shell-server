@@ -139,17 +139,23 @@ class CourseGroupService
             ->orderBy('id', 'asc')
             ->get();
 
+        // استعلام مجمع واحد لعدّ الطلاب في كل المجموعات
+        $groupIds = $groups->pluck('id');
+        $countsByGroup = DB::table('course_subscriptions')
+            ->whereIn('group_id', $groupIds)
+            ->groupBy('group_id')
+            ->selectRaw('group_id, COUNT(*) as c')
+            ->pluck('c', 'group_id');
+
         foreach ($groups as $group) {
-            $currentStudents = DB::table('course_subscriptions')->where('group_id', $group->id)->count();
+            $currentStudents = (int) ($countsByGroup[$group->id] ?? 0);
             $capacity = max(1, (int) ($group->capacity ?: 10));
 
             if ($currentStudents < $capacity) {
-                // إلحاق الطالب بالمجموعة
                 $user->subscribedCourses()->syncWithoutDetaching([
                     $courseId => ['group_id' => $group->id]
                 ]);
 
-                // ⚡ اكتمل العدد؟ إنشاء المجموعة التالية تلقائياً فوراً بنفس التسلسل
                 if (($currentStudents + 1) >= $capacity) {
                     self::spawnNextGroup($group);
                 }
