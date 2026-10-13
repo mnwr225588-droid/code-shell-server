@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // تفعيل CORS middleware للسماح بطلبات API من موقع الويب وتطبيق file:// المحلي
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
-        $middleware->append(\App\Http\Middleware\CheckSingleSession::class);
+        // $middleware->append(\App\Http\Middleware\CheckSingleSession::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
