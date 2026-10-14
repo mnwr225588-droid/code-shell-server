@@ -74,7 +74,20 @@ class Course extends Model
 
     public function getThumbnailUrlAttribute()
     {
-        return $this->thumbnail ? asset('storage/' . $this->thumbnail) : null;
+        if (empty($this->thumbnail)) {
+            return null;
+        }
+
+        if (str_starts_with($this->thumbnail, 'http://') || str_starts_with($this->thumbnail, 'https://')) {
+            return $this->thumbnail;
+        }
+
+        $path = ltrim($this->thumbnail, '/');
+        if (str_starts_with($path, 'assets/')) {
+            return asset($path);
+        }
+
+        return asset(str_starts_with($path, 'storage/') ? $path : 'storage/' . $path);
     }
 
     // --- Dynamic attributes & defaults for Course Subscription Dialog ---
