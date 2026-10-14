@@ -49,7 +49,7 @@ class PaymentController extends Controller
             }
         }
 
-        $existingSubscription = $this->activeCourseSubscription($user->id, $course->id);
+        $existingSubscription = $this->activeCourseSubscription($user->id, $course->id, $plan?->id);
         if ($existingSubscription) {
             return response()->json([
                 'status' => false,
@@ -72,7 +72,7 @@ class PaymentController extends Controller
         }
 
         if ($isFree) {
-            $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
+            $freeSub = $this->subscriptionService->createFreeSubscription($user, $course, $plan?->id);
             if ($plan) {
                 $freeSub->update([
                     'plan_id' => $plan->id,
@@ -325,31 +325,27 @@ class PaymentController extends Controller
                     // تفعيل الاشتراك رسمياً (يُكمل المعاملة ويعين المجموعة بشكل Idempotent)
                     $this->subscriptionService->activateFromTransaction($transaction->fresh(), $params);
 
-                    // ضمان إضافي مباشر لحفظ الاشتراك في قاعدة البيانات
-                    DB::table('course_subscriptions')->updateOrInsert(
-                        ['user_id' => $transaction->user_id, 'course_id' => $transaction->course_id],
-                        [
-                            'subscription_status' => 'active',
-                            'payment_status'      => 'paid',
-                            'amount'              => $transaction->amount,
-                            'currency_code'       => $transaction->currency_code ?? 'EGP',
-                            'payment_gateway'     => $transaction->payment_gateway ?? 'easykash',
-                            'paid_at'             => now(),
-                            'updated_at'          => now(),
-                        ]
-                    );
                 }
 
                 DB::commit();
                 Log::info("Payment Completed & Processed for User #{$transaction->user_id}");
 
                 if ($request->wantsJson() || $request->expectsJson()) {
+                    $responseData = ['payment_status' => 'paid'];
+                    if (!$isWalletTopup) {
+                        $subscriptionQuery = CourseSubscription::where('user_id', $transaction->user_id)
+                            ->where('course_id', $transaction->course_id);
+                        $planId = data_get($transaction->payload, 'plan_id');
+                        $subscriptionData = $planId === null
+                            ? $subscriptionQuery->whereNull('plan_id')->first()
+                            : $subscriptionQuery->where('plan_id', $planId)->first();
+                        $responseData['subscription_status'] = $subscriptionData?->subscription_status;
+                    }
+
                     return response()->json([
                         'status' => true,
                         'message' => 'تمت العملية بنجاح',
-                        'data'   => [
-                            'payment_status'      => 'paid',
-                        ],
+                        'data'   => $responseData,
                     ]);
                 }
 
@@ -585,7 +581,7 @@ class PaymentController extends Controller
             }
         }
 
-        $existingSubscription = $this->activeCourseSubscription($user->id, $course->id);
+        $existingSubscription = $this->activeCourseSubscription($user->id, $course->id, $plan?->id);
         if ($existingSubscription) {
             return response()->json([
                 'status' => false,
@@ -608,7 +604,7 @@ class PaymentController extends Controller
         }
 
         if ($isFree) {
-            $freeSub = $this->subscriptionService->createFreeSubscription($user, $course);
+            $freeSub = $this->subscriptionService->createFreeSubscription($user, $course, $plan?->id);
             if ($plan) {
                 $freeSub->update([
                     'plan_id' => $plan->id,
@@ -696,6 +692,7 @@ class PaymentController extends Controller
                 // إنشاء اشتراك مباشر إذا لم يتم تفعيله
                 $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
                     ->where('course_id', $course->id)
+                    ->where('plan_id', $plan?->id)
                     ->first();
 
                 if (!$subscription) {
@@ -722,12 +719,15 @@ class PaymentController extends Controller
                 $subscription->save();
 
                 // ربط المستخدم بمجموعة مفتوحة
-                \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+                $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id, $plan?->id);
+                $subscription->group_id = $group?->id;
+                $subscription->save();
             }
 
             // 10. التأكد النهائي من أن الاشتراك نشط
             $finalSubscription = \App\Models\CourseSubscription::where('user_id', $user->id)
                 ->where('course_id', $course->id)
+                ->where('plan_id', $plan?->id)
                 ->where('subscription_status', \App\Models\CourseSubscription::STATUS_ACTIVE)
                 ->first();
 
@@ -735,6 +735,7 @@ class PaymentController extends Controller
                 // فرض التفعيل مرة أخرى
                 $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
                     ->where('course_id', $course->id)
+                    ->where('plan_id', $plan?->id)
                     ->first();
 
                 if ($subscription) {
@@ -757,7 +758,9 @@ class PaymentController extends Controller
                     $subscription->save();
 
                     // ربط المستخدم بمجموعة مفتوحة
-                    \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+                    $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id, $plan?->id);
+                    $subscription->group_id = $group?->id;
+                    $subscription->save();
                 }
             }
 
@@ -880,23 +883,21 @@ class PaymentController extends Controller
         );
     }
 
-    private function activeCourseSubscription(int $userId, int|string $courseId): ?CourseSubscription
+    private function activeCourseSubscription(int $userId, int|string $courseId, int|string|null $planId = null): ?CourseSubscription
     {
-        $subscription = CourseSubscription::where('user_id', $userId)
+        $query = CourseSubscription::where('user_id', $userId)
             ->where('course_id', $courseId)
             ->where(function ($query) {
                 $query->whereNull('subscription_status')
                     ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
-            })
-            ->with('plan')
-            ->first();
+            });
 
-        if ($subscription) {
-            if (!$subscription->isAccessGranted()) {
-                return null;
-            }
+        if ($planId !== null) {
+            $query->where('plan_id', $planId);
         }
 
-        return $subscription;
+        return $query->with('plan')
+            ->get()
+            ->first(fn (CourseSubscription $subscription) => $subscription->isAccessGranted());
     }
 }

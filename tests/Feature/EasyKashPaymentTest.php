@@ -23,7 +23,9 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\CoursePlan;
 use App\Models\CourseSubscription;
+use App\Models\Level;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -205,6 +207,99 @@ class EasyKashPaymentTest extends TestCase
             ->assertJson([
                 'status' => true,
             ]);
+    }
+
+    public function test_each_plan_can_be_subscribed_and_only_its_content_is_returned(): void
+    {
+        $user = $this->createTestUser();
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title' => 'Multiple Plans Course',
+            'is_free' => false,
+            'price' => 300,
+            'is_active' => true,
+        ]);
+        $firstPlan = CoursePlan::create([
+            'course_id' => $course->id,
+            'name' => 'Plan One',
+            'slug' => 'multiple-plans-one-' . $course->id,
+            'price' => 100,
+            'duration_days' => 30,
+            'is_active' => true,
+        ]);
+        $secondPlan = CoursePlan::create([
+            'course_id' => $course->id,
+            'name' => 'Plan Two',
+            'slug' => 'multiple-plans-two-' . $course->id,
+            'price' => 0,
+            'duration_days' => 30,
+            'is_active' => true,
+            'is_free' => true,
+        ]);
+        $firstLevel = Level::create([
+            'course_id' => $course->id,
+            'plan_id' => $firstPlan->id,
+            'title' => 'Plan One Level',
+            'order_num' => 1,
+        ]);
+        $secondLevel = Level::create([
+            'course_id' => $course->id,
+            'plan_id' => $secondPlan->id,
+            'title' => 'Plan Two Level',
+            'order_num' => 1,
+        ]);
+
+        CourseSubscription::create([
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'plan_id' => $firstPlan->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+            'payment_status' => CourseSubscription::PAYMENT_PAID,
+            'amount' => 100,
+            'started_at' => now(),
+            'expired_at' => now()->addDays(30),
+        ]);
+
+        $plansBeforePurchase = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/courses/{$course->id}/plans");
+        $plansBeforePurchase->assertOk()
+            ->assertJsonPath('data.0.is_subscribed', true)
+            ->assertJsonPath('data.1.is_subscribed', false);
+
+        $this->getJson("/api/levels/{$course->id}?plan_id={$secondPlan->id}")
+            ->assertForbidden();
+
+        $this->postJson("/api/courses/{$course->id}/pay", [
+            'plan_id' => $secondPlan->id,
+        ])->assertOk()->assertJsonPath('data.plan_id', $secondPlan->id);
+
+        $this->assertDatabaseHas('course_subscriptions', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'plan_id' => $firstPlan->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+        $this->assertDatabaseHas('course_subscriptions', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'plan_id' => $secondPlan->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+
+        $secondSubscription = CourseSubscription::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->where('plan_id', $secondPlan->id)
+            ->firstOrFail();
+        $secondSubscription->group->update(['status' => 'active']);
+
+        $levels = $this->getJson("/api/levels/{$course->id}?plan_id={$secondPlan->id}");
+        $levels->assertOk()->assertJsonFragment([
+            'id' => $secondLevel->id,
+            'title' => 'Plan Two Level',
+        ])->assertJsonMissing([
+            'id' => $firstLevel->id,
+            'title' => 'Plan One Level',
+        ]);
     }
 
     /**

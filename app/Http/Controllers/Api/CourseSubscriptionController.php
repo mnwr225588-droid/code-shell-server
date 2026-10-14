@@ -42,34 +42,42 @@ class CourseSubscriptionController extends Controller
 
         // ⚡ كاش قصير (30 ثانية) لحالة الاشتراك — تكرار الفتحات يرد فوراً
         // يُبطل تلقائياً عند الاشتراك/الإلغاء
+        $requestedPlanId = $request->input('plan_id');
         $cacheKey = 'sub_status_u' . $user->id . '_c' . $course->id;
-        $cached = \Cache::get($cacheKey);
+        $cached = $requestedPlanId === null ? \Cache::get($cacheKey) : null;
         if ($cached) {
             return response()->json($cached);
         }
 
-        $subscription = CourseSubscription::where('user_id', $user->id)
+        $subscriptionsQuery = CourseSubscription::where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->where(function ($query) {
                 $query->whereNull('subscription_status')
                     ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
             })
-            ->with(['plan', 'group'])
-            ->first();
+            ->with(['plan', 'group']);
 
-        if ($subscription) {
-            if (!$subscription->isAccessGranted()) {
-                $subscription = null;
-            }
+        if ($requestedPlanId !== null) {
+            $subscriptionsQuery->where('plan_id', $requestedPlanId);
         }
 
-        $isSubscribed = (bool) $subscription;
+        $activeSubscriptions = $subscriptionsQuery->get()
+            ->filter(fn (CourseSubscription $item) => $item->isAccessGranted())
+            ->values();
+        $subscription = $activeSubscriptions->first();
+        $isSubscribed = $requestedPlanId !== null
+            ? (bool) $subscription
+            : $activeSubscriptions->isNotEmpty();
         $plan = $subscription?->plan;
         $group = $subscription?->group;
 
         // الحفاظ على تعيين المجموعة تلقائياً للاشتراكات القديمة التي لا ترتبط بمجموعة.
         if ($isSubscribed && !$group) {
-            $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+            $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id, $subscription->plan_id);
+            if ($group) {
+                $subscription->group_id = $group->id;
+                $subscription->save();
+            }
         }
 
         // إمكانية الإلغاء وفق قاعدة الـ 48 ساعة:
@@ -126,7 +134,8 @@ class CourseSubscriptionController extends Controller
                     $query->whereNull('subscription_status')
                         ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
                 })
-                ->count() + 120,
+                ->distinct('user_id')
+                ->count('user_id') + 120,
             'subscribed_at' => $subDate ? $subDate->toIso8601String() : null,
             'can_cancel'    => $canCancel,
             'hours_since_subscription' => $subDate ? $subDate->diffInHours(now()) : 0,
@@ -136,6 +145,11 @@ class CourseSubscriptionController extends Controller
                 'duration_days' => $plan->duration_days,
                 'duration_text' => $plan->duration_text,
             ] : null,
+            'subscriptions' => $activeSubscriptions->map(fn (CourseSubscription $item) => [
+                'id' => $item->id,
+                'plan_id' => $item->plan_id,
+                'plan_name' => $item->plan?->name,
+            ])->values(),
             'remaining_days' => $remainingDays,
             'expired_at' => $expiryDate,
             'started_at' => $startedAt,
@@ -143,7 +157,9 @@ class CourseSubscriptionController extends Controller
             'first_lecture_date' => $firstLectureDate,
             'is_expired' => $subscription ? $subscription->is_expired : false,
         ];
-        \Cache::put($cacheKey, $payload, 30);
+        if ($requestedPlanId === null) {
+            \Cache::put($cacheKey, $payload, 30);
+        }
         return response()->json($payload);
     }
 
@@ -208,7 +224,8 @@ class CourseSubscriptionController extends Controller
             $hasCompletedPayment = Transaction::where('user_id', $user->id)
                 ->where('course_id', $course->id)
                 ->where('status', Transaction::STATUS_COMPLETED)
-                ->exists();
+                ->get()
+                ->contains(fn (Transaction $transaction) => (int) data_get($transaction->payload, 'plan_id') === (int) $plan->id);
 
             if (!$hasCompletedPayment) {
                 return response()->json([
@@ -219,7 +236,7 @@ class CourseSubscriptionController extends Controller
         }
 
         // ربط المستخدم بأحدث مجموعة مفتوحة، أو إنشاء مجموعة أساسية تلقائياً
-        $assignedGroup = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $courseId);
+        $assignedGroup = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $courseId, $plan->id);
 
         // إذا لم يتم تعيين مجموعة، نحاول إنشاء واحدة
         if (!$assignedGroup) {
@@ -236,23 +253,27 @@ class CourseSubscriptionController extends Controller
 
         // إنشاء أو تحديث الاشتراك مع ربطه بالباقة المحددة
         // updateOrCreate يضمن عدم تكرار الاشتراك لنفس المستخدم والكورس
-        $subscription = CourseSubscription::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'course_id' => $courseId,
-            ],
-            [
-                'group_id' => $assignedGroup->id,
-                'plan_id' => $plan->id,
-                'subscription_status' => CourseSubscription::STATUS_ACTIVE,
-                'payment_status' => $course->is_free ? CourseSubscription::PAYMENT_NOT_REQUIRED : CourseSubscription::PAYMENT_PAID,
-                'amount' => $plan->price,
-                'currency_code' => $plan->currency,
-                'course_price_at_purchase' => $course->price,
-                'metadata' => json_encode(['plan_type' => $planType]),
-                'is_expired' => false,
-            ]
-        );
+        $subscription = CourseSubscription::firstOrNew([
+            'user_id' => $user->id,
+            'course_id' => $courseId,
+            'plan_id' => $plan->id,
+        ]);
+        $subscription->fill([
+            'group_id' => $assignedGroup->id,
+            'group_id' => $assignedGroup->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+            'payment_status' => $course->is_free ? CourseSubscription::PAYMENT_NOT_REQUIRED : CourseSubscription::PAYMENT_PAID,
+            'amount' => $plan->price,
+            'currency_code' => $plan->currency,
+            'course_price_at_purchase' => $course->price,
+            'metadata' => ['plan_type' => $planType],
+            'is_expired' => false,
+        ]);
+        if ($plan->duration_days) {
+            $subscription->started_at = now();
+            $subscription->expired_at = now()->addDays($plan->duration_days);
+        }
+        $subscription->save();
 
         // ⚡ إبطال كاش حالة الاشتراك بعد التغيير
         \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
@@ -262,7 +283,7 @@ class CourseSubscriptionController extends Controller
             'status'        => true,
             'message'       => 'تم الاشتراك في الكورس بنجاح!',
             'is_subscribed' => true,
-            'students_count'=> $course->subscribedUsers()->count() + 120,
+            'students_count'=> $course->subscribedUsers()->distinct()->count('users.id') + 120,
             'plan'          => [
                 'id' => $plan->id,
                 'name' => $plan->name,
@@ -281,11 +302,35 @@ class CourseSubscriptionController extends Controller
         $user = $request->user();
 
         // التأكد من أن المستخدم مشترك حالياً في الكورس
-        $subscription = \App\Models\CourseSubscription::where('user_id', $user->id)
+        $subscriptionQuery = \App\Models\CourseSubscription::where('user_id', $user->id)
             ->where('course_id', $courseId)
-            ->first();
+            ->where(function ($query) {
+                $query->whereNull('subscription_status')
+                    ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+            });
+        if ($request->filled('plan_id')) {
+            $subscriptionQuery->where('plan_id', $request->input('plan_id'));
+        }
+        $subscription = $subscriptionQuery->latest('paid_at')->first();
 
-        if (!$subscription && !$course->isUserSubscribed($user->id)) {
+        if (!$request->filled('plan_id')) {
+            $activeSubscriptionCount = CourseSubscription::where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->where(function ($query) {
+                    $query->whereNull('subscription_status')
+                        ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+                })
+                ->count();
+
+            if ($activeSubscriptionCount > 1) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'يرجى تحديد الباقة المراد إلغاؤها من صفحة الباقات.',
+                ], 422);
+            }
+        }
+
+        if (!$subscription && ($request->filled('plan_id') || !$course->isUserSubscribed($user->id))) {
             return response()->json([
                 'status'  => false,
                 'message' => 'أنت غير مشترك في هذا الكورس بالأساس.',
@@ -320,17 +365,13 @@ class CourseSubscriptionController extends Controller
                 $refundAmount = (float) $course->price;
             }
 
-            // 1. حذف سجل الاشتراك كلياً من السيرفر
+            // حذف سجل الباقة المحددة؛ لا نحذف اشتراكات الباقات الأخرى.
             if ($subscription) {
                 $subscription->delete();
             }
 
-            \DB::table('course_subscriptions')
-                ->where('user_id', $user->id)
-                ->where('course_id', $courseId)
-                ->delete();
-
-            if (method_exists($user, 'subscribedCourses')) {
+            $stillSubscribed = $course->isUserSubscribed($user->id);
+            if (!$stillSubscribed && method_exists($user, 'subscribedCourses')) {
                 $user->subscribedCourses()->detach($courseId);
             }
 
@@ -364,8 +405,8 @@ class CourseSubscriptionController extends Controller
                 'message'        => $msg,
                 'refund_amount'  => $refundAmount,
                 'wallet_balance' => (float) $user->wallet_balance,
-                'is_subscribed'  => false,
-                'students_count' => max(0, $course->subscribedUsers()->count() + 120),
+                'is_subscribed'  => $stillSubscribed,
+                'students_count' => max(0, $course->subscribedUsers()->distinct()->count('users.id') + 120),
             ]);
 
         } catch (\Throwable $e) {

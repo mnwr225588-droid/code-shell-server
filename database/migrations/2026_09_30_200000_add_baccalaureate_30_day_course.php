@@ -14,8 +14,10 @@ return new class extends Migration
     public function up(): void
     {
         // إضافة كورس البكالوريا الجديد مدة اشتراكه 30 يوم
-        // استخدام category_id مباشرة للبكالوريا (نفترض أنها 2 بناءً على الكود الموجود)
-        $baccalaureateCategoryId = 2;
+        $baccalaureateCategoryId = Category::firstOrCreate(
+            ['name' => 'المسارات التعليمية'],
+            ['icon' => '🎓']
+        )->id;
         
         // التحقق من عدم وجود الكورس مسبقاً
         $existingCourse = Course::where('title', 'منهج البرمجة - اشتراك شهري')->first();

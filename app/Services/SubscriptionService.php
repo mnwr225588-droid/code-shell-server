@@ -58,12 +58,13 @@ class SubscriptionService
      * @param Course $course الكورس المجاني
      * @return CourseSubscription سجل الاشتراك المكتمل
      */
-    public function createFreeSubscription(User $user, Course $course): CourseSubscription
+    public function createFreeSubscription(User $user, Course $course, ?int $planId = null): CourseSubscription
     {
-        return DB::transaction(function () use ($user, $course) {
-            $subscription = CourseSubscription::where('user_id', $user->id)
+        return DB::transaction(function () use ($user, $course, $planId) {
+            $query = CourseSubscription::where('user_id', $user->id)
                 ->where('course_id', $course->id)
-                ->first();
+                ->where('plan_id', $planId);
+            $subscription = $query->first();
 
             if (!$subscription) {
                 $subscription = new CourseSubscription();
@@ -72,6 +73,7 @@ class SubscriptionService
             }
 
             // تفعيل الاشتراك مجاناً وتحديد حالة الدفع بأنها غير مطلوبة
+            $subscription->plan_id = $planId;
             $subscription->subscription_status = CourseSubscription::STATUS_ACTIVE;
             $subscription->payment_status = CourseSubscription::PAYMENT_NOT_REQUIRED;
             $subscription->amount = 0.00;
@@ -82,7 +84,7 @@ class SubscriptionService
             $subscription->save();
 
             // تعيين الطالب لمجموعة مفتوحة تلقائياً
-            CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+            CourseGroupService::assignStudentToOpenGroup($user, $course->id, $planId);
             $this->invalidateSubscriptionStatusAfterCommit($user->id, $course->id);
 
             return $subscription;
@@ -101,9 +103,11 @@ class SubscriptionService
     public function initiatePaymentSubscription(User $user, Course $course, Transaction $transaction): CourseSubscription
     {
         return DB::transaction(function () use ($user, $course, $transaction) {
-            $subscription = CourseSubscription::where('user_id', $user->id)
+            $planId = data_get($transaction->payload, 'plan_id');
+            $query = CourseSubscription::where('user_id', $user->id)
                 ->where('course_id', $course->id)
-                ->first();
+                ->where('plan_id', $planId);
+            $subscription = $query->first();
 
             if (!$subscription) {
                 $subscription = new CourseSubscription();
@@ -168,10 +172,10 @@ class SubscriptionService
             $lockedTx->save();
 
             // تحديث سجل الاشتراك وتفعيله رسمياً
-            $subscription = CourseSubscription::where('user_id', $lockedTx->user_id)
+            $subscriptionQuery = CourseSubscription::where('user_id', $lockedTx->user_id)
                 ->where('course_id', $lockedTx->course_id)
-                ->lockForUpdate()
-                ->first();
+                ->where('plan_id', data_get($lockedTx->payload, 'plan_id'));
+            $subscription = $subscriptionQuery->lockForUpdate()->first();
 
             if (!$subscription) {
                 $subscription = new CourseSubscription();
@@ -207,7 +211,11 @@ class SubscriptionService
             $this->invalidateSubscriptionStatusAfterCommit($lockedTx->user_id, $lockedTx->course_id);
 
             // ربط المستخدم بأحدث مجموعة مفتوحة
-            CourseGroupService::assignStudentToOpenGroup($lockedTx->user, $lockedTx->course_id);
+            CourseGroupService::assignStudentToOpenGroup(
+                $lockedTx->user,
+                $lockedTx->course_id,
+                data_get($lockedTx->payload, 'plan_id')
+            );
 
             Log::info("Payment & Subscription activated successfully for User {$lockedTx->user_id}, Course {$lockedTx->course_id}, Tx #{$lockedTx->id}");
 
@@ -235,6 +243,7 @@ class SubscriptionService
 
             $subscription = CourseSubscription::where('user_id', $transaction->user_id)
                 ->where('course_id', $transaction->course_id)
+                ->where('plan_id', data_get($transaction->payload, 'plan_id'))
                 ->first();
 
             if ($subscription && $subscription->subscription_status !== CourseSubscription::STATUS_ACTIVE) {

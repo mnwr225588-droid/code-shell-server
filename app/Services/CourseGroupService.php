@@ -60,10 +60,13 @@ class CourseGroupService
             // إنشاء المجموعة التالية تلقائياً فور التفعيل إذا كان الخيار مفعلاً
             // — إلا إذا كانت هناك بالفعل مجموعة مفتوحة للتسجيل (لتجنب التكرار)
             if ($group->is_auto_create) {
-                $hasOpenGroup = CourseGroup::where('course_id', $group->course_id)
+                $hasOpenGroupQuery = CourseGroup::where('course_id', $group->course_id)
                     ->whereIn('status', ['open_for_registration', 'waiting_for_students', 'ready_to_start'])
-                    ->where('id', '!=', $group->id)
-                    ->exists();
+                    ->where('id', '!=', $group->id);
+                $group->plan_id
+                    ? $hasOpenGroupQuery->where('plan_id', $group->plan_id)
+                    : $hasOpenGroupQuery->whereNull('plan_id');
+                $hasOpenGroup = $hasOpenGroupQuery->exists();
 
                 if (!$hasOpenGroup) {
                     self::spawnNextGroup($group);
@@ -83,15 +86,23 @@ class CourseGroupService
      */
     public static function spawnNextGroup(CourseGroup $previousGroup): CourseGroup
     {
-        $count = CourseGroup::where('course_id', $previousGroup->course_id)->count();
+        $groupQuery = CourseGroup::where('course_id', $previousGroup->course_id);
+        $previousGroup->plan_id
+            ? $groupQuery->where('plan_id', $previousGroup->plan_id)
+            : $groupQuery->whereNull('plan_id');
+        $count = $groupQuery->count();
         $fromName = self::ordinalFromName($previousGroup->name);
         $nextNumber = max($fromName + 1, $count + 1);
 
         $newName = 'المجموعة ' . self::arabicOrdinal($nextNumber);
 
         // منع التكرار بنفس الاسم لنفس الكورس
-        $exists = CourseGroup::where('course_id', $previousGroup->course_id)
-            ->where('name', $newName)->exists();
+        $existsQuery = CourseGroup::where('course_id', $previousGroup->course_id)
+            ->where('name', $newName);
+        $previousGroup->plan_id
+            ? $existsQuery->where('plan_id', $previousGroup->plan_id)
+            : $existsQuery->whereNull('plan_id');
+        $exists = $existsQuery->exists();
         if ($exists) {
             $newName = 'المجموعة ' . self::arabicOrdinal($nextNumber) . ' - ' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(3));
         }
@@ -104,6 +115,7 @@ class CourseGroupService
 
         $newGroup = CourseGroup::create([
             'course_id'             => $previousGroup->course_id,
+            'plan_id'               => $previousGroup->plan_id,
             'name'                  => $newName,
             'capacity'              => $previousGroup->capacity,
             'duration_days'         => $previousGroup->duration_days,
@@ -131,20 +143,31 @@ class CourseGroupService
      * ⚡ 3. عند اكتمال العدد أو عدم وجود أماكن → إنشاء المجموعة التالية تلقائياً
      *       بنفس التسلسل، فلا يفشل اشتراك أي طالب أبداً لعدم وجود مجموعات.
      */
-    public static function assignStudentToOpenGroup($user, $courseId)
+    public static function assignStudentToOpenGroup($user, $courseId, ?int $planId = null)
     {
         // المجموعات المفتوحة فقط — المستبعد نهائياً: active / completed
-        $groups = CourseGroup::where('course_id', $courseId)
+        $groupsQuery = CourseGroup::where('course_id', $courseId)
             ->whereIn('status', ['open_for_registration', 'waiting_for_students', 'ready_to_start'])
-            ->orderBy('id', 'asc')
-            ->get();
+            ->orderBy('id', 'asc');
+        $planId !== null
+            ? $groupsQuery->where('plan_id', $planId)
+            : $groupsQuery->whereNull('plan_id');
+        $groups = $groupsQuery->get();
+        if ($groups->isEmpty() && $planId !== null
+            && !CourseGroup::where('course_id', $courseId)->where('plan_id', $planId)->exists()) {
+            $groups = CourseGroup::where('course_id', $courseId)
+                ->whereNull('plan_id')
+                ->whereIn('status', ['open_for_registration', 'waiting_for_students', 'ready_to_start'])
+                ->orderBy('id', 'asc')
+                ->get();
+        }
 
         // استعلام مجمع واحد لعدّ الطلاب في كل المجموعات
         $groupIds = $groups->pluck('id');
         $countsByGroup = DB::table('course_subscriptions')
             ->whereIn('group_id', $groupIds)
             ->groupBy('group_id')
-            ->selectRaw('group_id, COUNT(*) as c')
+            ->selectRaw('group_id, COUNT(DISTINCT user_id) as c')
             ->pluck('c', 'group_id');
 
         foreach ($groups as $group) {
@@ -152,9 +175,7 @@ class CourseGroupService
             $capacity = max(1, (int) ($group->capacity ?: 10));
 
             if ($currentStudents < $capacity) {
-                $user->subscribedCourses()->syncWithoutDetaching([
-                    $courseId => ['group_id' => $group->id]
-                ]);
+                self::assignSubscriptionToGroup($user->id, $courseId, $planId, $group->id);
 
                 if (($currentStudents + 1) >= $capacity) {
                     self::spawnNextGroup($group);
@@ -166,13 +187,18 @@ class CourseGroupService
 
         // لا توجد مجموعة بها مكان (أو لا توجد مجموعات مفتوحة أصلاً)
         // → إنشاء المجموعة التالية تلقائياً وضم الطالب لها
-        $lastGroup = CourseGroup::where('course_id', $courseId)->orderBy('id', 'desc')->first();
+        $lastGroupQuery = CourseGroup::where('course_id', $courseId);
+        $planId !== null
+            ? $lastGroupQuery->where('plan_id', $planId)
+            : $lastGroupQuery->whereNull('plan_id');
+        $lastGroup = $lastGroupQuery->orderBy('id', 'desc')->first();
 
         if ($lastGroup) {
             $newGroup = self::spawnNextGroup($lastGroup);
         } else {
             $newGroup = CourseGroup::create([
                 'course_id'      => $courseId,
+                'plan_id'        => $planId,
                 'name'           => 'المجموعة الأولى',
                 'capacity'       => 10,
                 'is_auto_create' => true,
@@ -180,12 +206,23 @@ class CourseGroupService
             ]);
         }
 
-        $user->subscribedCourses()->syncWithoutDetaching([
-            $courseId => ['group_id' => $newGroup->id]
-        ]);
+        self::assignSubscriptionToGroup($user->id, $courseId, $planId, $newGroup->id);
 
         Log::info("Auto-created group #{$newGroup->id} '{$newGroup->name}' on subscription for course {$courseId}");
 
         return $newGroup;
+    }
+
+    private static function assignSubscriptionToGroup(int $userId, int $courseId, ?int $planId, int $groupId): void
+    {
+        $query = \App\Models\CourseSubscription::where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->where('plan_id', $planId);
+        $subscription = $query->first();
+
+        if ($subscription) {
+            $subscription->group_id = $groupId;
+            $subscription->save();
+        }
     }
 }

@@ -59,7 +59,7 @@ class CourseController extends Controller
                       ->orWhere('subscription_status', 'active');
                 })
                 ->groupBy('course_id')
-                ->selectRaw('course_id, COUNT(*) as c')
+                ->selectRaw('course_id, COUNT(DISTINCT user_id) as c')
                 ->pluck('c', 'course_id');
 
             // 3. عدد الحجوزات لكل كورس
@@ -146,9 +146,9 @@ class CourseController extends Controller
         $course->setAttribute('is_subscribed', $user ? $course->isUserSubscribed($user->id) : false);
         $course->setAttribute('levels_count', $course->levels()->count());
         $course->setAttribute('lessons_count', \App\Models\Lesson::whereIn('level_id', $course->levels()->pluck('id'))->count());
-        $course->setAttribute('students_count', $course->subscribedUsers()->count() + 120);
+        $course->setAttribute('students_count', $course->subscribedUsers()->distinct()->count('users.id') + 120);
         $course->setAttribute('reservations_count', $course->reservedUsers()->count());
-        $course->setAttribute('subscriptions_count', $course->subscribedUsers()->count());
+        $course->setAttribute('subscriptions_count', $course->subscribedUsers()->distinct()->count('users.id'));
 
         if ($user && isset($user->country)) {
             $pricing = \App\Services\PricingService::priceFor($user->country, $course->prices);
@@ -215,8 +215,9 @@ class CourseController extends Controller
         $userId = $user?->id;
         $isAdmin = $user?->isAdmin() ?? false;
         $course = Course::findCourseSafely($course_id);
+        $requestedPlanId = $request->input('plan_id');
         $subscription = (!$isAdmin && $userId)
-            ? $this->activeSubscription($userId, $course_id)
+            ? $this->activeSubscription($userId, $course_id, $requestedPlanId)
             : null;
 
         // 🔒 حماية أمنية صارمة: يمنع منعيًا إرجاع المحتوى لمستخدم غير مسجل الدخول أو لا يملك اشتراكاً فعالاً
@@ -366,8 +367,16 @@ class CourseController extends Controller
 
         $level = \App\Models\Level::findOrFail($level_id);
         $course = \App\Models\Course::findOrFail($level->course_id);
+        if (!$isAdmin && $request->filled('plan_id') && $level->plan_id
+            && (int) $request->input('plan_id') !== (int) $level->plan_id) {
+            return response()->json([
+                'status' => false,
+                'message' => 'هذا المستوى لا يتبع الباقة المحددة.',
+            ], 403);
+        }
+        $requestedPlanId = $request->input('plan_id') ?? $level->plan_id;
         $subscription = (!$isAdmin && $userId)
-            ? $this->activeSubscription($userId, $course->id)
+            ? $this->activeSubscription($userId, $course->id, $requestedPlanId)
             : null;
 
         // 🔒 حماية أمنية صارمة: يمنع الوصول لدروس المستوى دون اشتراك فعال
@@ -403,8 +412,9 @@ class CourseController extends Controller
         $userId = $user?->id;
         $isAdmin = $user?->isAdmin() ?? false;
         $course = Course::findCourseSafely($course_id);
+        $requestedPlanId = $request->input('plan_id');
         $subscription = (!$isAdmin && $userId)
-            ? $this->activeSubscription($userId, $course_id)
+            ? $this->activeSubscription($userId, $course_id, $requestedPlanId)
             : null;
 
         // 🔒 حماية أمنية: يمنع الحصول على محاضرات الكورس دون اشتراك
@@ -464,16 +474,25 @@ class CourseController extends Controller
             ->orderBy('id', 'asc')
             ->get();
 
-        $subscription = ($user && !$isAdmin)
-            ? $this->activeSubscription($user->id, $courseId)
-            : null;
-        $isCourseSubscribed = (bool) $subscription || (bool) $isAdmin;
-        $subscribedPlan = $subscription?->plan;
+        $subscriptions = ($user && !$isAdmin)
+            ? \App\Models\CourseSubscription::where('user_id', $user->id)
+                ->where('course_id', $courseId)
+                ->where(function ($query) {
+                    $query->whereNull('subscription_status')
+                        ->orWhere('subscription_status', \App\Models\CourseSubscription::STATUS_ACTIVE);
+                })
+                ->with('plan')
+                ->get()
+                ->filter(fn (\App\Models\CourseSubscription $subscription) => $subscription->isAccessGranted())
+            : collect();
+        $subscribedPlanIds = $subscriptions->pluck('plan_id')->filter()->map(fn ($id) => (int) $id)->values();
+        $isCourseSubscribed = $subscribedPlanIds->isNotEmpty() || $subscriptions->contains(fn ($sub) => $sub->plan_id === null) || (bool) $isAdmin;
+        $subscribedPlan = $subscriptions->sortByDesc('paid_at')->first()?->plan;
 
-        $plansData = $plans->map(function ($plan) use ($subscription, $isAdmin) {
+        $plansData = $plans->map(function ($plan) use ($subscribedPlanIds, $isAdmin) {
             $planArr = $plan->toArray();
             $planArr['is_subscribed'] = $isAdmin
-                || ($subscription && (int) $subscription->plan_id === (int) $plan->id);
+                || $subscribedPlanIds->contains((int) $plan->id);
             return $planArr;
         });
 
@@ -489,7 +508,8 @@ class CourseController extends Controller
                 'icon' => $course->icon,
                 'icon_url' => $course->icon_url,
                 'is_subscribed' => $isCourseSubscribed,
-                'subscribed_plan_id' => $subscription?->plan_id,
+                'subscribed_plan_id' => $subscribedPlan?->id,
+                'subscribed_plan_ids' => $subscribedPlanIds,
                 'subscribed_plan' => $subscribedPlan ? [
                     'id' => $subscribedPlan->id,
                     'name' => $subscribedPlan->name,
@@ -499,23 +519,21 @@ class CourseController extends Controller
         ])->header('Cache-Control', 'no-store, private');
     }
 
-    private function activeSubscription(int $userId, int|string $courseId): ?\App\Models\CourseSubscription
+    private function activeSubscription(int $userId, int|string $courseId, int|string|null $planId = null): ?\App\Models\CourseSubscription
     {
-        $subscription = \App\Models\CourseSubscription::where('user_id', $userId)
+        $query = \App\Models\CourseSubscription::where('user_id', $userId)
             ->where('course_id', $courseId)
             ->where(function ($query) {
                 $query->whereNull('subscription_status')
                     ->orWhere('subscription_status', \App\Models\CourseSubscription::STATUS_ACTIVE);
             })
-            ->with(['plan', 'group'])
-            ->first();
+            ->with(['plan', 'group']);
 
-        if ($subscription) {
-            if (!$subscription->isAccessGranted()) {
-                return null;
-            }
+        if ($planId !== null) {
+            $query->where('plan_id', $planId);
         }
 
-        return $subscription;
+        return $query->get()
+            ->first(fn (\App\Models\CourseSubscription $subscription) => $subscription->isAccessGranted());
     }
 }

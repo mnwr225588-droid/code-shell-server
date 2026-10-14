@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,6 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        $restoreCourseUserView = $this->dropCourseUserViewForSqlite();
+
         Schema::table('course_subscriptions', function (Blueprint $table) {
             $table->foreignId('plan_id')->nullable()->constrained('course_plans')->onDelete('set null');
             $table->timestamp('started_at')->nullable()->comment('تاريخ بدء الاشتراك من أول محاضرة');
@@ -20,6 +23,10 @@ return new class extends Migration
             }
             $table->boolean('is_expired')->default(false)->comment('هل الاشتراك منتهي');
         });
+
+        if ($restoreCourseUserView) {
+            DB::statement('CREATE VIEW course_user AS SELECT id, user_id, course_id, group_id, created_at, updated_at FROM course_subscriptions');
+        }
     }
 
     /**
@@ -27,10 +34,31 @@ return new class extends Migration
      */
     public function down(): void
     {
+        $restoreCourseUserView = $this->dropCourseUserViewForSqlite();
+
         Schema::table('course_subscriptions', function (Blueprint $table) {
             $table->dropForeign(['plan_id']);
             $table->dropColumn(['plan_id', 'started_at', 'is_expired']);
             // لا نحذف expired_at لأنه كان موجوداً من قبل
         });
+
+        if ($restoreCourseUserView) {
+            DB::statement('CREATE VIEW course_user AS SELECT id, user_id, course_id, group_id, created_at, updated_at FROM course_subscriptions');
+        }
+    }
+
+    private function dropCourseUserViewForSqlite(): bool
+    {
+        if (DB::getDriverName() !== 'sqlite') {
+            return false;
+        }
+
+        $view = DB::selectOne("SELECT type FROM sqlite_master WHERE name = 'course_user'");
+        if (!$view || $view->type !== 'view') {
+            return false;
+        }
+
+        DB::statement('DROP VIEW course_user');
+        return true;
     }
 };

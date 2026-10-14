@@ -148,6 +148,10 @@ class CourseSubscription extends Model
             return false;
         }
 
+        if ($this->started_at || $this->expired_at) {
+            return true;
+        }
+
         $firstLectureDate = \DB::table('online_lectures')
             ->where('course_id', $this->course_id)
             ->orderBy('created_at', 'asc')

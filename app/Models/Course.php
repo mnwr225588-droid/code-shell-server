@@ -124,16 +124,15 @@ class Course extends Model
             return true;
         }
 
-        $subscription = CourseSubscription::where('user_id', $userId)
+        return CourseSubscription::where('user_id', $userId)
             ->where('course_id', $this->id)
             ->where(function ($q) {
                 $q->whereNull('subscription_status')
                   ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
             })
             ->with('plan')
-            ->first();
-
-        return $subscription?->isAccessGranted() ?? false;
+            ->get()
+            ->contains(fn (CourseSubscription $subscription) => $subscription->isAccessGranted());
     }
 
     public function getLevelsCountAttribute()
@@ -151,7 +150,7 @@ class Course extends Model
     public function getStudentsCountAttribute()
     {
         // Actual subscribed count + 120 (base modifier to look popular)
-        return $this->subscribedUsers()->count() + 120;
+        return $this->subscribedUsers()->distinct()->count('users.id') + 120;
     }
 
     public function getDurationAttribute($value)
@@ -311,9 +310,9 @@ class Course extends Model
     public function getSubscriptionsCountAttribute()
     {
         if ($this->relationLoaded('subscribedUsers')) {
-            return $this->subscribedUsers->count();
+            return $this->subscribedUsers->unique('id')->count();
         }
-        return $this->subscribedUsers()->count();
+        return $this->subscribedUsers()->distinct()->count('users.id');
     }
 
     public function groups()

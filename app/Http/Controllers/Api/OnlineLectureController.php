@@ -24,26 +24,27 @@ class OnlineLectureController extends Controller
             || ($userId == $lecture->teacher_id);
         
         if (!$isTeacher && !$isAdmin && $user) {
-            $subscription = CourseSubscription::where('user_id', $userId)
+            $subscriptions = CourseSubscription::where('user_id', $userId)
                 ->where('course_id', $lecture->course_id)
                 ->where(function ($query) {
                     $query->whereNull('subscription_status')
                         ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
                 })
                 ->with('plan')
-                ->first();
+                ->get()
+                ->filter(fn (CourseSubscription $item) => $item->isAccessGranted());
+            $subscription = $subscriptions->first(function (CourseSubscription $item) use ($lecture) {
+                if ($lecture->plan_id) {
+                    return (int) $item->plan_id === (int) $lecture->plan_id;
+                }
 
-            if (!$subscription || !$subscription->isAccessGranted()) {
+                return !$item->plan_id || (int) $item->group_id === (int) $lecture->group_id;
+            }) ?? $subscriptions->first();
+
+            if (!$subscription) {
                 return response()->json([
                     'status' => false,
                     'message' => 'غير مصرح لك بدخول هذه المحاضرة. يجب الاشتراك في الكورس أولاً.'
-                ], 403);
-            }
-
-            if ($lecture->plan_id && (int) $lecture->plan_id !== (int) $subscription->plan_id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'لا يمكنك دخول محاضرة تابعة لباقة لا تملك اشتراكاً فيها.',
                 ], 403);
             }
 
@@ -143,7 +144,12 @@ class OnlineLectureController extends Controller
         }
 
         // جلب معرفات المجموعات التي ينتمي لها الطالب
-        $groupIds = $user->groups()->pluck('course_groups.id')->toArray();
+        $groupIds = $user->groups()->pluck('course_groups.id')
+            ->merge($subscriptions->pluck('group_id'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         // جلب المحاضرات الأونلاين فقط للمجموعات التي ينتمي لها الطالب
         // إزالة orWhereIn('course_id') لضمان أن كل مجموعة ترى محاضراتها الخاصة فقط
