@@ -24,29 +24,43 @@ class AdminContentController extends Controller
 {
     public function getCourses(Request $request)
     {
-        return \Cache::remember('admin_all_courses_v2', 60, function () {
-            $courses = Course::with('category')->orderBy('id', 'desc')->get();
-            $courseIds = $courses->pluck('id');
-
-            $levelCounts = DB::table('levels')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
-            $lessonCounts = DB::table('lessons')->join('levels', 'lessons.level_id', '=', 'levels.id')->whereIn('levels.course_id', $courseIds)->groupBy('levels.course_id')->selectRaw('levels.course_id as cid, COUNT(*) as c')->pluck('c', 'cid');
-            $subCounts = DB::table('course_subscriptions')->whereIn('course_id', $courseIds)->where(function ($q) { $q->whereNull('subscription_status')->orWhere('subscription_status', 'active'); })->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
-            $resCounts = DB::table('course_reservations')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
-
-            $courses->each(function ($course) use ($levelCounts, $lessonCounts, $subCounts, $resCounts) {
-                $cid = $course->id;
-                $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
-                $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
-                $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
-                $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
-                $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
+        if ($request->boolean('summary')) {
+            $courses = \Cache::remember('admin_course_summaries_v1', 30, function () {
+                return DB::table('courses')
+                    ->select(['id', 'title', 'thumbnail', 'is_free', 'is_coming_soon'])
+                    ->orderByDesc('id')
+                    ->get()
+                    ->map(static fn ($course) => (array) $course)
+                    ->all();
             });
 
             return response()->json([
                 'status' => true,
-                'data'   => $courses
-            ]);
+                'data'   => $courses,
+            ])->header('Cache-Control', 'no-store, private');
+        }
+
+        $courses = Course::with('category')->orderBy('id', 'desc')->get();
+        $courseIds = $courses->pluck('id');
+
+        $levelCounts = DB::table('levels')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+        $lessonCounts = DB::table('lessons')->join('levels', 'lessons.level_id', '=', 'levels.id')->whereIn('levels.course_id', $courseIds)->groupBy('levels.course_id')->selectRaw('levels.course_id as cid, COUNT(*) as c')->pluck('c', 'cid');
+        $subCounts = DB::table('course_subscriptions')->whereIn('course_id', $courseIds)->where(function ($q) { $q->whereNull('subscription_status')->orWhere('subscription_status', 'active'); })->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+        $resCounts = DB::table('course_reservations')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
+
+        $courses->each(function ($course) use ($levelCounts, $lessonCounts, $subCounts, $resCounts) {
+            $cid = $course->id;
+            $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
+            $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
+            $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
+            $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
+            $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
         });
+
+        return response()->json([
+            'status' => true,
+            'data'   => $courses
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function storeCategory(Request $request)
@@ -84,6 +98,7 @@ class AdminContentController extends Controller
             'category_id'    => 'required|exists:categories,id',
             'title'          => 'required|string|max:255',
             'description'    => 'nullable|string',
+            'what_you_will_learn' => 'nullable|string',
             'thumbnail'      => $imageRule,
             'image_path'     => $imageRule,
             'is_free'        => 'required|boolean',
@@ -128,6 +143,9 @@ class AdminContentController extends Controller
                 'category_id'    => $request->category_id,
                 'title'          => $request->title,
                 'description'    => $request->description,
+                'what_will_learn' => $request->filled('what_you_will_learn')
+                    ? $this->parseLearningPoints($request->what_you_will_learn)
+                    : null,
                 'thumbnail'      => $thumbnailPath,
                 'is_free'        => $request->is_free,
                 'price'          => $request->is_free ? 0 : ($request->price ?? $prices['EGP'] ?? 0),
@@ -171,6 +189,7 @@ class AdminContentController extends Controller
             'category_id'    => 'sometimes|exists:categories,id',
             'title'          => 'sometimes|string|max:255',
             'description'    => 'nullable|string',
+            'what_you_will_learn' => 'sometimes|nullable|string',
             'thumbnail'      => $imageRule,
             'image_path'     => $imageRule,
             'is_free'        => 'sometimes|boolean',
@@ -186,6 +205,9 @@ class AdminContentController extends Controller
         if ($request->has('category_id')) $course->category_id = $request->category_id;
         if ($request->has('title')) $course->title = $request->title;
         if ($request->has('description')) $course->description = $request->description;
+        if ($request->has('what_you_will_learn')) {
+            $course->what_will_learn = $this->parseLearningPoints($request->what_you_will_learn);
+        }
         if ($request->has('is_free')) $course->is_free = $request->is_free;
         if ($request->has('is_active')) $course->is_active = $request->is_active;
         if ($request->has('is_coming_soon')) $course->is_coming_soon = $request->is_coming_soon;
@@ -247,7 +269,10 @@ class AdminContentController extends Controller
         return response()->json([
             'status'  => true,
             'message' => 'تم تحديث الكورس بنجاح',
-            'data'    => $course
+            'data'    => [
+                'id' => $course->id,
+                'title' => $course->title,
+            ],
         ]);
     }
 
@@ -706,6 +731,7 @@ class AdminContentController extends Controller
 
         $course->is_coming_soon = !$course->is_coming_soon;
         $course->save();
+        $this->invalidateCourseContentCache();
 
         if ($wasComingSoon && !$course->is_coming_soon) {
             $this->notifyCoursePublished($course);
@@ -1156,6 +1182,7 @@ class AdminContentController extends Controller
     private function invalidateCourseContentCache(): void
     {
         \Cache::forever('courses_index_cache_version', (string) Str::uuid());
+        \Cache::forget('admin_course_summaries_v1');
         \Cache::forget('admin_all_courses_v2');
         \Cache::forget('all_courses_v2');
     }
@@ -1176,5 +1203,12 @@ class AdminContentController extends Controller
         }
 
         return 'r2/' . $path;
+    }
+
+    private function parseLearningPoints(?string $text): array
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $text ?? '');
+
+        return array_values(array_filter(array_map('trim', $lines ?: [])));
     }
 }
