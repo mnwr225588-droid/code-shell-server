@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\PricingService;
 use App\Services\VideoProcessor;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -96,7 +97,7 @@ class AdminContentController extends Controller
 
         $thumbnailPath = null;
         if ($request->hasFile($imageField)) {
-            $thumbnailPath = $request->file($imageField)->store('courses/thumbnails', 'public');
+            $thumbnailPath = $this->storeImageOnR2($request->file($imageField), 'courses/thumbnails');
         } elseif ($request->filled('image_path') && is_string($request->image_path)) {
             $thumbnailPath = $request->image_path;
         } elseif ($request->filled('thumbnail') && is_string($request->thumbnail)) {
@@ -193,7 +194,7 @@ class AdminContentController extends Controller
         if ($request->has('has_discount')) $course->has_discount = $request->has_discount;
         $imageField = $request->file('image_path') !== null ? 'image_path' : 'thumbnail';
         if ($request->hasFile($imageField)) {
-            $course->thumbnail = $request->file($imageField)->store('courses/thumbnails', 'public');
+            $course->thumbnail = $this->storeImageOnR2($request->file($imageField), 'courses/thumbnails');
         } elseif ($request->filled('image_path') && is_string($request->image_path)) {
             $course->thumbnail = $request->image_path;
         } elseif ($request->filled('thumbnail') && is_string($request->thumbnail)) {
@@ -889,8 +890,7 @@ class AdminContentController extends Controller
         $imagePath = null;
         if ($request->hasFile($imageField)) {
             $file = $request->file($imageField);
-            $stored = $file->store('plans', 'public');
-            $imagePath = 'storage/' . $stored;
+            $imagePath = $this->storeImageOnR2($file, 'plans');
         } elseif ($request->filled('image_path') && is_string($request->image_path)) {
             $imagePath = $request->image_path;
         } elseif ($request->filled('image') && is_string($request->image)) {
@@ -1008,15 +1008,19 @@ class AdminContentController extends Controller
         if ($request->has('sort_order')) $plan->sort_order = $request->sort_order;
 
         $oldImagePathToDelete = null;
+        $oldImageDisk = 'public';
         $imageField = $request->hasFile('image_path') ? 'image_path' : 'image';
         if ($request->hasFile($imageField)) {
             $file = $request->file($imageField);
-            $stored = $file->store('plans', 'public');
+            $stored = $this->storeImageOnR2($file, 'plans');
             $oldImagePathToDelete = ltrim((string) $plan->image, '/');
-            if (str_starts_with($oldImagePathToDelete, 'storage/')) {
+            if (str_starts_with($oldImagePathToDelete, 'r2/')) {
+                $oldImageDisk = 'r2';
+                $oldImagePathToDelete = substr($oldImagePathToDelete, strlen('r2/'));
+            } elseif (str_starts_with($oldImagePathToDelete, 'storage/')) {
                 $oldImagePathToDelete = substr($oldImagePathToDelete, strlen('storage/'));
             }
-            $plan->image = 'storage/' . $stored;
+            $plan->image = $stored;
         } elseif ($request->filled('image_path') && is_string($request->image_path)) {
             $plan->image = $request->image_path;
         } elseif ($request->filled('image') && is_string($request->image)) {
@@ -1082,8 +1086,8 @@ class AdminContentController extends Controller
 
         $plan->save();
 
-        if ($oldImagePathToDelete !== null && $oldImagePathToDelete !== '' && !preg_match('#^https?://#i', $oldImagePathToDelete) && !str_starts_with($oldImagePathToDelete, 'assets/') && Storage::disk('public')->exists($oldImagePathToDelete)) {
-            Storage::disk('public')->delete($oldImagePathToDelete);
+        if ($oldImagePathToDelete !== null && $oldImagePathToDelete !== '' && !preg_match('#^https?://#i', $oldImagePathToDelete) && !str_starts_with($oldImagePathToDelete, 'assets/') && Storage::disk($oldImageDisk)->exists($oldImagePathToDelete)) {
+            Storage::disk($oldImageDisk)->delete($oldImagePathToDelete);
         }
 
         $this->invalidateCourseContentCache();
@@ -1162,5 +1166,15 @@ class AdminContentController extends Controller
         $prices[$currencyCode] = $price;
 
         return $prices;
+    }
+
+    private function storeImageOnR2(UploadedFile $file, string $directory): string
+    {
+        $path = $file->store($directory, 'r2');
+        if (!$path) {
+            throw new \RuntimeException('تعذر حفظ الصورة في التخزين الدائم.');
+        }
+
+        return 'r2/' . $path;
     }
 }

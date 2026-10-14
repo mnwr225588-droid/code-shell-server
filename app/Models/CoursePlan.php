@@ -90,6 +90,11 @@ class CoursePlan extends Model
 
         // Clean leading slash
         $cleanPath = ltrim($this->image, '/');
+        if (str_starts_with($cleanPath, 'r2/')) {
+            $r2Url = rtrim((string) config('filesystems.disks.r2.url'), '/');
+            return $r2Url !== '' ? $r2Url . '/' . substr($cleanPath, strlen('r2/')) : null;
+        }
+
         if (str_starts_with($cleanPath, 'storage/')) {
             return asset($cleanPath);
         }

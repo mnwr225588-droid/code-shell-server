@@ -83,6 +83,11 @@ class Course extends Model
         }
 
         $path = ltrim($this->thumbnail, '/');
+        if (str_starts_with($path, 'r2/')) {
+            $r2Url = rtrim((string) config('filesystems.disks.r2.url'), '/');
+            return $r2Url !== '' ? $r2Url . '/' . substr($path, strlen('r2/')) : null;
+        }
+
         if (str_starts_with($path, 'assets/')) {
             return asset($path);
         }
