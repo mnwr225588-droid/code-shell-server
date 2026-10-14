@@ -60,14 +60,17 @@ class AuthService
                 $user->save();
             }
 
-            // 🔒 جلسة واحدة نشطة: إبطال جميع الجلسات السابقة للحساب
-            // عند تسجيل دخول جديد — الجهاز القديم يُسجل خروجه تلقائياً
-            $user->tokens()->delete();
+            // Keep the previous active token temporarily so its next request
+            // can receive the explicit "logged in elsewhere" response.
+            $previousTokenId = $user->current_token_id;
+            $user->tokens()
+                ->when($previousTokenId, fn ($query) => $query->where('id', '!=', $previousTokenId))
+                ->delete();
 
-        $tokenResult = $user->createToken('CodeShell');
-        $token = $tokenResult->plainTextToken;
-        $user->current_token_id = $tokenResult->accessToken->id;
-        $user->save();
+            $tokenResult = $user->createToken('CodeShell');
+            $token = $tokenResult->plainTextToken;
+            $user->current_token_id = $tokenResult->accessToken->id;
+            $user->save();
 
             // determination of user type: admin if is_admin=1, teacher if hasTeacher relationship or isTeacher, else student
             $userType = 'student';
@@ -90,10 +93,15 @@ class AuthService
         $teacher = Teacher::where('email', $data['email'])->first();
 
         if ($teacher && Hash::check($data['password'], $teacher->password)) {
-            // 🔒 جلسة واحدة نشطة: إبطال جلسات المدرس السابقة عند الدخول الجديد
-            $teacher->tokens()->delete();
+            $previousTokenId = $teacher->current_token_id;
+            $teacher->tokens()
+                ->when($previousTokenId, fn ($query) => $query->where('id', '!=', $previousTokenId))
+                ->delete();
 
-            $token = $teacher->createToken('CodeShell')->plainTextToken;
+            $tokenResult = $teacher->createToken('CodeShell');
+            $token = $tokenResult->plainTextToken;
+            $teacher->current_token_id = $tokenResult->accessToken->id;
+            $teacher->save();
 
             $teacher->user_type = 'teacher';
 

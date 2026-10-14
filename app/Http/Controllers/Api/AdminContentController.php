@@ -76,7 +76,7 @@ class AdminContentController extends Controller
     {
         $imageField = $request->file('image_path') !== null ? 'image_path' : 'thumbnail';
         $imageRule = $request->file('image_path') !== null || $request->file('thumbnail') !== null
-            ? 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
+            ? 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240'
             : 'nullable|string';
 
         $request->validate([
@@ -150,6 +150,8 @@ class AdminContentController extends Controller
             throw $e;
         }
 
+        $this->invalidateCourseContentCache();
+
         return response()->json([
             'status'  => true,
             'message' => 'تمت إضافة الكورس بنجاح',
@@ -161,7 +163,7 @@ class AdminContentController extends Controller
     {
         $course = Course::findCourseSafely($id);
         $imageRule = $request->file('image_path') !== null || $request->file('thumbnail') !== null
-            ? 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
+            ? 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240'
             : 'nullable|string';
 
         $request->validate([
@@ -239,10 +241,7 @@ class AdminContentController extends Controller
             throw $e;
         }
 
-        \Cache::forget('admin_all_courses_v2');
-        \Cache::forget('all_courses_v2');
-        \Cache::forget('courses_index_u' . auth()->id() . '_v2');
-        \Cache::forget('courses_index_uguest_v2');
+        $this->invalidateCourseContentCache();
 
         return response()->json([
             'status'  => true,
@@ -853,10 +852,10 @@ class AdminContentController extends Controller
     {
         $course = Course::findCourseSafely($courseId);
         $imageRule = $request->file('image') !== null
-            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
             : 'nullable|string';
         $imagePathRule = $request->file('image_path') !== null
-            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
             : 'nullable|string';
 
         $request->validate([
@@ -933,6 +932,10 @@ class AdminContentController extends Controller
         $prices = $parseJson($request->prices);
         $originalPrices = $parseJson($request->original_prices);
         $discountPrices = $parseJson($request->discount_prices);
+        $currencyCode = strtoupper((string) ($request->currency ?: 'EGP'));
+        $prices = $this->setCurrencyPrice($prices, $currencyCode, $effectivePrice);
+        $originalPrices = $this->setCurrencyPrice($originalPrices, $currencyCode, $originalPrice);
+        $discountPrices = $this->setCurrencyPrice($discountPrices, $currencyCode, $discountPrice);
 
         $plan = CoursePlan::create([
             'course_id' => $courseId,
@@ -959,10 +962,7 @@ class AdminContentController extends Controller
             'features' => $parseJson($request->features),
         ]);
 
-        \Cache::forget('admin_all_courses_v2');
-        \Cache::forget('all_courses_v2');
-        \Cache::forget('courses_index_u' . auth()->id() . '_v2');
-        \Cache::forget('courses_index_uguest_v2');
+        $this->invalidateCourseContentCache();
 
         return response()->json(['status' => true, 'message' => 'تمت إضافة الباقة بنجاح', 'data' => $plan]);
     }
@@ -971,10 +971,10 @@ class AdminContentController extends Controller
     {
         $plan = CoursePlan::findOrFail($id);
         $imageRule = $request->file('image') !== null
-            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
             : 'nullable|string';
         $imagePathRule = $request->file('image_path') !== null
-            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
             : 'nullable|string';
 
         $request->validate([
@@ -1075,16 +1075,18 @@ class AdminContentController extends Controller
         if ($request->has('discount_prices')) $plan->discount_prices = $parseJson($request->discount_prices);
         if ($request->has('features')) $plan->features = $parseJson($request->features);
 
+        $currencyCode = strtoupper((string) ($plan->currency ?: 'EGP'));
+        $plan->prices = $this->setCurrencyPrice($plan->prices, $currencyCode, (float) $plan->price);
+        $plan->original_prices = $this->setCurrencyPrice($plan->original_prices, $currencyCode, (float) ($plan->original_price ?? $plan->price));
+        $plan->discount_prices = $this->setCurrencyPrice($plan->discount_prices, $currencyCode, (float) ($plan->discount_price ?? $plan->price));
+
         $plan->save();
 
         if ($oldImagePathToDelete !== null && $oldImagePathToDelete !== '' && !preg_match('#^https?://#i', $oldImagePathToDelete) && !str_starts_with($oldImagePathToDelete, 'assets/') && Storage::disk('public')->exists($oldImagePathToDelete)) {
             Storage::disk('public')->delete($oldImagePathToDelete);
         }
 
-        \Cache::forget('admin_all_courses_v2');
-        \Cache::forget('all_courses_v2');
-        \Cache::forget('courses_index_u' . auth()->id() . '_v2');
-        \Cache::forget('courses_index_uguest_v2');
+        $this->invalidateCourseContentCache();
 
         return response()->json(['status' => true, 'message' => 'تم تحديث الباقة بنجاح', 'data' => $plan]);
     }
@@ -1094,6 +1096,7 @@ class AdminContentController extends Controller
         try {
             $plan = CoursePlan::findOrFail($id);
             $plan->delete();
+            $this->invalidateCourseContentCache();
             return response()->json(['status' => true, 'message' => 'تم حذف الباقة بنجاح']);
         } catch (\Exception $e) {
             Log::error('Error deleting plan #' . $id . ': ' . $e->getMessage());
@@ -1144,5 +1147,20 @@ class AdminContentController extends Controller
             Log::error('Error removing lesson from plan #' . $id . ': ' . $e->getMessage());
             return response()->json(['status' => false, 'message' => 'فشل في إزالة المحاضرة: ' . $e->getMessage()], 500);
         }
+    }
+
+    private function invalidateCourseContentCache(): void
+    {
+        \Cache::forever('courses_index_cache_version', (string) Str::uuid());
+        \Cache::forget('admin_all_courses_v2');
+        \Cache::forget('all_courses_v2');
+    }
+
+    private function setCurrencyPrice(?array $prices, string $currencyCode, float $price): array
+    {
+        $prices = $prices ?? [];
+        $prices[$currencyCode] = $price;
+
+        return $prices;
     }
 }

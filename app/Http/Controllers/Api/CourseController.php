@@ -34,8 +34,8 @@ class CourseController extends Controller
         $userId = $user?->id;
         $isAdmin = $user ? $user->is_admin : false;
 
-        // كاش لمدة دقيقة واحدة
-        $cacheKey = 'courses_index_u' . ($userId ?? 'guest') . '_v2';
+        $cacheVersion = \Cache::get('courses_index_cache_version', 'v1');
+        $cacheKey = 'courses_index_' . $cacheVersion . '_u' . ($userId ?? 'guest');
 
         $payload = \Cache::remember($cacheKey, 60, function () use ($user, $userId, $isAdmin) {
             // تم إزالة السطر الغير ضروري: Course::findCourseSafely(10)
@@ -119,7 +119,7 @@ class CourseController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $payload
-        ]);
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function show(Request $request, $id)
@@ -455,6 +455,6 @@ class CourseController extends Controller
                 'is_subscribed' => $isCourseSubscribed,
             ],
             'data' => $plansData
-        ]);
+        ])->header('Cache-Control', 'no-store, private');
     }
 }

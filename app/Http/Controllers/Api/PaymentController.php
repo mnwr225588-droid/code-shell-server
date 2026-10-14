@@ -87,17 +87,7 @@ class PaymentController extends Controller
 
         // 3. احتساب السعر والعملة من قاعدة البيانات على السيرفر فقط (بناءً على الباقة أو الكورس)
         if ($plan) {
-            $prices = [];
-            if ($plan->has_discount && !empty($plan->discount_prices)) {
-                $prices = $plan->discount_prices;
-            } elseif (!empty($plan->prices)) {
-                $prices = $plan->prices;
-            }
-            if (empty($prices)) {
-                $planPrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
-                $prices = ['EG' => ['price' => $planPrice, 'currency_code' => $plan->currency ?: 'EGP', 'currency_symbol' => 'ج.م']];
-            }
-            $pricing = PricingService::priceFor($user->country, $prices);
+            $pricing = PricingService::priceForPlan($user->country, $plan);
             $amount = $pricing['price'];
             $currency = $pricing['currency_code'];
             $planType = $plan->name;
@@ -124,7 +114,13 @@ class PaymentController extends Controller
             ->latest()
             ->first();
 
-        if ($pending && $pending->gateway_transaction_id) {
+        $pendingPayload = is_array($pending?->payload) ? $pending->payload : [];
+        $canResumePending = $pending
+            && (int) ($pendingPayload['plan_id'] ?? 0) === (int) ($plan?->id ?? 0)
+            && (float) $pending->amount === (float) $amount
+            && $pending->currency_code === $currency;
+
+        if ($canResumePending && $pending->gateway_transaction_id) {
             $url = $pending->payload['payment_url'] ?? null;
             if ($url) {
                 return response()->json([
@@ -607,17 +603,7 @@ class PaymentController extends Controller
 
         // 3. حساب السعر بناءً على الباقة أو الكورس
         if ($plan) {
-            $prices = [];
-            if ($plan->has_discount && !empty($plan->discount_prices)) {
-                $prices = $plan->discount_prices;
-            } elseif (!empty($plan->prices)) {
-                $prices = $plan->prices;
-            }
-            if (empty($prices)) {
-                $planPrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
-                $prices = ['EG' => ['price' => $planPrice, 'currency_code' => $plan->currency ?: 'EGP', 'currency_symbol' => 'ج.م']];
-            }
-            $pricing = PricingService::priceFor($user->country, $prices);
+            $pricing = PricingService::priceForPlan($user->country, $plan);
             $amount = (float) $pricing['price'];
             $planType = $plan->name;
             $planDurationDays = $plan->duration_days;

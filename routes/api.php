@@ -235,7 +235,7 @@ Route::get('/server-logs', function () {
         ->header('Content-Type', 'text/html; charset=UTF-8');
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckSingleSession::class])->group(function () {
 
     // 🔒 جلب المستويات، الدروس، والمحاضرات للكورس محمي بالتوكن والاشتراك
     Route::get('/levels/{course_id}', [CourseController::class, 'getLevels']);
@@ -245,6 +245,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-lectures', [\App\Http\Controllers\Api\OnlineLectureController::class, 'myLectures']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/session', fn () => response()->json(['status' => true])->header('Cache-Control', 'no-store, private'));
     Route::post('/change-password', [AuthController::class, 'changePassword']); // مسار تغيير كلمة المرور
     Route::post('/delete-account', [AuthController::class, 'deleteAccount']); // مسار حذف الحساب نهائياً
     Route::post('/resend-verification', [AuthController::class, 'resendVerification']); // مسار إعادة إرسال بريد التفعيل

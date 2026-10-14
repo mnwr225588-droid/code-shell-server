@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\CoursePlan;
+
 /**
  * نظام التسعير متعدد العملات الثابت في منصة Code Shell.
  *
@@ -159,6 +161,33 @@ class PricingService
             'currency_code' => $code,
             'currency_symbol' => self::symbol($code),
         ];
+    }
+
+    /**
+     * Return a plan's saved price for its own currency, otherwise use its
+     * explicitly configured price for the user's currency.
+     *
+     * @return array{price: float, currency_code: string, currency_symbol: string}
+     */
+    public static function priceForPlan(?string $country, CoursePlan $plan): array
+    {
+        $currencyCode = self::currencyForCountry($country);
+        $planCurrency = strtoupper((string) ($plan->currency ?: self::DEFAULT_CURRENCY));
+
+        if ($currencyCode === $planCurrency) {
+            $price = $plan->has_discount && $plan->discount_price !== null
+                ? $plan->discount_price
+                : $plan->price;
+
+            return [
+                'price' => (float) $price,
+                'currency_code' => $currencyCode,
+                'currency_symbol' => self::symbol($currencyCode),
+            ];
+        }
+
+        $prices = $plan->has_discount ? $plan->discount_prices : $plan->prices;
+        return self::priceFor($country, is_array($prices) && $prices !== [] ? $prices : self::defaults());
     }
 
     /**
