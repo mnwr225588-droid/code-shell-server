@@ -74,11 +74,17 @@ class AdminContentController extends Controller
 
     public function storeCourse(Request $request)
     {
+        $imageField = $request->file('image_path') !== null ? 'image_path' : 'thumbnail';
+        $imageRule = $request->file('image_path') !== null || $request->file('thumbnail') !== null
+            ? 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
+            : 'nullable|string';
+
         $request->validate([
             'category_id'    => 'required|exists:categories,id',
             'title'          => 'required|string|max:255',
             'description'    => 'nullable|string',
-            'thumbnail'      => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'thumbnail'      => $imageRule,
+            'image_path'     => $imageRule,
             'is_free'        => 'required|boolean',
             'price'          => 'nullable|numeric',
             'original_price' => 'nullable|numeric',
@@ -89,8 +95,12 @@ class AdminContentController extends Controller
         ]);
 
         $thumbnailPath = null;
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $request->file('thumbnail')->store('courses/thumbnails', 'public');
+        if ($request->hasFile($imageField)) {
+            $thumbnailPath = $request->file($imageField)->store('courses/thumbnails', 'public');
+        } elseif ($request->filled('image_path') && is_string($request->image_path)) {
+            $thumbnailPath = $request->image_path;
+        } elseif ($request->filled('thumbnail') && is_string($request->thumbnail)) {
+            $thumbnailPath = $request->thumbnail;
         }
 
         $prices = PricingService::normalizePrices($request->input('prices'));
@@ -150,11 +160,16 @@ class AdminContentController extends Controller
     public function updateCourse(Request $request, $id)
     {
         $course = Course::findCourseSafely($id);
+        $imageRule = $request->file('image_path') !== null || $request->file('thumbnail') !== null
+            ? 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
+            : 'nullable|string';
 
         $request->validate([
             'category_id'    => 'sometimes|exists:categories,id',
             'title'          => 'sometimes|string|max:255',
             'description'    => 'nullable|string',
+            'thumbnail'      => $imageRule,
+            'image_path'     => $imageRule,
             'is_free'        => 'sometimes|boolean',
             'is_active'      => 'sometimes|boolean',
             'is_coming_soon' => 'sometimes|boolean',
@@ -174,6 +189,14 @@ class AdminContentController extends Controller
         if ($request->has('price')) $course->price = $request->price;
         if ($request->has('original_price')) $course->original_price = $request->original_price;
         if ($request->has('has_discount')) $course->has_discount = $request->has_discount;
+        $imageField = $request->file('image_path') !== null ? 'image_path' : 'thumbnail';
+        if ($request->hasFile($imageField)) {
+            $course->thumbnail = $request->file($imageField)->store('courses/thumbnails', 'public');
+        } elseif ($request->filled('image_path') && is_string($request->image_path)) {
+            $course->thumbnail = $request->image_path;
+        } elseif ($request->filled('thumbnail') && is_string($request->thumbnail)) {
+            $course->thumbnail = $request->thumbnail;
+        }
         
         if ($request->has('has_discount') && $request->has('original_prices') && $request->has('discount_prices')) {
             if ($request->has_discount) {
@@ -829,6 +852,12 @@ class AdminContentController extends Controller
     public function storeCoursePlan(Request $request, $courseId)
     {
         $course = Course::findCourseSafely($courseId);
+        $imageRule = $request->file('image') !== null
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            : 'nullable|string';
+        $imagePathRule = $request->file('image_path') !== null
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            : 'nullable|string';
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -845,8 +874,8 @@ class AdminContentController extends Controller
             'is_active' => 'sometimes',
             'sort_order' => 'sometimes|integer',
             'features' => 'nullable',
-            'image' => $request->hasFile('image') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
-            'image_path' => $request->hasFile('image_path') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
+            'image' => $imageRule,
+            'image_path' => $imagePathRule,
         ]);
 
         $slug = $request->slug;
@@ -941,6 +970,12 @@ class AdminContentController extends Controller
     public function updateCoursePlan(Request $request, $id)
     {
         $plan = CoursePlan::findOrFail($id);
+        $imageRule = $request->file('image') !== null
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            : 'nullable|string';
+        $imagePathRule = $request->file('image_path') !== null
+            ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            : 'nullable|string';
 
         $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -957,8 +992,8 @@ class AdminContentController extends Controller
             'is_active' => 'sometimes',
             'sort_order' => 'sometimes|integer',
             'features' => 'nullable',
-            'image' => $request->hasFile('image') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
-            'image_path' => $request->hasFile('image_path') ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' : 'nullable|string',
+            'image' => $imageRule,
+            'image_path' => $imagePathRule,
         ]);
 
         if ($request->has('name')) $plan->name = $request->name;
