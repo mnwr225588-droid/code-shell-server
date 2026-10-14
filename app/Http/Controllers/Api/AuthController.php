@@ -23,6 +23,7 @@ use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 use App\Services\BrevoMailService;
+use App\Services\LoginAttemptLimiter;
 use App\Models\EmailVerification;
 use App\Models\PasswordReset;
 use App\Models\User;
@@ -31,6 +32,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -38,7 +40,8 @@ class AuthController extends Controller
      * حقن خدمة AuthService المسؤولة عن منطق الأعمال البنيوي.
      */
     public function __construct(
-        private AuthService $authService
+        private AuthService $authService,
+        private LoginAttemptLimiter $loginAttemptLimiter
     ) {}
 
     /**
@@ -85,7 +88,27 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $result = $this->authService->login($request->validated());
+        $email = $request->validated('email');
+        $ipAddress = $request->ip();
+        $lockoutSeconds = $this->loginAttemptLimiter->lockoutSeconds($email, $ipAddress);
+
+        if ($lockoutSeconds > 0) {
+            return $this->loginLockoutResponse($lockoutSeconds);
+        }
+
+        try {
+            $result = $this->authService->login($request->validated());
+        } catch (ValidationException $exception) {
+            $lockoutSeconds = $this->loginAttemptLimiter->recordFailure($email, $ipAddress);
+
+            if ($lockoutSeconds > 0) {
+                return $this->loginLockoutResponse($lockoutSeconds);
+            }
+
+            throw $exception;
+        }
+
+        $this->loginAttemptLimiter->clear($email, $ipAddress);
 
         return response()->json([
             'success' => true,
@@ -93,6 +116,17 @@ class AuthController extends Controller
             'token' => $result['token'],
             'user' => $result['user'],
         ], 200);
+    }
+
+    private function loginLockoutResponse(int $seconds): JsonResponse
+    {
+        $minutes = (int) ceil($seconds / 60);
+
+        return response()->json([
+            'success' => false,
+            'message' => "تم إيقاف محاولات تسجيل الدخول مؤقتاً بسبب تكرار البيانات الخاطئة. حاول مرة أخرى بعد {$minutes} دقيقة.",
+            'retry_after' => $seconds,
+        ], 429)->header('Retry-After', (string) $seconds);
     }
 
     /**
