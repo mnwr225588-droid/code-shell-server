@@ -63,6 +63,37 @@ class AdminContentController extends Controller
         ])->header('Cache-Control', 'no-store, private');
     }
 
+    public function getCourseForAdminEdit($id)
+    {
+        $course = Course::query()
+            ->select([
+                'id',
+                'category_id',
+                'title',
+                'description',
+                'what_will_learn',
+                'thumbnail',
+                'is_free',
+                'is_coming_soon',
+            ])
+            ->findOrFail($id);
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'id' => $course->id,
+                'category_id' => $course->category_id,
+                'title' => $course->title,
+                'description' => $course->description,
+                'what_will_learn' => $course->what_will_learn,
+                'thumbnail' => $course->thumbnail,
+                'thumbnail_url' => $course->thumbnail_url,
+                'is_free' => $course->is_free,
+                'is_coming_soon' => $course->is_coming_soon,
+            ],
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
     public function storeCategory(Request $request)
     {
         $request->validate([

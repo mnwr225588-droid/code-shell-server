@@ -110,6 +110,7 @@ Route::post('/app-reviews', [AppReviewController::class, 'store']);
 /// الجروب ده بيسمح للأدمن يضيف، يعدل، أو يحذف محتوى المنصة.
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/courses', [AdminContentController::class, 'getCourses']);
+    Route::get('/courses/{id}/edit', [AdminContentController::class, 'getCourseForAdminEdit']);
     Route::post('/categories', [AdminContentController::class, 'storeCategory']);
     Route::post('/courses', [AdminContentController::class, 'storeCourse']);
     Route::match(['put', 'post'], '/courses/{id}', [AdminContentController::class, 'updateCourse']);
