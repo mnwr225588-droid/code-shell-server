@@ -138,6 +138,45 @@ class CourseSubscription extends Model
     }
 
     /**
+     * Check access using both the saved expiry and the existing first-lecture
+     * expiry rule used by course access checks.
+     */
+    public function isAccessGranted(): bool
+    {
+        $this->checkAndUpdateExpiry();
+        if (!$this->isGranted()) {
+            return false;
+        }
+
+        $firstLectureDate = \DB::table('online_lectures')
+            ->where('course_id', $this->course_id)
+            ->orderBy('created_at', 'asc')
+            ->value('created_at');
+
+        if (!$firstLectureDate) {
+            return true;
+        }
+
+        $plan = $this->relationLoaded('plan') ? $this->getRelation('plan') : $this->plan()->first();
+        $durationDays = (int) ($plan?->duration_days ?? 0);
+        if ($durationDays <= 0) {
+            $metadata = $this->metadata ?? [];
+            $durationDays = ($metadata['plan_type'] ?? 'monthly') === 'term_3months' ? 90 : 30;
+        }
+
+        if (now()->greaterThan(\Carbon\Carbon::parse($firstLectureDate)->addDays($durationDays))) {
+            $this->subscription_status = self::STATUS_EXPIRED;
+            $this->expired_at = now();
+            $this->is_expired = true;
+            $this->save();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * حساب المدة المتبقية من الاشتراك بالأيام
      * Accessor تلقائي يرجع عدد الأيام المتبقية
      * يرجع 0 إذا لم يكن هناك تاريخ انتهاء

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CoursePlan;
+use App\Models\CourseSubscription;
 use App\Models\Transaction;
 use App\Services\EasyKashService;
 use App\Services\Payment\Gateways\SandboxGateway;
@@ -36,7 +38,25 @@ class PaymentController extends Controller
         $planId = $request->input('plan_id');
         $plan = null;
         if ($planId) {
-            $plan = \App\Models\CoursePlan::where('course_id', $course->id)->find($planId);
+            $plan = CoursePlan::where('course_id', $course->id)
+                ->where('is_active', true)
+                ->find($planId);
+            if (!$plan) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'الباقة المحددة غير متاحة لهذا الكورس.',
+                ], 422);
+            }
+        }
+
+        $existingSubscription = $this->activeCourseSubscription($user->id, $course->id);
+        if ($existingSubscription) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لديك اشتراك فعال بالفعل في باقة هذا الكورس.',
+                'already_subscribed' => true,
+                'plan_id' => $existingSubscription->plan_id,
+            ], 422);
         }
 
         // 1. الكورسات أو الباقات المجانية: إنشاء اشتراك مجاني فعال عبر السيرفر دون استدعاء بوابة الدفع
@@ -60,6 +80,7 @@ class PaymentController extends Controller
                     'expired_at' => $plan->duration_days ? now()->addDays($plan->duration_days) : null,
                 ]);
             }
+            \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
 
             return response()->json([
                 'status'             => true,
@@ -77,14 +98,6 @@ class PaymentController extends Controller
         }
 
         // 2. التحقق من وجود اشتراك نشط سابق
-        if ($course->isUserSubscribed($user->id)) {
-            return response()->json([
-                'status'             => false,
-                'message'            => 'أنت مشترك بالفعل في هذا الكورس.',
-                'already_subscribed' => true,
-            ], 422);
-        }
-
         // 3. احتساب السعر والعملة من قاعدة البيانات على السيرفر فقط (بناءً على الباقة أو الكورس)
         if ($plan) {
             $pricing = PricingService::priceForPlan($user->country, $plan);
@@ -561,7 +574,25 @@ class PaymentController extends Controller
         $planId = $request->input('plan_id');
         $plan = null;
         if ($planId) {
-            $plan = \App\Models\CoursePlan::where('course_id', $course->id)->find($planId);
+            $plan = CoursePlan::where('course_id', $course->id)
+                ->where('is_active', true)
+                ->find($planId);
+            if (!$plan) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'الباقة المحددة غير متاحة لهذا الكورس.',
+                ], 422);
+            }
+        }
+
+        $existingSubscription = $this->activeCourseSubscription($user->id, $course->id);
+        if ($existingSubscription) {
+            return response()->json([
+                'status' => false,
+                'message' => 'لديك اشتراك فعال بالفعل في باقة هذا الكورس.',
+                'already_subscribed' => true,
+                'plan_id' => $existingSubscription->plan_id,
+            ], 422);
         }
 
         // 1. الكورسات أو الباقات المجانية لا تحتاج خصم من المحفظة
@@ -585,20 +616,12 @@ class PaymentController extends Controller
                     'expired_at' => $plan->duration_days ? now()->addDays($plan->duration_days) : null,
                 ]);
             }
+            \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
             return response()->json([
                 'status'        => true,
                 'message'       => 'تم تفعيل الاشتراك المجاني بنجاح!',
                 'is_subscribed' => true,
             ]);
-        }
-
-        // 2. فحص ما إذا كان المستخدم مشتركاً بالفعل
-        if ($course->isUserSubscribed($user->id)) {
-            return response()->json([
-                'status'             => false,
-                'message'            => 'أنت مشترك بالفعل في هذا الكورس.',
-                'already_subscribed' => true,
-            ], 422);
         }
 
         // 3. حساب السعر بناءً على الباقة أو الكورس
@@ -855,5 +878,25 @@ class PaymentController extends Controller
                 'failedSigned'
             ))
         );
+    }
+
+    private function activeCourseSubscription(int $userId, int|string $courseId): ?CourseSubscription
+    {
+        $subscription = CourseSubscription::where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->where(function ($query) {
+                $query->whereNull('subscription_status')
+                    ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+            })
+            ->with('plan')
+            ->first();
+
+        if ($subscription) {
+            if (!$subscription->isAccessGranted()) {
+                return null;
+            }
+        }
+
+        return $subscription;
     }
 }

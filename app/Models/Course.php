@@ -124,42 +124,16 @@ class Course extends Model
             return true;
         }
 
-        $subscription = \DB::table('course_subscriptions')
-            ->where('user_id', $userId)
+        $subscription = CourseSubscription::where('user_id', $userId)
             ->where('course_id', $this->id)
             ->where(function ($q) {
                 $q->whereNull('subscription_status')
-                  ->orWhere('subscription_status', 'active');
+                  ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
             })
+            ->with('plan')
             ->first();
 
-        if (!$subscription) {
-            return false;
-        }
-
-        // فحص انتهاء الاشتراك بناءً على تاريخ نزول أول محاضرة أونلاين
-        $firstLectureDate = \DB::table('online_lectures')
-            ->where('course_id', $this->id)
-            ->orderBy('created_at', 'asc')
-            ->value('created_at');
-
-        if ($firstLectureDate) {
-            $metadata = json_decode($subscription->metadata ?? '{}', true);
-            $planType = $metadata['plan_type'] ?? 'monthly';
-            $durationDays = ($planType === 'term_3months') ? 90 : 30; // 3 months or 1 month
-
-            $startDate = \Carbon\Carbon::parse($firstLectureDate);
-            $expiryDate = $startDate->copy()->addDays($durationDays);
-
-            if (\Carbon\Carbon::now()->greaterThan($expiryDate)) {
-                \DB::table('course_subscriptions')
-                    ->where('id', $subscription->id)
-                    ->update(['subscription_status' => 'expired', 'expired_at' => now()]);
-                return false;
-            }
-        }
-
-        return true;
+        return $subscription?->isAccessGranted() ?? false;
     }
 
     public function getLevelsCountAttribute()

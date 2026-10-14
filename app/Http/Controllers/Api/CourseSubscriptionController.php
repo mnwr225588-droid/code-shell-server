@@ -48,36 +48,28 @@ class CourseSubscriptionController extends Controller
             return response()->json($cached);
         }
 
-        // التحقق من حالة الاشتراك
-        $isSubscribed = $user ? $course->isUserSubscribed($user->id) : false;
+        $subscription = CourseSubscription::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->where(function ($query) {
+                $query->whereNull('subscription_status')
+                    ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+            })
+            ->with(['plan', 'group'])
+            ->first();
 
-        $group = null;
-        $subscription = null;
-        $plan = null;
-        
-        // إذا كان المستخدم مشترك، جلب تفاصيل الاشتراك
-        if ($isSubscribed && $user) {
-            // جلب الاشتراك مع الباقة المرتبطة
-            $subscription = CourseSubscription::where('user_id', $user->id)
-                ->where('course_id', $course->id)
-                ->with('plan')
-                ->first();
-
-            // التحقق من حالة الانتهاء وتحديثها إذا لزم الأمر
-            if ($subscription) {
-                $subscription->checkAndUpdateExpiry();
-                $plan = $subscription->plan;
+        if ($subscription) {
+            if (!$subscription->isAccessGranted()) {
+                $subscription = null;
             }
+        }
 
-            // جلب المجموعة المرتبطة بالاشتراك
-            if ($subscription && $subscription->group_id) {
-                $group = \App\Models\CourseGroup::find($subscription->group_id);
-            }
+        $isSubscribed = (bool) $subscription;
+        $plan = $subscription?->plan;
+        $group = $subscription?->group;
 
-            // إذا لم تكن هناك مجموعة، تعيين واحدة تلقائياً
-            if (!$group) {
-                $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
-            }
+        // الحفاظ على تعيين المجموعة تلقائياً للاشتراكات القديمة التي لا ترتبط بمجموعة.
+        if ($isSubscribed && !$group) {
+            $group = \App\Services\CourseGroupService::assignStudentToOpenGroup($user, $course->id);
         }
 
         // إمكانية الإلغاء وفق قاعدة الـ 48 ساعة:
@@ -88,7 +80,8 @@ class CourseSubscriptionController extends Controller
 
         $firstLectureAt = \DB::table('online_lectures')
             ->where('course_id', $course->id)
-            ->min('created_at');
+            ->orderBy('created_at', 'asc')
+            ->value('created_at');
 
         if ($firstLectureAt) {
             $hoursSinceFirstLecture = \Carbon\Carbon::parse($firstLectureAt)->diffInHours(now());
@@ -102,7 +95,7 @@ class CourseSubscriptionController extends Controller
         $expiryDate = null;
         $startedAt = null;
         $durationDays = 0;
-        $firstLectureDate = null;
+        $firstLectureDate = $firstLectureAt;
         
         if ($subscription) {
             $startedAt = $subscription->started_at ? $subscription->started_at->toIso8601String() : null;
@@ -117,15 +110,6 @@ class CourseSubscriptionController extends Controller
                 $expiryDate = $subscription->expired_at->toIso8601String();
             }
             
-            // جلب تاريخ أول محاضرة أونلاين للكورس
-            $firstLecture = \DB::table('online_lectures')
-                ->where('course_id', $course->id)
-                ->orderBy('created_at', 'asc')
-                ->first();
-            
-            if ($firstLecture) {
-                $firstLectureDate = $firstLecture->created_at;
-            }
         }
 
         // إرجاع الاستجابة بجميع المعلومات المطلوبة
@@ -137,7 +121,12 @@ class CourseSubscriptionController extends Controller
                 'name' => $group->name,
             ] : null,
             'group_name'    => $group ? $group->name : null,
-            'students_count'=> $course->subscribedUsers()->count() + 120,
+            'students_count'=> CourseSubscription::where('course_id', $course->id)
+                ->where(function ($query) {
+                    $query->whereNull('subscription_status')
+                        ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+                })
+                ->count() + 120,
             'subscribed_at' => $subDate ? $subDate->toIso8601String() : null,
             'can_cancel'    => $canCancel,
             'hours_since_subscription' => $subDate ? $subDate->diffInHours(now()) : 0,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\OnlineLecture;
+use App\Models\CourseSubscription;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -23,30 +24,33 @@ class OnlineLectureController extends Controller
             || ($userId == $lecture->teacher_id);
         
         if (!$isTeacher && !$isAdmin && $user) {
-            $isSubscribed = $user->subscribedCourses()->where('courses.id', $lecture->course_id)->exists()
-                || \DB::table('course_subscriptions')
-                    ->where('user_id', $userId)
-                    ->where('course_id', $lecture->course_id)
-                    ->exists();
+            $subscription = CourseSubscription::where('user_id', $userId)
+                ->where('course_id', $lecture->course_id)
+                ->where(function ($query) {
+                    $query->whereNull('subscription_status')
+                        ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+                })
+                ->with('plan')
+                ->first();
 
-            if (!$isSubscribed) {
+            if (!$subscription || !$subscription->isAccessGranted()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'غير مصرح لك بدخول هذه المحاضرة. يجب الاشتراك في الكورس أولاً.'
                 ], 403);
             }
 
-            // Sync group_id if missing or update to match lecture group
-            $sub = \DB::table('course_subscriptions')
-                ->where('user_id', $userId)
-                ->where('course_id', $lecture->course_id)
-                ->first();
+            if ($lecture->plan_id && (int) $lecture->plan_id !== (int) $subscription->plan_id) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'لا يمكنك دخول محاضرة تابعة لباقة لا تملك اشتراكاً فيها.',
+                ], 403);
+            }
 
-            if ($sub && (empty($sub->group_id) || $sub->group_id != $lecture->group_id)) {
-                \DB::table('course_subscriptions')
-                    ->where('user_id', $userId)
-                    ->where('course_id', $lecture->course_id)
-                    ->update(['group_id' => $lecture->group_id]);
+            // Sync group_id if missing or update to match lecture group
+            if (empty($subscription->group_id) || $subscription->group_id != $lecture->group_id) {
+                $subscription->group_id = $lecture->group_id;
+                $subscription->save();
             }
         }
 
@@ -119,15 +123,49 @@ class OnlineLectureController extends Controller
             return response()->json(['status' => false, 'data' => []]);
         }
 
+        $subscriptions = CourseSubscription::where('user_id', $user->id)
+            ->where(function ($query) {
+                $query->whereNull('subscription_status')
+                    ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+            })
+            ->with('plan')
+            ->get();
+
+        $subscriptions = $subscriptions->filter(
+            fn (CourseSubscription $subscription) => $subscription->isAccessGranted()
+        );
+
+        if ($subscriptions->isEmpty()) {
+            return response()->json([
+                'status' => true,
+                'data' => [],
+            ]);
+        }
+
         // جلب معرفات المجموعات التي ينتمي لها الطالب
         $groupIds = $user->groups()->pluck('course_groups.id')->toArray();
 
         // جلب المحاضرات الأونلاين فقط للمجموعات التي ينتمي لها الطالب
         // إزالة orWhereIn('course_id') لضمان أن كل مجموعة ترى محاضراتها الخاصة فقط
-        $lectures = OnlineLecture::whereIn('group_id', $groupIds)
+        $lecturesQuery = OnlineLecture::whereIn('group_id', $groupIds)
             ->with(['teacher', 'course', 'group', 'level'])
-            ->orderBy('start_date_time', 'asc')
-            ->get();
+            ->where(function ($query) use ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    $query->orWhere(function ($courseQuery) use ($subscription) {
+                        $courseQuery->where('course_id', $subscription->course_id);
+                        if ($subscription->plan_id) {
+                            $courseQuery->where(function ($planQuery) use ($subscription) {
+                                $planQuery->where('plan_id', $subscription->plan_id)
+                                    ->orWhereNull('plan_id');
+                            });
+                        } else {
+                            $courseQuery->whereNull('plan_id');
+                        }
+                    });
+                }
+            });
+
+        $lectures = $lecturesQuery->orderBy('start_date_time', 'asc')->get();
 
         return response()->json([
             'status' => true,

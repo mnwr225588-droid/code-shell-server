@@ -25,6 +25,7 @@ use App\Models\CourseSubscription;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionService
@@ -82,6 +83,7 @@ class SubscriptionService
 
             // تعيين الطالب لمجموعة مفتوحة تلقائياً
             CourseGroupService::assignStudentToOpenGroup($user, $course->id);
+            $this->invalidateSubscriptionStatusAfterCommit($user->id, $course->id);
 
             return $subscription;
         });
@@ -155,6 +157,7 @@ class SubscriptionService
 
             // Idempotency: إذا كانت مكتملة سابقاً لا نكرر التفعيل
             if ($lockedTx->isCompleted()) {
+                $this->invalidateSubscriptionStatusAfterCommit($lockedTx->user_id, $lockedTx->course_id);
                 return true;
             }
 
@@ -201,6 +204,7 @@ class SubscriptionService
             }
             $subscription->metadata = $metadata;
             $subscription->save();
+            $this->invalidateSubscriptionStatusAfterCommit($lockedTx->user_id, $lockedTx->course_id);
 
             // ربط المستخدم بأحدث مجموعة مفتوحة
             CourseGroupService::assignStudentToOpenGroup($lockedTx->user, $lockedTx->course_id);
@@ -240,6 +244,13 @@ class SubscriptionService
                 $subscription->failure_reason = $reason;
                 $subscription->save();
             }
+        });
+    }
+
+    private function invalidateSubscriptionStatusAfterCommit(int $userId, int $courseId): void
+    {
+        DB::afterCommit(function () use ($userId, $courseId) {
+            Cache::forget('sub_status_u' . $userId . '_c' . $courseId);
         });
     }
 }
