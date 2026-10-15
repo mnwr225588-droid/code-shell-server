@@ -210,6 +210,144 @@ class EasyKashPaymentTest extends TestCase
                 'currency_code'  => 'EGP',
                 'currency_symbol'=> 'ج.م',
             ]);
+
+        $this->assertDatabaseHas('transactions', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'payment_gateway' => 'wallet',
+            'status' => Transaction::STATUS_COMPLETED,
+        ]);
+        $this->assertDatabaseHas('course_subscriptions', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'plan_id' => null,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+            'payment_status' => CourseSubscription::PAYMENT_PAID,
+            'payment_gateway' => 'wallet',
+        ]);
+
+        $subscription = CourseSubscription::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->firstOrFail();
+        $this->assertNotNull($subscription->group_id);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/courses/{$course->id}/subscription-status")
+            ->assertOk()
+            ->assertJsonPath('is_subscribed', true)
+            ->assertJsonPath('group.id', $subscription->group_id);
+    }
+
+    public function test_wallet_payment_activates_plan_subscription_and_assigns_its_group(): void
+    {
+        $user = $this->createTestUser([
+            'country' => 'EGP',
+            'wallet_balance' => 500,
+        ]);
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title' => 'Wallet Plan Subscription Test Course',
+            'is_free' => false,
+            'price' => 250.00,
+            'prices' => ['EGP' => 250.00],
+            'is_active' => true,
+        ]);
+        $plan = CoursePlan::create([
+            'course_id' => $course->id,
+            'name' => 'Wallet Test Plan',
+            'slug' => 'wallet-test-plan-' . $course->id,
+            'price' => 250.00,
+            'currency' => 'EGP',
+            'duration_days' => 30,
+            'is_active' => true,
+        ]);
+        $level = Level::create([
+            'course_id' => $course->id,
+            'plan_id' => $plan->id,
+            'title' => 'Wallet Plan Level',
+            'order_num' => 1,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/courses/{$course->id}/pay-with-wallet", [
+                'plan_id' => $plan->id,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'status' => true,
+                'is_subscribed' => true,
+            ]);
+
+        $subscription = CourseSubscription::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->where('plan_id', $plan->id)
+            ->firstOrFail();
+
+        $this->assertSame(CourseSubscription::STATUS_ACTIVE, $subscription->subscription_status);
+        $this->assertSame(CourseSubscription::PAYMENT_PAID, $subscription->payment_status);
+        $this->assertNotNull($subscription->group_id);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/courses/{$course->id}/subscription-status?plan_id={$plan->id}")
+            ->assertOk()
+            ->assertJsonPath('is_subscribed', true)
+            ->assertJsonPath('group.id', $subscription->group_id);
+
+        \App\Models\CourseGroup::whereKey($subscription->group_id)->update(['status' => 'active']);
+        $this->getJson("/api/levels/{$course->id}?plan_id={$plan->id}")
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $level->id,
+                'title' => 'Wallet Plan Level',
+            ]);
+    }
+
+    public function test_retries_repair_legacy_completed_wallet_payment_without_charging_again(): void
+    {
+        $user = $this->createTestUser([
+            'country' => 'EGP',
+            'wallet_balance' => 250,
+        ]);
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title' => 'Legacy Wallet Recovery Course',
+            'is_free' => false,
+            'price' => 250,
+            'prices' => ['EGP' => 250],
+            'is_active' => true,
+        ]);
+        Transaction::create([
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'amount' => 250,
+            'currency_code' => 'EGP',
+            'payment_gateway' => 'wallet',
+            'status' => Transaction::STATUS_COMPLETED,
+            'payload' => [
+                'plan_id' => null,
+                'plan_duration_days' => 30,
+            ],
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/courses/{$course->id}/pay-with-wallet")
+            ->assertOk()
+            ->assertJsonPath('is_subscribed', true)
+            ->assertJsonPath('wallet_balance', 250);
+
+        $this->assertDatabaseHas('course_subscriptions', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+            'payment_status' => CourseSubscription::PAYMENT_PAID,
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'wallet_balance' => 250,
+        ]);
+        $this->assertDatabaseCount('transactions', 1);
+        $this->assertDatabaseCount('wallet_transactions', 0);
     }
 
     /**

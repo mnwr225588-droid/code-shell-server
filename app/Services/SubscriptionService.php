@@ -159,10 +159,30 @@ class SubscriptionService
                 return false;
             }
 
-            // Idempotency: إذا كانت مكتملة سابقاً لا نكرر التفعيل
+            // Completed payments with an active subscription are idempotent. A missing or
+            // pending subscription still needs activation (for example, legacy wallet payments).
             if ($lockedTx->isCompleted()) {
-                $this->invalidateSubscriptionStatusAfterCommit($lockedTx->user_id, $lockedTx->course_id);
-                return true;
+                $existingSubscription = CourseSubscription::where('user_id', $lockedTx->user_id)
+                    ->where('course_id', $lockedTx->course_id)
+                    ->where('plan_id', data_get($lockedTx->payload, 'plan_id'))
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingSubscription && $existingSubscription->subscription_status !== CourseSubscription::STATUS_PENDING) {
+                    if (
+                        $existingSubscription->subscription_status === CourseSubscription::STATUS_ACTIVE
+                        && !$existingSubscription->group_id
+                    ) {
+                        CourseGroupService::assignStudentToOpenGroup(
+                            $lockedTx->user,
+                            $lockedTx->course_id,
+                            data_get($lockedTx->payload, 'plan_id')
+                        );
+                    }
+
+                    $this->invalidateSubscriptionStatusAfterCommit($lockedTx->user_id, $lockedTx->course_id);
+                    return true;
+                }
             }
 
             // تحديث المعاملة المالية إلى مكتملة

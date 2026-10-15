@@ -604,6 +604,50 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        $matchingWalletPayment = Transaction::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->where('payment_gateway', 'wallet')
+            ->where('status', Transaction::STATUS_COMPLETED)
+            ->when(
+                $plan?->id !== null,
+                fn ($query) => $query->where('payload->plan_id', $plan->id),
+                fn ($query) => $query->whereNull('payload->plan_id'),
+            )
+            ->orderByDesc('id')
+            ->first();
+
+        if ($matchingWalletPayment) {
+            $subscription = CourseSubscription::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->where('plan_id', $plan?->id)
+                ->first();
+
+            if (!$subscription || $subscription->subscription_status === CourseSubscription::STATUS_PENDING) {
+                $this->subscriptionService->activateFromTransaction($matchingWalletPayment);
+                $subscription = CourseSubscription::where('user_id', $user->id)
+                    ->where('course_id', $course->id)
+                    ->where('plan_id', $plan?->id)
+                    ->where('subscription_status', CourseSubscription::STATUS_ACTIVE)
+                    ->first();
+
+                if ($subscription) {
+                    $user->refresh();
+
+                    return response()->json([
+                        'status' => true,
+                        'message' => 'تم تأكيد اشتراكك السابق واستعادة الوصول إلى محتوى الكورس.',
+                        'is_subscribed' => true,
+                        'plan_id' => $subscription->plan_id,
+                        'group_id' => $subscription->group_id,
+                        'wallet_balance' => (float) $user->wallet_balance,
+                        'amount' => (float) $matchingWalletPayment->amount,
+                        'currency_code' => $matchingWalletPayment->currency_code,
+                        'currency_symbol' => PricingService::symbol($matchingWalletPayment->currency_code ?? 'EGP'),
+                    ]);
+                }
+            }
+        }
+
         // 1. الكورسات أو الباقات المجانية لا تحتاج خصم من المحفظة
         $isFree = false;
         if ($plan) {
@@ -687,7 +731,7 @@ class PaymentController extends Controller
                 'amount'          => $amount,
                 'currency_code'   => $pricing['currency_code'] ?? 'EGP',
                 'payment_gateway' => 'wallet',
-                'status'          => Transaction::STATUS_COMPLETED,
+                'status'          => Transaction::STATUS_PENDING,
                 'paid_at'         => now(),
                 'payload'         => [
                     'auto_assign_group'  => true,
