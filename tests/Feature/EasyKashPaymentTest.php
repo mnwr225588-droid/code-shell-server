@@ -155,6 +155,63 @@ class EasyKashPaymentTest extends TestCase
         ]);
     }
 
+    public function test_wallet_payment_insufficient_balance_returns_authoritative_amount_breakdown(): void
+    {
+        $user = $this->createTestUser([
+            'country' => 'EGP',
+            'wallet_balance' => 100,
+        ]);
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title'       => 'Wallet Balance Test Course',
+            'is_free'     => false,
+            'price'       => 250.00,
+            'prices'      => ['EGP' => 250.00],
+            'is_active'   => true,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/courses/{$course->id}/pay-with-wallet");
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'status'          => false,
+                'wallet_balance'  => 100,
+                'required_amount' => 250,
+                'currency_code'   => 'EGP',
+                'currency_symbol' => 'ج.م',
+            ]);
+    }
+
+    public function test_wallet_payment_success_returns_paid_amount_and_remaining_balance(): void
+    {
+        $user = $this->createTestUser([
+            'country' => 'EGP',
+            'wallet_balance' => 500,
+        ]);
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title'       => 'Wallet Payment Success Test Course',
+            'is_free'     => false,
+            'price'       => 250.00,
+            'prices'      => ['EGP' => 250.00],
+            'is_active'   => true,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/courses/{$course->id}/pay-with-wallet");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status'         => true,
+                'is_subscribed'  => true,
+                'wallet_balance' => 250,
+                'amount'         => 250,
+                'currency_code'  => 'EGP',
+                'currency_symbol'=> 'ج.م',
+            ]);
+    }
+
     /**
      * اختبار 3: يمنع المستخدم غير المشترك من الوصول للمستويات بإرجاع 403 Forbidden
      */

@@ -63,7 +63,14 @@ class TelegramAuthController extends Controller
         Cache::put('otp_' . $user->id, $otp, now()->addMinutes(5));
 
         // إرسال الكود عبر البوت
-        $this->telegramService->sendOtp($user->telegram_chat_id, $otp);
+        if (!$this->telegramService->sendOtp($user->telegram_chat_id, $otp)) {
+            Cache::forget('otp_' . $user->id);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'تعذر إرسال كود التحقق عبر تلجرام. حاول مرة أخرى لاحقاً.'
+            ], 502);
+        }
 
         return response()->json([
             'status' => true,

@@ -41,8 +41,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'telegram' => [
-        'bot_token' => env('TELEGRAM_BOT_TOKEN', '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U'),
-        'secret_token' => env('TELEGRAM_BOT_SECRET', 'CodeShellSecretKey123'),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'secret_token' => env('TELEGRAM_BOT_SECRET'),
+        'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
     ],
 
     'brevo' => [

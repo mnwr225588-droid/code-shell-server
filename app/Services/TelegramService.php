@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class TelegramService
 {
@@ -10,7 +11,7 @@ class TelegramService
 
     public function __construct()
     {
-        $this->botToken = (string) config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U'));
+        $this->botToken = (string) config('services.telegram.bot_token');
     }
 
     /**
@@ -18,26 +19,36 @@ class TelegramService
      */
     public function sendOtp($chatId, $otpCode)
     {
+        if ($this->botToken === '') {
+            Log::critical('Telegram bot token is not configured.');
+            return false;
+        }
+
         $message = "🔐 *Code Shell Verification Code*\n\n";
         $message .= "كود التحقق الخاص بك هو:\n";
         $message .= "`{$otpCode}`\n\n";
         $message .= "⏱️ *الكود صالح لمدة 5 دقائق فقط.*\n";
         $message .= "⚠️ لا تشارك هذا الكود مع أي شخص.";
 
-        return Http::timeout(5)->connectTimeout(3)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
-            'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'MarkdownV2',
-        ]);
+        try {
+            $response = Http::timeout(5)->connectTimeout(3)->post("https://api.telegram.org/bot{$this->botToken}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $message,
+                'parse_mode' => 'MarkdownV2',
+            ]);
+            return $response->successful();
+        } catch (\Throwable $e) {
+            Log::warning('Telegram OTP delivery failed.', ['exception' => get_class($e)]);
+            return false;
+        }
     }
 
     /**
-     * 🔔 إرسال إشعار المنصة إلى حساب تلجرام المستخدم (إذا كان مربوطاً).
-     * يُستخدم كجسر: كل إشعار يُنشأ في المنصة يُرسل تلقائياً للبوت.
+     * إرسال إشعار رسمي من المنصة إلى حساب تلجرام المستخدم المرتبط.
      */
     public function notify($user, string $title, string $body): bool
     {
-        if (empty($this->botToken) || empty($user?->telegram_chat_id)) {
+        if ($this->botToken === '' || empty($user?->telegram_chat_id)) {
             return false;
         }
 
@@ -56,8 +67,18 @@ class TelegramService
                 'text'       => $text,
                 'parse_mode' => 'HTML',
             ]);
+            if (!$response->successful()) {
+                Log::warning('Telegram notification delivery failed.', [
+                    'user_id' => $user->id,
+                    'status' => $response->status(),
+                ]);
+            }
             return $response->successful();
         } catch (\Throwable $e) {
+            Log::warning('Telegram notification delivery failed.', [
+                'user_id' => $user->id,
+                'exception' => get_class($e),
+            ]);
             return false;
         }
     }

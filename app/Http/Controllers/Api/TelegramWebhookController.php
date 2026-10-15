@@ -16,7 +16,7 @@ class TelegramWebhookController extends Controller
 
     public function __construct()
     {
-        $this->botToken = (string) config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', '8210025097:AAHI0AXGYSAM7EoXjnGrCf3eZIL86X05e8U'));
+        $this->botToken = (string) config('services.telegram.bot_token');
     }
 
     /**
@@ -53,6 +53,17 @@ class TelegramWebhookController extends Controller
      */
     public function handle(Request $request)
     {
+        $secretToken = (string) config('services.telegram.secret_token');
+        if ($secretToken === '') {
+            Log::critical('Telegram webhook secret is not configured.');
+            return response()->json(['status' => 'error'], 503);
+        }
+
+        $providedSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
+        if (!hash_equals($secretToken, $providedSecret)) {
+            return response()->json(['status' => 'error'], 403);
+        }
+
         $data = $request->all();
 
         // 1. معالجة الرسائل الواردة للبوت
@@ -60,7 +71,7 @@ class TelegramWebhookController extends Controller
             $chatId = $data['message']['chat']['id'] ?? null;
             $text   = trim($data['message']['text'] ?? '');
 
-            if ($chatId) {
+            if ($chatId && ($data['message']['chat']['type'] ?? null) === 'private') {
                 if (str_starts_with($text, '/start')) {
                     $parts = explode(' ', $text);
                     $token = $parts[1] ?? null;
@@ -81,11 +92,14 @@ class TelegramWebhookController extends Controller
         // 2. معالجة النقرات على الأزرار إن وجدت
         if (isset($data['callback_query'])) {
             $callbackQuery = $data['callback_query'];
-            $callbackId    = $callbackQuery['id'];
-            $chatId        = $callbackQuery['message']['chat']['id'];
+            $callbackId = $callbackQuery['id'] ?? null;
+            $chat = $callbackQuery['message']['chat'] ?? [];
+            $chatId = $chat['id'] ?? null;
 
-            $this->sendTelegramApi('answerCallbackQuery', ['callback_query_id' => $callbackId]);
-            $this->sendAccountStatus($chatId);
+            if ($callbackId && $chatId && ($chat['type'] ?? null) === 'private') {
+                $this->sendTelegramApi('answerCallbackQuery', ['callback_query_id' => $callbackId]);
+                $this->sendAccountStatus($chatId);
+            }
         }
 
         return response()->json(['status' => 'success']);

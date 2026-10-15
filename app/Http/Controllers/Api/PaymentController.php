@@ -254,7 +254,10 @@ class PaymentController extends Controller
 
         if (!$transaction) {
             Log::error('EasyKash Callback Error: Transaction not found for ref: ' . ($orderRef ?? 'null'));
-            return redirect($frontendUrl . '?status=failed&message=' . urlencode('عذراً، المعاملة المالية غير مسجلة لدينا.'));
+            return redirect($frontendUrl . '?' . http_build_query([
+                'status' => 'failed',
+                'message' => 'عذراً، المعاملة المالية غير مسجلة لدينا.',
+            ]));
         }
 
         $isWalletTopup = ($transaction->course_id === null) || data_get($transaction->payload, 'is_wallet_topup', false);
@@ -358,7 +361,11 @@ class PaymentController extends Controller
                 if ($request->wantsJson() || $request->expectsJson()) {
                     return response()->json(['status' => false, 'message' => 'حدث خطأ أثناء معالجة الدفع.'], 500);
                 }
-                return redirect($frontendUrl . '?status=failed&message=' . urlencode('حدث خطأ أثناء معالجة الدفع.'));
+                return redirect($frontendUrl . '?' . http_build_query([
+                    'status' => 'failed',
+                    'course_id' => $transaction->course_id,
+                    'message' => 'حدث خطأ أثناء معالجة الدفع.',
+                ]));
             }
         }
 
@@ -374,7 +381,13 @@ class PaymentController extends Controller
             ]);
         }
 
-        return redirect($frontendUrl . '?status=failed&message=' . urlencode($verifiedStatus === 'pending' ? 'عملية الدفع قيد التأكيد من البوابة وسيتم تفعيل الاشتراك تلقائياً.' : 'لم تتم عملية الدفع بنجاح.'));
+        return redirect($frontendUrl . '?' . http_build_query([
+            'status' => $isFailure ? 'failed' : 'pending',
+            'course_id' => $transaction->course_id,
+            'message' => $isFailure
+                ? 'لم تتم عملية الدفع بنجاح، ولم يتم تفعيل الاشتراك.'
+                : 'عملية الدفع قيد التأكيد من البوابة، ولم يتم تفعيل الاشتراك بعد.',
+        ]));
     }
 
     /**
@@ -646,6 +659,8 @@ class PaymentController extends Controller
                 'message'         => 'عذراً، رصيد المحفظة الحالي غير كافٍ للاشتراك. يرجى شحن المحفظة أولاً.',
                 'wallet_balance'  => (float) $user->wallet_balance,
                 'required_amount' => $amount,
+                'currency_code'   => $pricing['currency_code'] ?? 'EGP',
+                'currency_symbol' => $pricing['currency_symbol'] ?? PricingService::symbol($pricing['currency_code'] ?? 'EGP'),
             ], 400);
         }
 
@@ -771,6 +786,9 @@ class PaymentController extends Controller
                 'message'        => 'تم الاشتراك في الكورس بنجاح وخصم المبلغ من محفظتك!',
                 'is_subscribed'  => true,
                 'wallet_balance' => (float) $user->wallet_balance,
+                'amount'         => $amount,
+                'currency_code'  => $pricing['currency_code'] ?? 'EGP',
+                'currency_symbol'=> $pricing['currency_symbol'] ?? PricingService::symbol($pricing['currency_code'] ?? 'EGP'),
             ]);
 
         } catch (\Throwable $e) {
