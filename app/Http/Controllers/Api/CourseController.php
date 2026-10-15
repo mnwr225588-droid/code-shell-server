@@ -257,7 +257,7 @@ class CourseController extends Controller
             ->with(['plan'])
             ->orderBy('order_num', 'asc')
             ->with(['lessons' => function($q) {
-                $q->orderBy('order_num', 'asc')->with('questions.options');
+                $q->orderBy('order_num', 'asc')->withCount('questions');
             }]);
 
         if (!$isAdmin && $request->filled('plan_id')
@@ -285,7 +285,7 @@ class CourseController extends Controller
 
         // جلب المحاضرات الأونلاين بشكل منفصل ومفلتر حسب المجموعة أو الباقة
         $lecturesQuery = \App\Models\OnlineLecture::where('course_id', $course_id)
-            ->with(['teacher', 'plan']);
+            ->with(['teacher', 'plan', 'group']);
 
         if ($request->filled('plan_id') && !$isAdmin
             && (int) $request->input('plan_id') !== (int) $userPlanId) {
@@ -318,9 +318,9 @@ class CourseController extends Controller
 
         $completedLessonIds = [];
         if ($userId) {
-            $completedLessonIds = \App\Models\LessonCompletion::where('user_id', $userId)
+            $completedLessonIds = array_fill_keys(\App\Models\LessonCompletion::where('user_id', $userId)
                 ->pluck('lesson_id')
-                ->toArray();
+                ->toArray(), true);
         }
 
         $isNextUnlocked = true;
@@ -332,7 +332,7 @@ class CourseController extends Controller
                 if (!$lesson->is_locked) {
                     $levelLocked = false;
                 }
-                if (in_array($lesson->id, $completedLessonIds)) {
+                if (isset($completedLessonIds[$lesson->id])) {
                     $lesson->is_completed = true;
                     $isNextUnlocked = true;
                 } else {
@@ -394,10 +394,13 @@ class CourseController extends Controller
             ], 403);
         }
 
-        $lessons = \App\Models\Lesson::with('questions.options')
+        $lessonsQuery = \App\Models\Lesson::with('questions.options')
             ->where('level_id', $level_id)
-            ->orderBy('order_num', 'asc')
-            ->get();
+            ->orderBy('order_num', 'asc');
+        if ($request->filled('lesson_id')) {
+            $lessonsQuery->where('id', $request->input('lesson_id'));
+        }
+        $lessons = $lessonsQuery->get();
 
         return response()->json([
             'status' => true,

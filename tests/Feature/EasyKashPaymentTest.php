@@ -404,6 +404,69 @@ class EasyKashPaymentTest extends TestCase
             ]);
     }
 
+    public function test_course_levels_defer_quiz_payload_until_a_single_lesson_is_requested(): void
+    {
+        $user = $this->createTestUser();
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title'       => 'Quiz Loading Course',
+            'is_free'     => false,
+            'price'       => 300,
+            'is_active'   => true,
+        ]);
+        CourseSubscription::create([
+            'user_id'             => $user->id,
+            'course_id'           => $course->id,
+            'subscription_status' => 'active',
+            'payment_status'      => 'paid',
+            'amount'              => 300,
+        ]);
+        $level = Level::create([
+            'course_id' => $course->id,
+            'title'     => 'Level One',
+            'order_num' => 1,
+        ]);
+        $lesson = \App\Models\Lesson::create([
+            'level_id'  => $level->id,
+            'title'     => 'Lesson One',
+            'order_num' => 1,
+        ]);
+        $otherLesson = \App\Models\Lesson::create([
+            'level_id'  => $level->id,
+            'title'     => 'Lesson Two',
+            'order_num' => 2,
+        ]);
+        $question = \App\Models\Question::create([
+            'lesson_id'    => $lesson->id,
+            'question_text' => 'Question one?',
+        ]);
+        \App\Models\Option::create([
+            'question_id' => $question->id,
+            'option_text' => 'Answer one',
+            'is_correct'  => true,
+        ]);
+        \App\Models\Question::create([
+            'lesson_id'     => $otherLesson->id,
+            'question_text' => 'Question two?',
+        ]);
+
+        $levelsResponse = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/levels/{$course->id}");
+
+        $levelsResponse->assertOk()
+            ->assertJsonPath('data.0.lessons.0.questions_count', 1);
+        $this->assertArrayNotHasKey('questions', $levelsResponse->json('data.0.lessons.0'));
+        $this->assertArrayNotHasKey('questions', $levelsResponse->json('data.0.lessons.1'));
+
+        $lessonResponse = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/levels/{$level->id}/lessons?lesson_id={$lesson->id}");
+
+        $lessonResponse->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $lesson->id)
+            ->assertJsonPath('data.0.questions.0.options.0.option_text', 'Answer one');
+    }
+
     public function test_each_plan_can_be_subscribed_and_only_its_content_is_returned(): void
     {
         $user = $this->createTestUser();

@@ -10,8 +10,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use App\Models\CourseGroup;
 use App\Models\OnlineLecture;
+use App\Models\LectureAttendance;
+use App\Models\CourseSubscription;
 use App\Models\LecturePostponementRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TeacherController extends Controller
@@ -46,9 +49,16 @@ class TeacherController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
-        $students = $group->students()
-            ->select('users.id', 'users.first_name', 'users.middle_name', 'users.last_name', 'users.name', 'users.phone', 'users.birth_date')
-            ->get();
+        $students = $this->activeGroupStudents($group, [
+            'users.id',
+            'users.first_name',
+            'users.middle_name',
+            'users.last_name',
+            'users.name',
+            'users.phone',
+            'users.email',
+            'users.birth_date',
+        ])->get();
 
         return response()->json([
             'status' => true,
@@ -73,6 +83,121 @@ class TeacherController extends Controller
             'status' => true,
             'data' => $lectures,
         ]);
+    }
+
+    public function groupAttendance(Request $request, $groupId)
+    {
+        $teacher = $request->user();
+        $group = CourseGroup::where('id', $groupId)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+
+        $request->validate([
+            'lecture_id' => 'required|integer',
+        ]);
+
+        $lecture = OnlineLecture::where('id', $request->input('lecture_id'))
+            ->where('group_id', $group->id)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+
+        $students = $this->activeGroupStudents($group, [
+            'users.id',
+            'users.first_name',
+            'users.middle_name',
+            'users.last_name',
+            'users.name',
+        ])->get();
+
+        $attendance = LectureAttendance::where('online_lecture_id', $lecture->id)
+            ->whereIn('user_id', $students->pluck('id'))
+            ->pluck('attendance_status', 'user_id');
+
+        $students->each(function ($student) use ($attendance) {
+            $student->attendance_status = $attendance[$student->id] ?? null;
+        });
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'lecture' => $lecture,
+                'students' => $students,
+            ],
+        ]);
+    }
+
+    public function saveGroupAttendance(Request $request, $groupId)
+    {
+        $request->validate([
+            'lecture_id' => 'required|integer',
+            'attendance' => 'required|array|min:1',
+            'attendance.*.user_id' => 'required|integer|distinct',
+            'attendance.*.status' => 'required|in:present,absent',
+        ]);
+
+        $teacher = $request->user();
+        $group = CourseGroup::where('id', $groupId)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+        $lecture = OnlineLecture::where('id', $request->input('lecture_id'))
+            ->where('group_id', $group->id)
+            ->where('teacher_id', $teacher->id)
+            ->firstOrFail();
+
+        $studentIds = $this->activeGroupStudents($group, ['users.id'])
+            ->pluck('users.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $submittedStudentIds = collect($request->input('attendance'))
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        if (array_diff($studentIds, $submittedStudentIds)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'يرجى تحديد حالة الحضور أو الغياب لجميع طلاب المجموعة.',
+            ], 422);
+        }
+
+        if (array_diff($submittedStudentIds, $studentIds)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'يوجد طالب لا ينتمي إلى هذه المجموعة.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($request, $lecture) {
+            foreach ($request->input('attendance') as $record) {
+                $attendance = LectureAttendance::firstOrNew([
+                    'online_lecture_id' => $lecture->id,
+                    'user_id' => (int) $record['user_id'],
+                ]);
+                $attendance->attendance_status = $record['status'];
+                $attendance->join_time ??= now();
+                $attendance->save();
+            }
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حفظ الحضور والغياب بنجاح.',
+        ]);
+    }
+
+    private function activeGroupStudents(CourseGroup $group, array $columns)
+    {
+        $activeStudentIds = CourseSubscription::query()
+            ->select('user_id')
+            ->where('group_id', $group->id)
+            ->where(function ($query) {
+                $query->where('subscription_status', CourseSubscription::STATUS_ACTIVE)
+                    ->orWhereNull('subscription_status');
+            });
+
+        return $group->students()
+            ->whereIn('users.id', $activeStudentIds)
+            ->select($columns);
     }
 
     /**
@@ -234,7 +359,7 @@ class TeacherController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
-        // توليد رابط اجتماع زوم جديد عند انتهاء البريك
+        $zoomLinkUpdated = false;
         try {
             $zoomService = new \App\Services\ZoomService();
             $newMeeting = $zoomService->createMeeting([
@@ -248,18 +373,21 @@ class TeacherController extends Controller
                 $lecture->zoom_meeting_id = (string) $newMeeting['id'];
                 $lecture->zoom_join_url = $newMeeting['join_url'];
                 $lecture->zoom_start_url = $newMeeting['start_url'] ?? $newMeeting['join_url'];
+                $zoomLinkUpdated = true;
             }
         } catch (\Throwable $e) {
             Log::warning('Zoom meeting re-creation failed after break: ' . $e->getMessage());
         }
 
-        $lecture->ensureZoomMeetingExists();
         $lecture->status = 'live';
         $lecture->save();
 
         return response()->json([
             'status' => true,
-            'message' => 'تم إنهاء الاستراحة واستئناف المحاضرة برابط جديد بنجاح.',
+            'message' => $zoomLinkUpdated
+                ? 'تم إنهاء الاستراحة واستئناف المحاضرة برابط جديد بنجاح.'
+                : 'تم إنهاء الاستراحة واستئناف المحاضرة باستخدام الرابط المحفوظ.',
+            'zoom_link_updated' => $zoomLinkUpdated,
             'data' => $lecture,
         ]);
     }

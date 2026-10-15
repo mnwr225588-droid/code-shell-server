@@ -302,6 +302,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckSingleSession::clas
         Route::get('/my-groups', [\App\Http\Controllers\Api\TeacherController::class, 'myGroups']);
         Route::get('/groups/{groupId}/students', [\App\Http\Controllers\Api\TeacherController::class, 'groupStudents']);
         Route::get('/groups/{groupId}/lectures', [\App\Http\Controllers\Api\TeacherController::class, 'groupLectures']);
+        Route::get('/groups/{groupId}/attendance', [\App\Http\Controllers\Api\TeacherController::class, 'groupAttendance']);
+        Route::post('/groups/{groupId}/attendance', [\App\Http\Controllers\Api\TeacherController::class, 'saveGroupAttendance']);
         Route::get('/my-sessions', [\App\Http\Controllers\Api\TeacherController::class, 'mySessions']);
         Route::get('/sessions/{id}', [\App\Http\Controllers\Api\TeacherController::class, 'sessionDetails']);
         Route::post('/start-lecture', [\App\Http\Controllers\Api\TeacherController::class, 'startLecture']);
