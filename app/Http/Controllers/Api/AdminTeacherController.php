@@ -36,19 +36,19 @@ class AdminTeacherController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:teachers,email',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8',
         ]);
 
         $teacher = Teacher::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'password' => Hash::make($request->input('password')),
         ]);
 
         return response()->json([
             'status' => true,
             'message' => 'تم إضافة المدرس بنجاح',
-            'data' => $teacher,
+            'data' => $teacher->makeHidden(['password', 'remember_token']),
         ]);
     }
 

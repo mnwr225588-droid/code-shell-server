@@ -27,9 +27,9 @@ class AdminOnlineLectureController extends Controller
             'teacher_id' => 'nullable',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'start_date' => 'required',
-            'start_time' => 'required',
-            'timezone' => 'nullable|string',
+            'start_date' => 'required|date_format:Y-m-d',
+            'start_time' => 'required|date_format:H:i',
+            'timezone' => 'nullable|timezone',
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
@@ -63,12 +63,8 @@ class AdminOnlineLectureController extends Controller
         $timezone = $request->timezone ?: 'Africa/Cairo';
         $timeString = substr($request->start_time, 0, 5); // Format 'HH:MM'
 
-        try {
-            $startDateTimeLocal = Carbon::parse($request->start_date . ' ' . $timeString, $timezone);
-            $startDateTimeUTC = $startDateTimeLocal->copy()->setTimezone('UTC');
-        } catch (\Throwable $e) {
-            $startDateTimeUTC = now()->addDay();
-        }
+        $startDateTimeLocal = Carbon::parse($request->start_date . ' ' . $timeString, $timezone);
+        $startDateTimeUTC = $startDateTimeLocal->copy()->setTimezone('UTC');
 
         // تأكيد وجود المجموعة قبل الإنشاء لتجنب رسالة "selected group id is invalid"
         $group = \App\Models\CourseGroup::find($request->group_id);
