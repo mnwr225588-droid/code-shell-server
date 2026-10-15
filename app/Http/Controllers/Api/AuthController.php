@@ -64,18 +64,28 @@ class AuthController extends Controller
             'expires_at' => now()->addHours(24),
         ]);
 
+        $emailVerificationSent = false;
+
         // محاولة إرسال بريد التفعيل عبر Brevo HTTP API
         try {
             $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
             $mailService = new BrevoMailService();
-            $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+            $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
+            $emailVerificationSent = (bool) ($mailResult['success'] ?? false);
+
+            if (!$emailVerificationSent) {
+                Log::warning("Register verification email was not sent for {$user->email}: " . ($mailResult['message'] ?? 'Unknown mail error'));
+            }
         } catch (\Exception $e) {
             Log::warning("Register Mail Notice for {$user->email}: " . $e->getMessage());
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إنشاء الحساب بنجاح! يرجى مراجعة بريدك الإلكتروني لتأكيد الحساب.',
+            'message' => $emailVerificationSent
+                ? 'تم إنشاء الحساب وإرسال رسالة تأكيد البريد الإلكتروني.'
+                : 'تم إنشاء الحساب، لكن تعذر إرسال رسالة تأكيد البريد الإلكتروني. يمكنك إعادة إرسالها من الموقع.',
+            'email_verification_sent' => $emailVerificationSent,
             'token' => $result['token'],
             'user' => $result['user'],
         ], 201);
@@ -163,6 +173,11 @@ class AuthController extends Controller
 
         if (!$mailResult['success']) {
             Log::warning("Resend verification warning for: {$user->email} — {$mailResult['message']}");
+
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إرسال رسالة تأكيد البريد الإلكتروني. يرجى المحاولة مرة أخرى لاحقاً.',
+            ], 502);
         }
 
         return response()->json([
