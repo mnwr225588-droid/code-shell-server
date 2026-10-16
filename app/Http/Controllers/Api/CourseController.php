@@ -43,7 +43,7 @@ class CourseController extends Controller
         $isAdmin = $user ? $user->is_admin : false;
 
         $cacheVersion = \Cache::get('courses_index_cache_version', 'v1');
-        $cacheKey = 'courses_index_v2_' . $cacheVersion . '_catalog';
+        $cacheKey = 'courses_index_v3_' . $cacheVersion . '_catalog';
 
         $payload = \Cache::remember($cacheKey, 300, function () {
             // تم إزالة السطر الغير ضروري: Course::findCourseSafely(10)
@@ -96,8 +96,10 @@ class CourseController extends Controller
                 $course->setAppends([]);
                 $data = $course->toArray();
 
-                $pricing = \App\Services\PricingService::priceFor(null, $course->prices);
+                $prices = self::normalizeCatalogPrices($course->prices);
+                $pricing = \App\Services\PricingService::priceFor(null, $prices);
                 $data['thumbnail_url'] = $course->thumbnail_url;
+                $data['prices'] = $prices;
                 $data['students_count'] = (int) ($subCounts[$cid] ?? 0) + 120;
                 $data['subscriptions_count'] = (int) ($subCounts[$cid] ?? 0);
                 $data['reservations_count'] = (int) ($resCounts[$cid] ?? 0);
@@ -107,7 +109,7 @@ class CourseController extends Controller
                 $data['price'] = $pricing['price'];
                 $data['currency_code'] = $pricing['currency_code'];
                 $data['currency_symbol'] = $pricing['currency_symbol'];
-                $data['all_prices'] = $course->prices;
+                $data['all_prices'] = $prices;
 
                 return $data;
             });
@@ -128,7 +130,8 @@ class CourseController extends Controller
 
         foreach ($payload as &$course) {
             $course['is_subscribed'] = $isAdmin || $subscribedIds->contains($course['id']);
-            $pricing = \App\Services\PricingService::priceFor($userCountry, $course['prices'] ?? []);
+            $course['prices'] = self::normalizeCatalogPrices($course['prices'] ?? []);
+            $pricing = \App\Services\PricingService::priceFor($userCountry, $course['prices']);
             $course['price'] = $pricing['price'];
             $course['currency_code'] = $pricing['currency_code'];
             $course['currency_symbol'] = $pricing['currency_symbol'];
@@ -140,6 +143,20 @@ class CourseController extends Controller
             'catalog_version' => \Cache::get('courses_index_cache_version', 'v1'),
             'data'   => $payload
         ])->header('Cache-Control', 'no-store, private');
+    }
+
+    private static function normalizeCatalogPrices(mixed $prices): array
+    {
+        if (is_array($prices)) {
+            return $prices;
+        }
+
+        if (is_string($prices)) {
+            $decoded = json_decode($prices, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 
     public function show(Request $request, $id)
