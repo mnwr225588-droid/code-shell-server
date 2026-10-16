@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\CourseGroup;
 use App\Models\OnlineLecture;
 use Illuminate\Http\Request;
@@ -122,6 +123,9 @@ class AdminAttendanceController extends Controller
 
     private function ensureAdmin(Request $request): void
     {
-        abort_unless((bool) $request->user()?->is_admin, 403, 'هذه الصفحة مخصصة للإدارة.');
+        $user = $request->user();
+        $isAdmin = $user instanceof Admin || ($user && method_exists($user, 'isAdmin') && $user->isAdmin());
+
+        abort_unless($isAdmin, 403, 'هذه الصفحة مخصصة للإدارة.');
     }
 }

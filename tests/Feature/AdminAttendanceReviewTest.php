@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Admin;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\CourseGroup;
@@ -56,6 +57,20 @@ class AdminAttendanceReviewTest extends TestCase
         $this->actingAs($student, 'sanctum')
             ->getJson("/api/admin/attendance/groups/{$group->id}/ended-lectures")
             ->assertForbidden();
+    }
+
+    public function test_admin_account_from_admin_table_can_review_attendance(): void
+    {
+        [, $group] = $this->createAttendanceRecords();
+        $admin = Admin::create([
+            'name' => 'Admin Table Account',
+            'email' => 'admin-table-account@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/admin/attendance/groups/{$group->id}/ended-lectures")
+            ->assertOk();
     }
 
     private function createAttendanceRecords(): array
