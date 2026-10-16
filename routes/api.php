@@ -257,6 +257,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckSingleSession::clas
 
     // Categories & Courses
     Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/courses/catalog-version', [CourseController::class, 'catalogVersion']);
     Route::get('/courses', [CourseController::class, 'index']);
     Route::get('/courses/{id}', [CourseController::class, 'show']);
     Route::get('/courses/{id}/online-lectures', [CourseController::class, 'getCourseOnlineLectures']);

@@ -46,6 +46,16 @@ return [
         'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Independent administrator Telegram notification bot
+    |--------------------------------------------------------------------------
+    */
+    'admin_telegram' => [
+        'bot_token' => env('ADMIN_TELEGRAM_BOT_TOKEN'),
+        'chat_id' => env('ADMIN_TELEGRAM_CHAT_ID'),
+    ],
+
     'brevo' => [
         'key' => env('BREVO_API_KEY'),
     ],

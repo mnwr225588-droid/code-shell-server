@@ -371,6 +371,11 @@ class PaymentController extends Controller
 
         if ($isFailure) {
             $this->subscriptionService->markFailedFromTransaction($transaction, 'Payment returned status: ' . ($verifiedStatus ?: $rawStatus));
+        } else {
+            app(\App\Services\AdminTelegramBotService::class)->notifyPaymentPendingOnce(
+                $transaction,
+                $verifiedStatus ?: ($rawStatus ?: 'لم يصل تأكيد نهائي من بوابة الدفع.')
+            );
         }
 
         if ($request->wantsJson() || $request->expectsJson()) {
@@ -480,6 +485,12 @@ class PaymentController extends Controller
                 $markedFailed++;
                 $details[] = ['transaction_id' => $tx->id, 'user_id' => $tx->user_id, 'result' => 'failed'];
             } else {
+                if ($verified === 'pending') {
+                    app(\App\Services\AdminTelegramBotService::class)->notifyPaymentPendingOnce(
+                        $tx,
+                        'بوابة الدفع ما زالت تؤكد العملية أثناء المراجعة.'
+                    );
+                }
                 $stillPending++;
                 $details[] = ['transaction_id' => $tx->id, 'user_id' => $tx->user_id, 'result' => 'pending'];
             }
@@ -869,6 +880,14 @@ class PaymentController extends Controller
                 $this->subscriptionService->activateFromTransaction($transaction);
                 $transaction->refresh();
                 Log::info("Self-healed pending transaction #{$transaction->id} via payment-status polling.");
+            } elseif ($verified === 'failed') {
+                $this->subscriptionService->markFailedFromTransaction($transaction, 'Payment status polling: gateway reported failed');
+                $transaction->refresh();
+            } elseif ($verified === 'pending') {
+                app(\App\Services\AdminTelegramBotService::class)->notifyPaymentPendingOnce(
+                    $transaction,
+                    'بوابة الدفع ما زالت تؤكد العملية.'
+                );
             }
         }
 

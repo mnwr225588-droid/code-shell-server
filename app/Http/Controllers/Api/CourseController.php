@@ -25,6 +25,14 @@ use Illuminate\Support\Facades\DB;
 
 class CourseController extends Controller
 {
+    public function catalogVersion()
+    {
+        return response()->json([
+            'status' => true,
+            'catalog_version' => \Cache::get('courses_index_cache_version', 'v1'),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
     /// API: GET /api/courses
     /// ⚡ محسّنة: كانت تستغرق ~22 ثانية (استعلامات لكل كورس على حدة داخل toArray)
     /// الآن: 5 استعلامات مجمعة إجمالاً + كاش 5 دقائق
@@ -35,7 +43,7 @@ class CourseController extends Controller
         $isAdmin = $user ? $user->is_admin : false;
 
         $cacheVersion = \Cache::get('courses_index_cache_version', 'v1');
-        $cacheKey = 'courses_index_' . $cacheVersion . '_catalog';
+        $cacheKey = 'courses_index_v2_' . $cacheVersion . '_catalog';
 
         $payload = \Cache::remember($cacheKey, 300, function () {
             // تم إزالة السطر الغير ضروري: Course::findCourseSafely(10)
@@ -83,23 +91,26 @@ class CourseController extends Controller
                 ->selectRaw('levels.course_id as cid, COUNT(*) as c')
                 ->pluck('c', 'cid');
 
-            $courses->each(function ($course) use ($subCounts, $resCounts, $levelCounts, $lessonCounts) {
+            return $courses->map(function ($course) use ($subCounts, $resCounts, $levelCounts, $lessonCounts) {
                 $cid = $course->id;
-                $course->setAttribute('students_count', (int) ($subCounts[$cid] ?? 0) + 120);
-                $course->setAttribute('subscriptions_count', (int) ($subCounts[$cid] ?? 0));
-                $course->setAttribute('reservations_count', (int) ($resCounts[$cid] ?? 0));
-                $course->setAttribute('levels_count', (int) ($levelCounts[$cid] ?? 0));
-                $course->setAttribute('lessons_count', (int) ($lessonCounts[$cid] ?? 0));
-                $course->setAttribute('is_subscribed', false);
+                $course->setAppends([]);
+                $data = $course->toArray();
 
                 $pricing = \App\Services\PricingService::priceFor(null, $course->prices);
-                $course->setAttribute('price', $pricing['price']);
-                $course->setAttribute('currency_code', $pricing['currency_code']);
-                $course->setAttribute('currency_symbol', $pricing['currency_symbol']);
-                $course->setAttribute('all_prices', $course->prices);
-            });
+                $data['thumbnail_url'] = $course->thumbnail_url;
+                $data['students_count'] = (int) ($subCounts[$cid] ?? 0) + 120;
+                $data['subscriptions_count'] = (int) ($subCounts[$cid] ?? 0);
+                $data['reservations_count'] = (int) ($resCounts[$cid] ?? 0);
+                $data['levels_count'] = (int) ($levelCounts[$cid] ?? 0);
+                $data['lessons_count'] = (int) ($lessonCounts[$cid] ?? 0);
+                $data['is_subscribed'] = false;
+                $data['price'] = $pricing['price'];
+                $data['currency_code'] = $pricing['currency_code'];
+                $data['currency_symbol'] = $pricing['currency_symbol'];
+                $data['all_prices'] = $course->prices;
 
-            return $courses->toArray();
+                return $data;
+            });
         });
 
         $courseIds = collect($payload)->pluck('id');
@@ -126,6 +137,7 @@ class CourseController extends Controller
 
         return response()->json([
             'status' => true,
+            'catalog_version' => \Cache::get('courses_index_cache_version', 'v1'),
             'data'   => $payload
         ])->header('Cache-Control', 'no-store, private');
     }

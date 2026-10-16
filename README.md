@@ -56,3 +56,14 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Independent Admin Telegram Bot
+
+Admin alerts use a separate Telegram bot; never reuse `TELEGRAM_BOT_TOKEN` from the student bot.
+
+1. Create a new bot with BotFather and set `ADMIN_TELEGRAM_BOT_TOKEN` in the server environment.
+2. Open the new bot in a private Telegram chat and press **Start**.
+3. Run `php artisan telegram:admin-chat-id` on the server and set the verified private chat ID as `ADMIN_TELEGRAM_CHAT_ID`.
+4. Run `php artisan config:clear` and `php artisan telegram:admin-test`.
+
+The bot sends alerts after subscription activation, on payment failure or first pending confirmation, and after wallet credits, purchases, and refunds. Notifications include the student contact details and operation information. Passwords, OTPs, and payment card data are never included. Delivery failures are logged without rolling back a successful payment or wallet operation.
