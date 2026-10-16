@@ -24,6 +24,10 @@ class AdminAttendanceReviewTest extends TestCase
         $this->actingAs($admin, 'sanctum')
             ->getJson('/api/admin/attendance/groups')
             ->assertOk()
+            ->assertJsonPath('data.0.id', $group->id)
+            ->assertJsonPath('data.0.name', 'Attendance Test Group')
+            ->assertJsonPath('data.0.course.title', 'Attendance Test Course')
+            ->assertJsonPath('data.0.teacher.name', 'Attendance Test Teacher')
             ->assertJsonPath('data.0.ended_lectures_count', 1)
             ->assertJsonPath('data.0.students_count', 3);
 
@@ -68,7 +72,13 @@ class AdminAttendanceReviewTest extends TestCase
             'password' => Hash::make('password123'),
         ]);
 
-        $this->actingAs($admin, 'sanctum')
+        $token = $admin->createToken('admin-attendance-test')->plainTextToken;
+
+        $groupsResponse = $this->withToken($token)->getJson('/api/admin/attendance/groups');
+        $groupsResponse->assertOk();
+        $this->assertSame($group->id, $groupsResponse->json('data.0.id'), json_encode($groupsResponse->json()));
+
+        $this->withToken($token)
             ->getJson("/api/admin/attendance/groups/{$group->id}/ended-lectures")
             ->assertOk();
     }

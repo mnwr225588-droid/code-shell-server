@@ -291,6 +291,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckSingleSession::clas
 
     // 💳 Payment Gateway & Wallet (نظام الدفع الإلكتروني والمحفظة)
     Route::post('/courses/{id}/pay', [PaymentController::class, 'initiate']);
+    Route::get('/courses/{id}/wallet-quote', [PaymentController::class, 'walletQuote']);
     Route::post('/courses/{id}/pay-with-wallet', [PaymentController::class, 'payWithWallet']);
     Route::get('/courses/{id}/payment-status', [PaymentController::class, 'paymentStatus']);
     Route::get('/wallet/balance', [\App\Http\Controllers\Api\WalletController::class, 'getBalance']);

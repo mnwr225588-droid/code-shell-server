@@ -16,6 +16,7 @@ class AdminAttendanceController extends Controller
         $this->ensureAdmin($request);
 
         $groups = CourseGroup::query()
+            ->select('course_groups.*')
             ->with(['course:id,title', 'teacher:id,name'])
             ->selectSub(
                 DB::table('course_subscriptions')

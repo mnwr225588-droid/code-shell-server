@@ -588,6 +588,10 @@ class PaymentController extends Controller
      */
     public function payWithWallet(Request $request, $courseId): JsonResponse
     {
+        $request->validate([
+            'expected_amount' => 'nullable|numeric|min:0',
+        ]);
+
         $user = $request->user();
         $course = Course::findCourseSafely($courseId);
 
@@ -615,10 +619,28 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        $walletQuote = $this->buildWalletQuote($user, $course, $plan);
+        if ($request->filled('expected_amount')
+            && (int) round((float) $request->input('expected_amount') * 100) !== (int) round($walletQuote['amount'] * 100)) {
+            return response()->json([
+                'status' => false,
+                'price_changed' => true,
+                'message' => 'تغير سعر الاشتراك منذ عرض التفاصيل. راجع السعر الجديد وأكد العملية مرة أخرى.',
+                'course' => $walletQuote['course'],
+                'plan' => $walletQuote['plan'],
+                'amount' => $walletQuote['amount'],
+                'currency_code' => $walletQuote['currency_code'],
+                'currency_symbol' => $walletQuote['currency_symbol'],
+                'wallet_balance' => (float) $user->wallet_balance,
+            ], 409);
+        }
+
         $matchingWalletPayment = Transaction::where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->where('payment_gateway', 'wallet')
             ->where('status', Transaction::STATUS_COMPLETED)
+            ->where('amount', $walletQuote['amount'])
+            ->where('currency_code', $walletQuote['currency_code'])
             ->when(
                 $plan?->id !== null,
                 fn ($query) => $query->where('payload->plan_id', $plan->id),
@@ -660,16 +682,7 @@ class PaymentController extends Controller
         }
 
         // 1. الكورسات أو الباقات المجانية لا تحتاج خصم من المحفظة
-        $isFree = false;
-        if ($plan) {
-            $planEffectivePrice = (float)($plan->has_discount && $plan->discount_price !== null ? $plan->discount_price : $plan->price);
-            $isFree = ($plan->is_free || $planEffectivePrice === 0.0);
-        } else {
-            $hasPlans = \App\Models\CoursePlan::where('course_id', $course->id)->where('is_active', true)->exists();
-            if (!$hasPlans && ($course->is_free || ($course->price !== null && (float)$course->price === 0.0))) {
-                $isFree = true;
-            }
-        }
+        $isFree = $walletQuote['is_free'];
 
         if ($isFree) {
             $freeSub = $this->subscriptionService->createFreeSubscription($user, $course, $plan?->id);
@@ -688,24 +701,16 @@ class PaymentController extends Controller
             ]);
         }
 
-        // 3. حساب السعر بناءً على الباقة أو الكورس
-        if ($plan) {
-            $pricing = PricingService::priceForPlan($user->country, $plan);
-            $amount = (float) $pricing['price'];
-            $planType = $plan->name;
-            $planDurationDays = $plan->duration_days;
-            $walletDesc = "شراء باقة ({$plan->name}) لكورس ({$course->title}) خصماً من رصيد المحفظة";
-        } else {
-            $prices = $course->prices ?? [];
-            if (empty($prices)) {
-                $prices = PricingService::defaults();
-            }
-            $pricing = PricingService::priceFor($user->country, $prices);
-            $amount = (float) $pricing['price'];
-            $planType = $request->input('plan_type') ?? 'monthly';
-            $planDurationDays = $course->subscription_duration_days ?? 30;
-            $walletDesc = "شراء كورس ({$course->title}) خصماً من رصيد المحفظة";
-        }
+        // يتم استخدام نفس التسعير المركزي الذي أُعيد للواجهة في عرض التأكيد.
+        $pricing = [
+            'price' => $walletQuote['amount'],
+            'currency_code' => $walletQuote['currency_code'],
+            'currency_symbol' => $walletQuote['currency_symbol'],
+        ];
+        $amount = $walletQuote['amount'];
+        $planType = $request->input('plan_type') ?? $walletQuote['plan_type'];
+        $planDurationDays = $walletQuote['duration_days'];
+        $walletDesc = $walletQuote['description'];
 
         // 4. التحقق من كفاية رصيد المحفظة لدى المستخدم
         if ((float) $user->wallet_balance < $amount) {
@@ -854,6 +859,76 @@ class PaymentController extends Controller
                 'message' => 'فشلت عملية الاشتراك بالمحفظة: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function walletQuote(Request $request, $courseId): JsonResponse
+    {
+        $user = $request->user();
+        $course = Course::findCourseSafely($courseId);
+        $planId = $request->query('plan_id');
+        $plan = null;
+
+        if ($planId) {
+            $plan = CoursePlan::where('course_id', $course->id)
+                ->where('is_active', true)
+                ->find($planId);
+            if (!$plan) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'الباقة المحددة غير متاحة لهذا الكورس.',
+                ], 422);
+            }
+        }
+
+        $quote = $this->buildWalletQuote($user, $course, $plan);
+
+        return response()->json([
+            'status' => true,
+            'course' => $quote['course'],
+            'plan' => $quote['plan'],
+            'amount' => $quote['amount'],
+            'currency_code' => $quote['currency_code'],
+            'currency_symbol' => $quote['currency_symbol'],
+            'wallet_balance' => (float) $user->wallet_balance,
+            'duration_days' => $quote['duration_days'],
+            'is_free' => $quote['is_free'],
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    private function buildWalletQuote($user, Course $course, ?CoursePlan $plan): array
+    {
+        if ($plan) {
+            $pricing = PricingService::priceForPlan($user->country, $plan);
+            $isFree = (bool) $plan->is_free || (float) $pricing['price'] === 0.0;
+            $planData = ['id' => $plan->id, 'name' => $plan->name];
+            $description = "شراء باقة ({$plan->name}) لكورس ({$course->title}) خصماً من رصيد المحفظة";
+            $durationDays = $plan->duration_days;
+            $planType = $plan->name;
+        } else {
+            $hasPlans = CoursePlan::where('course_id', $course->id)->where('is_active', true)->exists();
+            $prices = $course->prices ?? [];
+            if (!is_array($prices) || $prices === []) {
+                $prices = PricingService::defaults();
+            }
+            $pricing = PricingService::priceFor($user->country, $prices);
+            $isFree = !$hasPlans && ($course->is_free || ($course->price !== null && (float) $course->price === 0.0));
+            $planData = null;
+            $description = "شراء كورس ({$course->title}) خصماً من رصيد المحفظة";
+            $durationDays = $course->subscription_duration_days ?? 30;
+            $planType = 'monthly';
+        }
+
+        return [
+            'course' => ['id' => $course->id, 'title' => $course->title],
+            'plan' => $planData,
+            'amount' => $isFree ? 0.0 : (float) $pricing['price'],
+            'currency_code' => $pricing['currency_code'],
+            'currency_symbol' => $pricing['currency_symbol'],
+            'duration_days' => $durationDays,
+            'is_free' => $isFree,
+            'plan_type' => $planType,
+            'description' => $description,
+        ];
     }
 
     /**

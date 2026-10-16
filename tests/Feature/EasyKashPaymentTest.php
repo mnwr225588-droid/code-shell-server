@@ -238,6 +238,120 @@ class EasyKashPaymentTest extends TestCase
             ->assertJsonPath('group.id', $subscription->group_id);
     }
 
+    public function test_wallet_quote_and_payment_refresh_plan_price_and_reject_a_stale_confirmation(): void
+    {
+        $user = $this->createTestUser([
+            'country' => 'المملكة العربية السعودية',
+            'wallet_balance' => 500,
+        ]);
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title' => 'Updated Wallet Plan Price Course',
+            'is_free' => false,
+            'price' => 300,
+            'prices' => ['EGP' => 300, 'SAR' => 100],
+            'is_active' => true,
+        ]);
+        $plan = CoursePlan::create([
+            'course_id' => $course->id,
+            'name' => 'Saudi Wallet Plan',
+            'slug' => 'saudi-wallet-plan-' . $course->id,
+            'price' => 300,
+            'currency' => 'EGP',
+            'prices' => ['EGP' => 300, 'SAR' => 80],
+            'duration_days' => 30,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/courses/{$course->id}/plans")
+            ->assertOk()
+            ->assertJsonPath('data.0.price', 80)
+            ->assertJsonPath('data.0.currency_code', 'SAR');
+
+        $this->getJson("/api/courses/{$course->id}/wallet-quote?plan_id={$plan->id}")
+            ->assertOk()
+            ->assertJsonPath('amount', 80)
+            ->assertJsonPath('currency_code', 'SAR')
+            ->assertJsonPath('plan.name', 'Saudi Wallet Plan');
+
+        $plan->update(['prices' => ['EGP' => 300, 'SAR' => 120]]);
+
+        $this->postJson("/api/courses/{$course->id}/pay-with-wallet", [
+            'plan_id' => $plan->id,
+            'expected_amount' => 80,
+        ])
+            ->assertStatus(409)
+            ->assertJsonPath('price_changed', true)
+            ->assertJsonPath('amount', 120);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'wallet_balance' => 500,
+        ]);
+        $this->assertDatabaseCount('wallet_transactions', 0);
+
+        $this->postJson("/api/courses/{$course->id}/pay-with-wallet", [
+            'plan_id' => $plan->id,
+            'expected_amount' => 120,
+        ])
+            ->assertOk()
+            ->assertJsonPath('amount', 120)
+            ->assertJsonPath('currency_code', 'SAR')
+            ->assertJsonPath('wallet_balance', 380);
+    }
+
+    public function test_wallet_payment_uses_the_updated_course_price_after_quote_confirmation(): void
+    {
+        $user = $this->createTestUser([
+            'country' => 'EGP',
+            'wallet_balance' => 500,
+        ]);
+        $course = Course::create([
+            'category_id' => $this->category->id,
+            'title' => 'Updated Wallet Course Price',
+            'is_free' => false,
+            'price' => 250,
+            'prices' => ['EGP' => 250],
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/courses/{$course->id}/wallet-quote")
+            ->assertOk()
+            ->assertJsonPath('amount', 250);
+
+        Transaction::create([
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'amount' => 250,
+            'currency_code' => 'EGP',
+            'payment_gateway' => 'wallet',
+            'status' => Transaction::STATUS_COMPLETED,
+            'payload' => ['plan_id' => null, 'plan_duration_days' => 30],
+        ]);
+
+        $course->update([
+            'price' => 400,
+            'prices' => ['EGP' => 400],
+        ]);
+
+        $this->postJson("/api/courses/{$course->id}/pay-with-wallet", [
+            'expected_amount' => 250,
+        ])
+            ->assertStatus(409)
+            ->assertJsonPath('price_changed', true)
+            ->assertJsonPath('amount', 400);
+
+        $this->postJson("/api/courses/{$course->id}/pay-with-wallet", [
+            'expected_amount' => 400,
+        ])
+            ->assertOk()
+            ->assertJsonPath('amount', 400)
+            ->assertJsonPath('wallet_balance', 100);
+        $this->assertDatabaseCount('transactions', 2);
+    }
+
     public function test_wallet_payment_activates_plan_subscription_and_assigns_its_group(): void
     {
         $user = $this->createTestUser([

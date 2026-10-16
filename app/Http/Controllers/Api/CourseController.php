@@ -537,8 +537,30 @@ class CourseController extends Controller
         $isCourseSubscribed = $subscribedPlanIds->isNotEmpty() || $subscriptions->contains(fn ($sub) => $sub->plan_id === null) || (bool) $isAdmin;
         $subscribedPlan = $subscriptions->sortByDesc('paid_at')->first()?->plan;
 
-        $plansData = $plans->map(function ($plan) use ($subscribedPlanIds, $isAdmin) {
+        $plansData = $plans->map(function ($plan) use ($subscribedPlanIds, $isAdmin, $user) {
             $planArr = $plan->toArray();
+            if ($user && !$isAdmin) {
+                $currencyCode = \App\Services\PricingService::currencyForCountry($user->country);
+                $planCurrencyCode = strtoupper((string) ($plan->currency ?: \App\Services\PricingService::DEFAULT_CURRENCY));
+                if ($currencyCode !== $planCurrencyCode) {
+                    $basePrices = is_array($plan->prices) && $plan->prices !== []
+                        ? $plan->prices
+                        : \App\Services\PricingService::defaults();
+                    $planArr['price'] = \App\Services\PricingService::priceFor($user->country, $basePrices)['price'];
+                    $originalPrices = is_array($plan->original_prices) && $plan->original_prices !== []
+                        ? $plan->original_prices
+                        : $basePrices;
+                    $planArr['original_price'] = \App\Services\PricingService::priceFor($user->country, $originalPrices)['price'];
+                    if ($plan->has_discount) {
+                        $discountPrices = is_array($plan->discount_prices) && $plan->discount_prices !== []
+                            ? $plan->discount_prices
+                            : \App\Services\PricingService::defaults();
+                        $planArr['discount_price'] = \App\Services\PricingService::priceFor($user->country, $discountPrices)['price'];
+                    }
+                }
+                $planArr['currency_code'] = $currencyCode;
+                $planArr['currency_symbol'] = \App\Services\PricingService::symbol($currencyCode);
+            }
             $planArr['is_subscribed'] = $isAdmin
                 || $subscribedPlanIds->contains((int) $plan->id);
             return $planArr;

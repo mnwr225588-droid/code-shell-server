@@ -24,10 +24,16 @@ class TeacherController extends Controller
      */
     public function myGroups(Request $request)
     {
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $groups = CourseGroup::where('teacher_id', $teacher->id)
-            ->withCount('students')
+            ->withCount([
+                'students' => fn ($query) => $query->where(function ($subscriptionQuery) {
+                    $subscriptionQuery->whereNull('course_subscriptions.subscription_status')
+                        ->orWhere('course_subscriptions.subscription_status', CourseSubscription::STATUS_ACTIVE);
+                }),
+                'onlineLectures',
+            ])
             ->with('course:id,title,thumbnail')
             ->get();
 
@@ -42,7 +48,7 @@ class TeacherController extends Controller
      */
     public function groupStudents(Request $request, $groupId)
     {
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         // التأكد أن المجموعة تخص المدرس
         $group = CourseGroup::where('id', $groupId)
@@ -71,7 +77,7 @@ class TeacherController extends Controller
      */
     public function groupLectures(Request $request, $groupId)
     {
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lectures = OnlineLecture::where('group_id', $groupId)
             ->where('teacher_id', $teacher->id)
@@ -87,7 +93,7 @@ class TeacherController extends Controller
 
     public function groupAttendance(Request $request, $groupId)
     {
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
         $group = CourseGroup::where('id', $groupId)
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
@@ -135,7 +141,7 @@ class TeacherController extends Controller
             'attendance.*.status' => 'required|in:present,absent',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
         $group = CourseGroup::where('id', $groupId)
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
@@ -200,12 +206,24 @@ class TeacherController extends Controller
             ->select($columns);
     }
 
+    private function teacherAccount(Request $request): Teacher
+    {
+        $authenticatedAccount = $request->user();
+        abort_unless($authenticatedAccount, 401);
+
+        if ($authenticatedAccount instanceof Teacher) {
+            return $authenticatedAccount;
+        }
+
+        return Teacher::where('email', $authenticatedAccount->email)->firstOrFail();
+    }
+
     /**
      * جلب الجلسات الأونلاين الخاصة بالمدرس.
      */
     public function mySessions(Request $request)
     {
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lectures = OnlineLecture::where('teacher_id', $teacher->id)
             ->with(['group:id,name', 'course:id,title'])
@@ -223,7 +241,7 @@ class TeacherController extends Controller
      */
     public function sessionDetails(Request $request, $id)
     {
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lecture = OnlineLecture::where('id', $id)
             ->where('teacher_id', $teacher->id)
@@ -248,7 +266,7 @@ class TeacherController extends Controller
             'new_time' => 'required|date_format:H:i',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         // التأكد أن المحاضرة تخص المدرس
         $lecture = OnlineLecture::where('id', $request->online_lecture_id)
@@ -303,7 +321,7 @@ class TeacherController extends Controller
             'break_minutes' => 'nullable|integer|min:1|max:60',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lecture = OnlineLecture::where('id', $request->online_lecture_id)
             ->where('teacher_id', $teacher->id)
@@ -353,7 +371,7 @@ class TeacherController extends Controller
             'online_lecture_id' => 'required|exists:online_lectures,id',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lecture = OnlineLecture::where('id', $request->online_lecture_id)
             ->where('teacher_id', $teacher->id)
@@ -409,7 +427,7 @@ class TeacherController extends Controller
             'zoom_join_url' => 'required|string',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lecture = null;
         if ($teacher && isset($teacher->id)) {
@@ -457,7 +475,7 @@ class TeacherController extends Controller
             'zoom_join_url' => 'nullable|string',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lecture = OnlineLecture::where('id', $request->online_lecture_id)
             ->where('teacher_id', $teacher->id)
@@ -493,7 +511,7 @@ class TeacherController extends Controller
             'online_lecture_id' => 'required|exists:online_lectures,id',
         ]);
 
-        $teacher = $request->user();
+        $teacher = $this->teacherAccount($request);
 
         $lecture = OnlineLecture::where('id', $request->online_lecture_id)
             ->where('teacher_id', $teacher->id)
