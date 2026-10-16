@@ -43,9 +43,9 @@ class CourseController extends Controller
         $isAdmin = $user ? $user->is_admin : false;
 
         $cacheVersion = \Cache::get('courses_index_cache_version', 'v1');
-        $cacheKey = 'courses_index_v3_' . $cacheVersion . '_catalog';
+        $cacheKey = 'courses_index_v4_' . $cacheVersion . '_catalog';
 
-        $payload = \Cache::remember($cacheKey, 300, function () {
+        $buildCatalog = function () {
             // تم إزالة السطر الغير ضروري: Course::findCourseSafely(10)
 
             $courses = Course::with(['category', 'groups' => function ($q) {
@@ -113,7 +113,23 @@ class CourseController extends Controller
 
                 return $data;
             });
-        });
+        };
+
+        $payload = \Cache::remember($cacheKey, 300, $buildCatalog);
+        $catalogItems = $payload instanceof \Illuminate\Support\Collection
+            ? $payload->all()
+            : (is_array($payload) ? $payload : null);
+        $hasMalformedCourse = $catalogItems === null || collect($catalogItems)->contains(
+            fn ($course) => ! is_array($course) || ! array_key_exists('id', $course)
+        );
+
+        if ($hasMalformedCourse) {
+            \Illuminate\Support\Facades\Log::warning('Malformed course catalog cache detected; rebuilding catalog.', [
+                'cache_key' => $cacheKey,
+            ]);
+            \Cache::forget($cacheKey);
+            $payload = \Cache::remember($cacheKey, 300, $buildCatalog);
+        }
 
         $courseIds = collect($payload)->pluck('id');
         $subscribedIds = $userId && ! $isAdmin

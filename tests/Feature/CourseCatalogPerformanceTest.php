@@ -108,7 +108,7 @@ class CourseCatalogPerformanceTest extends TestCase
         $this->actingAs($user, 'sanctum')->getJson('/api/courses')->assertOk();
 
         $cacheVersion = Cache::get('courses_index_cache_version', 'v1');
-        $cacheKey = 'courses_index_v3_' . $cacheVersion . '_catalog';
+        $cacheKey = 'courses_index_v4_' . $cacheVersion . '_catalog';
         $cachedCourses = collect(Cache::get($cacheKey))
             ->map(function (array $cachedCourse) use ($course) {
                 if ((int) $cachedCourse['id'] === $course->id) {
@@ -125,5 +125,46 @@ class CourseCatalogPerformanceTest extends TestCase
         $courseData = collect($response->json('data'))->firstWhere('id', $course->id);
         $this->assertSame(['EGP' => 425], $courseData['prices']);
         $this->assertEquals(425.0, $courseData['price']);
+    }
+
+    public function test_course_catalog_rebuilds_malformed_cached_course_entries(): void
+    {
+        Cache::flush();
+
+        $category = Category::create(['name' => 'Malformed Catalog Cache']);
+        $user = User::create([
+            'name' => 'Malformed Cache Student',
+            'first_name' => 'Malformed',
+            'middle_name' => 'Cache',
+            'last_name' => 'Student',
+            'email' => 'malformed-cache-student@example.com',
+            'password' => Hash::make('password123'),
+            'country' => 'EGP',
+            'birth_date' => '2000-01-01',
+            'phone' => '01000000002',
+        ]);
+        $course = Course::create([
+            'category_id' => $category->id,
+            'title' => 'Valid Catalog Course',
+            'prices' => ['EGP' => 350],
+            'is_free' => false,
+            'price' => 350,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/courses')->assertOk();
+
+        $cacheVersion = Cache::get('courses_index_cache_version', 'v1');
+        $cacheKey = 'courses_index_v4_' . $cacheVersion . '_catalog';
+        $cachedCourses = Cache::get($cacheKey);
+        $cachedCourses->push('malformed cached row');
+        Cache::put($cacheKey, $cachedCourses, 300);
+
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/courses');
+
+        $response->assertOk()
+            ->assertJsonFragment(['id' => $course->id, 'title' => 'Valid Catalog Course']);
+        $this->assertNotContains('malformed cached row', $response->json('data'));
+        $this->assertNotContains('malformed cached row', Cache::get($cacheKey)->all());
     }
 }

@@ -140,6 +140,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/plan-lessons/{id}', [AdminContentController::class, 'removeLessonFromPlan']);
     
     // Groups & Online Lectures
+    Route::get('/attendance/groups', [\App\Http\Controllers\Api\AdminAttendanceController::class, 'groups']);
+    Route::get('/attendance/groups/{groupId}/ended-lectures', [\App\Http\Controllers\Api\AdminAttendanceController::class, 'endedLectures']);
+    Route::get('/attendance/lectures/{lectureId}', [\App\Http\Controllers\Api\AdminAttendanceController::class, 'lectureAttendance']);
     Route::get('/courses/{courseId}/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'index']);
     Route::post('/groups', [\App\Http\Controllers\Api\AdminGroupController::class, 'store']);
     Route::put('/groups/{id}', [\App\Http\Controllers\Api\AdminGroupController::class, 'update']);
