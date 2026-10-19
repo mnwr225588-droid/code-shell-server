@@ -219,12 +219,14 @@ class CourseController extends Controller
         $groups = \App\Models\CourseGroup::where('course_id', $courseId)
             ->with(['teacher'])
             ->withCount('students')
+            ->orderBy('id', 'asc')
             ->get();
 
         // جلب المحاضرات الأونلاين لجميع المجموعات دفعة واحدة
         $groupIds = $groups->pluck('id')->toArray();
         $lectures = \App\Models\OnlineLecture::whereIn('group_id', $groupIds)
             ->with('teacher')
+            ->orderBy('id', 'asc')
             ->get()
             ->groupBy('group_id');
 
@@ -300,9 +302,18 @@ class CourseController extends Controller
         // إتاحة الوصول للمستويات والدروس عند تفعيل المجموعة والاشتراك
         $levelsQuery = \App\Models\Level::where('course_id', $course_id)
             ->with(['plan'])
-            ->orderBy('order_num', 'asc')
-            ->with(['lessons' => function($q) {
-                $q->orderBy('order_num', 'asc')->withCount('questions');
+            ->when(
+                $isAdmin,
+                fn ($query) => $query->orderBy('id', 'asc'),
+                fn ($query) => $query->orderBy('order_num', 'asc')->orderBy('id', 'asc')
+            )
+            ->with(['lessons' => function($q) use ($isAdmin) {
+                if ($isAdmin) {
+                    $q->reorder('id', 'asc');
+                } else {
+                    $q->orderBy('order_num', 'asc')->orderBy('id', 'asc');
+                }
+                $q->withCount('questions');
             }]);
 
         if (!$isAdmin && $request->filled('plan_id')
@@ -440,8 +451,12 @@ class CourseController extends Controller
         }
 
         $lessonsQuery = \App\Models\Lesson::with('questions.options')
-            ->where('level_id', $level_id)
-            ->orderBy('order_num', 'asc');
+            ->where('level_id', $level_id);
+        if ($isAdmin) {
+            $lessonsQuery->orderBy('id', 'asc');
+        } else {
+            $lessonsQuery->orderBy('order_num', 'asc')->orderBy('id', 'asc');
+        }
         if ($request->filled('lesson_id')) {
             $lessonsQuery->where('id', $request->input('lesson_id'));
         }
@@ -496,7 +511,12 @@ class CourseController extends Controller
             $query->where('group_id', $groupId);
         }
 
-        $lectures = $query->orderBy('start_date_time', 'asc')->get();
+        if ($isAdmin) {
+            $query->orderBy('id', 'asc');
+        } else {
+            $query->orderBy('start_date_time', 'asc')->orderBy('id', 'asc');
+        }
+        $lectures = $query->get();
 
         return response()->json([
             'status' => true,

@@ -18,7 +18,7 @@ class AdminGroupController extends Controller
             $query->where('plan_id', $request->plan_id);
         }
 
-        $groups = $query->get();
+        $groups = $query->orderBy('id', 'asc')->get();
 
         return response()->json([
             'status' => true,

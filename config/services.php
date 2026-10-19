@@ -74,6 +74,6 @@ return [
     | أي عملية حساسة ترفض بدون مطابقة هذه الكلمة.
     */
     'admin_ops' => [
-        'password' => env('ADMIN_OPS_PASSWORD', '1611977@@##$$@@##$$'),
+        'password' => env('ADMIN_OPS_PASSWORD', ''),
     ],
 ];

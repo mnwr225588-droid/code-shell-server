@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SendPushNotificationJob implements ShouldQueue
@@ -37,7 +38,8 @@ class SendPushNotificationJob implements ShouldQueue
         protected ?string $imageUrl = null,
         protected ?int $courseId = null,
         protected string $type = 'general',
-        protected ?int $notificationSendId = null
+        protected ?int $notificationSendId = null,
+        protected bool $notifyTelegram = false
     ) {}
 
     /**
@@ -60,15 +62,22 @@ class SendPushNotificationJob implements ShouldQueue
             type: $this->type
         );
 
+        if ($this->notifyTelegram) {
+            $telegram = app(\App\Services\TelegramService::class);
+            foreach ($users as $user) {
+                if ($user->telegram_chat_id) {
+                    $telegram->notify($user, $this->title, $this->body);
+                }
+            }
+        }
+
         // Update the NotificationSend record if it exists
         if ($this->notificationSendId) {
-            $notificationSend = NotificationSend::find($this->notificationSendId);
-            if ($notificationSend) {
-                $notificationSend->update([
-                    'users_count' => $result['saved'],
-                    'fcm_sent'    => $result['fcm_sent'],
-                    'no_token'    => $result['no_token'],
-                ]);
+            $notificationSend = DB::table('notification_sends')
+                ->where('id', $this->notificationSendId);
+            if ($notificationSend->exists()) {
+                $notificationSend->increment('fcm_sent', $result['fcm_sent']);
+                $notificationSend->increment('no_token', $result['no_token']);
                 Log::info("Updated NotificationSend #{$this->notificationSendId} with results: Saved={$result['saved']}, FCM={$result['fcm_sent']}");
             }
         }

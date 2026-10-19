@@ -64,28 +64,26 @@ class AuthController extends Controller
             'expires_at' => now()->addHours(24),
         ]);
 
-        $emailVerificationSent = false;
+        $email = $user->email;
+        $name = $user->name;
+        app()->terminating(function () use ($email, $name, $token): void {
+            try {
+                $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
+                $mailResult = (new BrevoMailService())->sendVerificationEmail($email, $name, $activationUrl);
 
-        // محاولة إرسال بريد التفعيل عبر Brevo HTTP API
-        try {
-            $activationUrl = "https://code-shell-server-production.up.railway.app/verify-email/" . $token;
-            $mailService = new BrevoMailService();
-            $mailResult = $mailService->sendVerificationEmail($user->email, $user->name, $activationUrl);
-            $emailVerificationSent = (bool) ($mailResult['success'] ?? false);
-
-            if (!$emailVerificationSent) {
-                Log::warning("Register verification email was not sent for {$user->email}: " . ($mailResult['message'] ?? 'Unknown mail error'));
+                if (!($mailResult['success'] ?? false)) {
+                    Log::warning("Register verification email was not sent for {$email}: " . ($mailResult['message'] ?? 'Unknown mail error'));
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Register Mail Notice for {$email}: " . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            Log::warning("Register Mail Notice for {$user->email}: " . $e->getMessage());
-        }
+        });
 
         return response()->json([
             'success' => true,
-            'message' => $emailVerificationSent
-                ? 'تم إنشاء الحساب وإرسال رسالة تأكيد البريد الإلكتروني.'
-                : 'تم إنشاء الحساب، لكن تعذر إرسال رسالة تأكيد البريد الإلكتروني. يمكنك إعادة إرسالها من الموقع.',
-            'email_verification_sent' => $emailVerificationSent,
+            'message' => 'تم إنشاء الحساب، وجارٍ إرسال رسالة تأكيد البريد الإلكتروني.',
+            'email_verification_pending' => true,
+            'email_verification_sent' => false,
             'token' => $result['token'],
             'user' => $result['user'],
         ], 201);

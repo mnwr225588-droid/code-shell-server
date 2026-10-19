@@ -172,40 +172,47 @@ class NotificationController extends Controller
             $imageUrl = $scheme . '://' . $host . '/storage/' . $imageStoragePath;
         }
 
+        $usersQuery = User::query()->select('users.id');
+
         switch ($request->target) {
             case 'all':
                 // كل المستخدمين الطلاب فقط — حسابات الأدمن لا تستقبل إشعارات الطلاب.
-                $users = User::where('is_admin', false)->get();
+                $usersQuery->where('is_admin', false);
                 break;
 
             case 'course':
-                $ids = DB::table('course_reservations')
-                    ->where('course_id', $request->course_id)
-                    ->pluck('user_id')
-                    ->merge(
-                        DB::table('course_subscriptions')
-                            ->where('course_id', $request->course_id)
-                            ->pluck('user_id')
-                    )
-                    ->unique()
-                    ->values();
-                $users = User::whereIn('id', $ids)->get();
+                $usersQuery->where(function ($query) use ($request) {
+                    $query->whereIn('users.id', DB::table('course_reservations')
+                        ->select('user_id')
+                        ->where('course_id', $request->course_id))
+                        ->orWhereIn('users.id', DB::table('course_subscriptions')
+                            ->select('user_id')
+                            ->where('course_id', $request->course_id));
+                });
                 break;
 
             case 'not_subscribed':
-                $involvedIds = DB::table('course_subscriptions')->pluck('user_id')
-                    ->merge(DB::table('course_reservations')->pluck('user_id'))
-                    ->unique();
-                $users = User::whereNotIn('id', $involvedIds)->get();
+                $usersQuery
+                    ->whereNotExists(function ($query) {
+                        $query->selectRaw('1')
+                            ->from('course_subscriptions')
+                            ->whereColumn('course_subscriptions.user_id', 'users.id');
+                    })
+                    ->whereNotExists(function ($query) {
+                        $query->selectRaw('1')
+                            ->from('course_reservations')
+                            ->whereColumn('course_reservations.user_id', 'users.id');
+                    });
                 break;
 
             case 'email':
             default:
-                $users = User::where('email', $request->email)->get();
+                $usersQuery->where('email', $request->email);
                 break;
         }
 
-        if ($users->isEmpty()) {
+        $usersCount = (clone $usersQuery)->count();
+        if ($usersCount === 0) {
             return response()->json([
                 'status'     => false,
                 'message'    => 'لا يوجد مستخدمون ينطبق عليهم هذا الخيار حالياً',
@@ -222,27 +229,21 @@ class NotificationController extends Controller
             'target_type' => $request->target,
             'course_id'   => $request->filled('course_id') ? $request->course_id : null,
             'email'       => $request->filled('email') ? $request->email : null,
-            'users_count' => $users->count(),
+            'users_count' => $usersCount,
             'fcm_sent'    => 0,
             'no_token'    => 0,
             'sent_by'     => $request->user()?->id,
             'sent_at'     => now(),
         ]);
 
-        // 📱 جسر تلجرام: كل مستخدم مربوط يستقبل الإشعار في بوت تلجرام
-        try {
-            $telegram = app(\App\Services\TelegramService::class);
-            // ⚡ أرسل فقط للمربوطين — مع مهلة صارمة في الخدمة نفسها
-            $linkedUsers = $users->filter(fn ($u) => !empty($u->telegram_chat_id));
-            foreach ($linkedUsers as $tgUser) {
-                $telegram->notify($tgUser, $request->title, $request->body);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Telegram bridge failed: ' . $e->getMessage());
-        }
-
         // إذا كان الاستهداف لشخص واحد (مثل البريد)، يُنفّذ الإرسال بشكل synchronous
-        if ($users->count() === 1) {
+        if ($usersCount === 1) {
+            $users = User::whereKey($usersQuery->value('users.id'))->get();
+            $user = $users->first();
+            if ($user?->telegram_chat_id) {
+                app(\App\Services\TelegramService::class)->notify($user, $request->title, $request->body);
+            }
+
             $result = PushNotificationService::sendToUsers(
                 users: $users,
                 title: $request->title,
@@ -272,25 +273,33 @@ class NotificationController extends Controller
             ]);
         }
 
-        // إذا كان الاستهداف جماعياً، يتم جدولته في الـ Queue
-        \App\Jobs\SendPushNotificationJob::dispatch(
-            $users->pluck('id')->toArray(),
-            $request->title,
-            $request->body,
-            array_merge(
-                ['type' => 'admin'],
-                $imageStoragePath !== null ? ['image_url' => $imageStoragePath] : [],
-            ),
+        // تقسيم جمهور الإرسال لتجنب تخزين كل المستخدمين ومعرفاتهم في الذاكرة أو في مهمة واحدة.
+        $usersQuery->orderBy('users.id')->chunkById(100, function ($users) use (
+            $request,
+            $imageStoragePath,
             $imageUrl,
-            $request->filled('course_id') ? $request->course_id : null,
-            'general',
-            $notificationSend->id
-        );
+            $notificationSend
+        ) {
+            \App\Jobs\SendPushNotificationJob::dispatch(
+                $users->pluck('id')->all(),
+                $request->title,
+                $request->body,
+                array_merge(
+                    ['type' => 'admin'],
+                    $imageStoragePath !== null ? ['image_url' => $imageStoragePath] : [],
+                ),
+                $imageUrl,
+                $request->filled('course_id') ? $request->course_id : null,
+                'general',
+                $notificationSend->id,
+                true
+            );
+        });
 
         return response()->json([
             'status'      => true,
             'message'     => 'تم بدء إرسال الإشعار في الخلفية.',
-            'users_count' => $users->count(),
+            'users_count' => $usersCount,
             'fcm_sent'    => 0,
             'no_token'    => 0,
         ]);

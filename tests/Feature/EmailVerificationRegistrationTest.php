@@ -22,13 +22,13 @@ class EmailVerificationRegistrationTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_registration_reports_that_the_automatic_verification_email_was_sent(): void
+    public function test_registration_returns_before_sending_the_verification_email(): void
     {
         Http::fake([
             'api.brevo.com/v3/smtp/email' => Http::response(['messageId' => 'test-message-id'], 201),
         ]);
 
-        $response = $this->postJson('/api/register', [
+        $response = $this->post('/api/register', [
             'first_name' => 'Test',
             'middle_name' => 'Student',
             'last_name' => 'Account',
@@ -43,8 +43,9 @@ class EmailVerificationRegistrationTest extends TestCase
         $response->assertCreated()
             ->assertJson([
                 'success' => true,
-                'email_verification_sent' => true,
-                'message' => 'تم إنشاء الحساب وإرسال رسالة تأكيد البريد الإلكتروني.',
+                'email_verification_pending' => true,
+                'email_verification_sent' => false,
+                'message' => 'تم إنشاء الحساب، وجارٍ إرسال رسالة تأكيد البريد الإلكتروني.',
             ]);
 
         Http::assertSent(fn ($request) =>

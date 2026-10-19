@@ -195,6 +195,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::post('/wallet/admin-credit', [\App\Http\Controllers\Api\AdminOpsController::class, 'creditWallet']);
     Route::post('/subscriptions/admin-subscribe', [\App\Http\Controllers\Api\AdminOpsController::class, 'subscribeStudent']);
     Route::get('/operations', [\App\Http\Controllers\Api\AdminOpsController::class, 'index']);
+    Route::delete('/operations/{operationId}', [\App\Http\Controllers\Api\AdminOpsController::class, 'deleteOperation']);
 
     // 📋 طلبات تأجيل المحاضرات
     Route::get('/postponement-requests', [\App\Http\Controllers\Api\AdminTeacherController::class, 'postponementRequests']);

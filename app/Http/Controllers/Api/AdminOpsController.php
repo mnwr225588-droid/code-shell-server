@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CoursePlan;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\PricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,6 +77,9 @@ class AdminOpsController extends Controller
      */
     public function creditWallet(Request $request): JsonResponse
     {
+        $gate = $this->ensureOperationPassword($request);
+        if ($gate) return $gate;
+
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'amount'  => 'required|numeric|min:1',
@@ -99,24 +104,23 @@ class AdminOpsController extends Controller
                 'description'   => 'شحن رصيد بواسطة الأدمن' . ($request->filled('notes') ? ' — ' . $request->input('notes') : ''),
             ]);
 
+            DB::table('admin_operations')->insert([
+                'operation'  => 'topup',
+                'admin_id'   => auth('sanctum')->id(),
+                'user_id'    => $user->id,
+                'user_email' => $user->email,
+                'amount'     => $amount,
+                'notes'      => $request->input('notes'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             return $user;
         });
 
         if (!$result) {
             return response()->json(['status' => false, 'message' => 'الطالب غير موجود.'], 404);
         }
-
-        // تسجيل العملية في سجل الأدمن
-        DB::table('admin_operations')->insert([
-            'operation'  => 'topup',
-            'admin_id'   => auth('sanctum')->id(),
-            'user_id'    => $result->id,
-            'user_email' => $result->email,
-            'amount'     => $amount,
-            'notes'      => $request->input('notes'),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
 
         Log::info("Admin credited wallet: User #{$result->id} +{$amount} EGP");
 
@@ -158,63 +162,101 @@ class AdminOpsController extends Controller
 
         $request->validate([
             'user_id'   => 'required|exists:users,id',
-            'course_id' => 'required',
+            'course_id' => 'required|exists:courses,id',
+            'plan_id'   => 'nullable|integer',
         ]);
 
         $student = User::find($request->input('user_id'));
         $course = Course::findCourseSafely($request->input('course_id'));
+        $plan = null;
 
         if (!$student || !$course) {
             return response()->json(['status' => false, 'message' => 'الطالب أو الكورس غير موجود.'], 404);
         }
 
-        // منع الاشتراك المزدوج
-        $already = DB::table('course_subscriptions')
+        if ($request->filled('plan_id')) {
+            $plan = CoursePlan::where('course_id', $course->id)
+                ->where('is_active', true)
+                ->find($request->input('plan_id'));
+
+            if (!$plan) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'الباقة المحددة غير متاحة لهذا الكورس.',
+                ], 422);
+            }
+        }
+
+        // منع التكرار في نفس الباقة، مع السماح بالاشتراك في باقات أخرى للكورس.
+        $alreadyQuery = DB::table('course_subscriptions')
             ->where('user_id', $student->id)
             ->where('course_id', $course->id)
             ->where(function ($q) {
                 $q->whereNull('subscription_status')->orWhere('subscription_status', 'active');
-            })
-            ->exists();
+            });
+        $plan ? $alreadyQuery->where('plan_id', $plan->id) : $alreadyQuery->whereNull('plan_id');
+        $already = $alreadyQuery->exists();
 
         if ($already) {
             return response()->json([
                 'status'  => false,
-                'message' => "الطالب {$student->name} مشترك بالفعل في هذا الكورس.",
+                'message' => $plan
+                    ? "الطالب {$student->name} مشترك بالفعل في هذه الباقة."
+                    : "الطالب {$student->name} مشترك بالفعل في الكورس بدون باقة.",
             ], 422);
         }
 
-        $amount = (float) ($course->price ?? 0);
+        if ($plan) {
+            $pricing = PricingService::priceForPlan($student->country, $plan);
+            $durationDays = (int) $plan->duration_days;
+            $isFree = (bool) $plan->is_free || (float) $pricing['price'] === 0.0;
+        } else {
+            $prices = $course->prices ?? [];
+            $pricing = PricingService::priceFor($student->country, is_array($prices) && $prices !== [] ? $prices : PricingService::defaults());
+            $durationDays = (int) ($course->subscription_duration_days ?? 0);
+            $isFree = (bool) $course->is_free || (float) $pricing['price'] === 0.0;
+        }
+        $amount = $isFree ? 0.0 : (float) $pricing['price'];
 
-        // معاملة مكتملة بواسطة الأدمن ثم تفعيل الاشتراك عبر نفس المسار الرسمي
-        // (يشمل تعيين المجموعة المفتوحة وفق القواعد الصارمة)
-        $transaction = Transaction::create([
-            'user_id'         => $student->id,
-            'course_id'       => $course->id,
-            'amount'          => $amount,
-            'currency_code'   => 'EGP',
-            'payment_gateway' => 'admin',
-            'status'          => Transaction::STATUS_COMPLETED,
-            'paid_at'         => now(),
-            'payload'         => ['subscribed_by_admin' => true],
-        ]);
+        $transaction = DB::transaction(function () use ($student, $course, $plan, $pricing, $durationDays, $amount) {
+            $transaction = Transaction::create([
+                'user_id'         => $student->id,
+                'course_id'       => $course->id,
+                'amount'          => $amount,
+                'currency_code'   => $pricing['currency_code'],
+                'payment_gateway' => 'admin',
+                'status'          => Transaction::STATUS_COMPLETED,
+                'payload'         => [
+                    'subscribed_by_admin' => true,
+                    'plan_id' => $plan?->id,
+                    'plan_type' => $plan?->name ?? 'monthly',
+                    'plan_duration_days' => $durationDays,
+                ],
+            ]);
 
-        app(\App\Services\SubscriptionService::class)->activateFromTransaction($transaction, [
-            'subscribed_by_admin' => true,
-        ]);
+            $activated = app(\App\Services\SubscriptionService::class)->activateFromTransaction($transaction, [
+                'subscribed_by_admin' => true,
+            ]);
+            if (!$activated) {
+                throw new \RuntimeException('تعذر تفعيل الاشتراك بعد إنشاء المعاملة.');
+            }
 
-        // تسجيل العملية في سجل الأدمن
-        DB::table('admin_operations')->insert([
-            'operation'  => 'subscribe',
-            'admin_id'   => auth('sanctum')->id(),
-            'user_id'    => $student->id,
-            'user_email' => $student->email,
-            'course_id'  => $course->id,
-            'amount'     => $amount,
-            'notes'      => 'اشتراك مباشر بواسطة الأدمن',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            DB::table('admin_operations')->insert([
+                'operation'  => 'subscribe',
+                'admin_id'   => auth('sanctum')->id(),
+                'user_id'    => $student->id,
+                'user_email' => $student->email,
+                'course_id'  => $course->id,
+                'amount'     => $amount,
+                'notes'      => $plan
+                    ? 'اشتراك مباشر بواسطة الأدمن — ' . $plan->name
+                    : 'اشتراك مباشر بواسطة الأدمن',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $transaction;
+        });
 
         Log::info("Admin subscribed student: User #{$student->id} → Course #{$course->id}");
 
@@ -241,7 +283,11 @@ class AdminOpsController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => "تم اشتراك الطالب \"{$student->name}\" في كورس \"{$course->title}\" بنجاح!",
+            'message' => "تم اشتراك الطالب \"{$student->name}\" في كورس \"{$course->title}\"" . ($plan ? " — باقة \"{$plan->name}\"" : '') . ' بنجاح!',
+            'transaction_id' => $transaction->id,
+            'plan_id' => $plan?->id,
+            'amount' => $amount,
+            'currency_code' => $pricing['currency_code'],
         ]);
     }
 
@@ -268,6 +314,30 @@ class AdminOpsController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $operations,
+        ]);
+    }
+
+    public function deleteOperation(Request $request, int $operationId): JsonResponse
+    {
+        $gate = $this->ensureOperationPassword($request);
+        if ($gate) return $gate;
+
+        $deleted = DB::table('admin_operations')->where('id', $operationId)->delete();
+        if (!$deleted) {
+            return response()->json([
+                'status' => false,
+                'message' => 'السجل المطلوب غير موجود أو تم حذفه بالفعل.',
+            ], 404);
+        }
+
+        Log::warning('Admin deleted operation history record', [
+            'operation_id' => $operationId,
+            'admin_id' => auth('sanctum')->id(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'تم حذف السجل. لم يتغير رصيد المحفظة أو حالة الاشتراك.',
         ]);
     }
 }

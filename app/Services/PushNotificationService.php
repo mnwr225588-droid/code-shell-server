@@ -62,6 +62,7 @@ class PushNotificationService
                         : [],
                 ),
             ]);
+            $saved++;
             // Telegram receives only platform-generated event types. Admin notices use their dedicated admin path.
             if (!empty($user->telegram_chat_id) && in_array($type, ['course', 'course_available', 'lecture_reminder'], true)) {
                 app(\App\Services\TelegramService::class)->notify($user, $title, $body);

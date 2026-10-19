@@ -11,8 +11,7 @@ class AdminReservationController extends Controller
     // جلب الكورسات مع أعداد الحجوزات
     public function getCoursesWithReservationCounts()
     {
-        // the Course model already appends 'reservations_count'
-        $courses = Course::all();
+        $courses = Course::query()->withDashboardCounts()->get();
         return response()->json([
             'status' => true,
             'data' => $courses

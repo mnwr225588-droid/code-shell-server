@@ -11,8 +11,7 @@ class AdminSubscriptionController extends Controller
     // جلب الكورسات مع أعداد المشتركين
     public function getCoursesWithSubscriptionCounts()
     {
-        // Course model appends 'subscriptions_count'
-        $courses = Course::all();
+        $courses = Course::query()->withDashboardCounts()->get();
         return response()->json([
             'status' => true,
             'data' => $courses

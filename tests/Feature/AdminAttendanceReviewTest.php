@@ -49,6 +49,32 @@ class AdminAttendanceReviewTest extends TestCase
             ->assertJsonPath('data.0.email', $students[0]->email);
     }
 
+    public function test_admin_can_filter_attendance_groups_by_selected_course(): void
+    {
+        [$admin, $group] = $this->createAttendanceRecords();
+        $category = Category::where('name', 'Attendance Test Category')->firstOrFail();
+        $otherCourse = Course::create([
+            'category_id' => $category->id,
+            'title' => 'Other Attendance Test Course',
+            'is_free' => true,
+            'is_active' => true,
+        ]);
+        CourseGroup::create([
+            'course_id' => $otherCourse->id,
+            'name' => 'Other Course Group',
+            'capacity' => 10,
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/admin/attendance/groups?course_id={$group->course_id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $group->id);
+
+        $this->getJson('/api/admin/attendance/groups?course_id=999999')
+            ->assertUnprocessable();
+    }
+
     public function test_non_admin_cannot_review_attendance(): void
     {
         [, $group] = $this->createAttendanceRecords();

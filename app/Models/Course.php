@@ -12,8 +12,10 @@ namespace App\Models;
 /// علشان يوفر بيانات جاهزة للـ API من غير ما يضطر الـ Controller يحسبها لكل كورس.
 
 use App\Services\PricingService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Course extends Model
 {
@@ -135,22 +137,62 @@ class Course extends Model
             ->contains(fn (CourseSubscription $subscription) => $subscription->isAccessGranted());
     }
 
-    public function getLevelsCountAttribute()
+    public function getLevelsCountAttribute($value = null)
     {
-        return $this->levels()->count();
+        return $value !== null ? (int) $value : $this->levels()->count();
     }
 
-    public function getLessonsCountAttribute()
+    public function getLessonsCountAttribute($value = null)
     {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
         // Get all level IDs for this course
         $levelIds = $this->levels()->pluck('id');
         return \App\Models\Lesson::whereIn('level_id', $levelIds)->count();
     }
 
-    public function getStudentsCountAttribute()
+    public function getStudentsCountAttribute($value = null)
     {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
         // Actual subscribed count + 120 (base modifier to look popular)
         return $this->subscribedUsers()->distinct()->count('users.id') + 120;
+    }
+
+    public function scopeWithDashboardCounts(Builder $query): Builder
+    {
+        $activeSubscriptions = fn () => DB::table('course_subscriptions')
+            ->selectRaw('COUNT(DISTINCT user_id)')
+            ->whereColumn('course_id', 'courses.id')
+            ->where(function ($query) {
+                $query->whereNull('subscription_status')
+                    ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+            });
+
+        return $query->addSelect([
+            'reservations_count' => DB::table('course_reservations')
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('course_id', 'courses.id'),
+            'subscriptions_count' => $activeSubscriptions(),
+            'students_count' => DB::table('course_subscriptions')
+                ->selectRaw('COUNT(DISTINCT user_id) + 120')
+                ->whereColumn('course_id', 'courses.id')
+                ->where(function ($subquery) {
+                    $subquery->whereNull('subscription_status')
+                        ->orWhere('subscription_status', CourseSubscription::STATUS_ACTIVE);
+                }),
+            'levels_count' => DB::table('levels')
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('course_id', 'courses.id'),
+            'lessons_count' => DB::table('lessons')
+                ->join('levels', 'lessons.level_id', '=', 'levels.id')
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('levels.course_id', 'courses.id'),
+        ]);
     }
 
     public function getDurationAttribute($value)
@@ -299,16 +341,24 @@ class Course extends Model
             ->withTimestamps();
     }
 
-    public function getReservationsCountAttribute()
+    public function getReservationsCountAttribute($value = null)
     {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
         if ($this->relationLoaded('reservedUsers')) {
             return $this->reservedUsers->count();
         }
         return $this->reservedUsers()->count();
     }
 
-    public function getSubscriptionsCountAttribute()
+    public function getSubscriptionsCountAttribute($value = null)
     {
+        if ($value !== null) {
+            return (int) $value;
+        }
+
         if ($this->relationLoaded('subscribedUsers')) {
             return $this->subscribedUsers->unique('id')->count();
         }

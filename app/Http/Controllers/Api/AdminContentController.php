@@ -28,7 +28,7 @@ class AdminContentController extends Controller
             $courses = \Cache::remember('admin_course_summaries_v1', 30, function () {
                 return DB::table('courses')
                     ->select(['id', 'title', 'thumbnail', 'is_free', 'is_coming_soon'])
-                    ->orderByDesc('id')
+                    ->orderBy('id', 'asc')
                     ->get()
                     ->map(static fn ($course) => (array) $course)
                     ->all();
@@ -40,7 +40,7 @@ class AdminContentController extends Controller
             ])->header('Cache-Control', 'no-store, private');
         }
 
-        $courses = Course::with('category')->orderBy('id', 'desc')->get();
+        $courses = Course::with('category')->orderBy('id', 'asc')->get();
         $courseIds = $courses->pluck('id');
 
         $levelCounts = DB::table('levels')->whereIn('course_id', $courseIds)->groupBy('course_id')->selectRaw('course_id, COUNT(*) as c')->pluck('c', 'course_id');
@@ -902,8 +902,12 @@ class AdminContentController extends Controller
     public function getCoursePlans($courseId)
     {
         $course = Course::findCourseSafely($courseId);
-        $plans = CoursePlan::where('course_id', $courseId)->orderBy('sort_order')->get();
-        return response()->json(['status' => true, 'data' => $plans]);
+        $plans = CoursePlan::where('course_id', $courseId)
+            ->withCount(['levels', 'groups', 'onlineLectures'])
+            ->orderBy('id', 'asc')
+            ->get();
+        return response()->json(['status' => true, 'data' => $plans])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function storeCoursePlan(Request $request, $courseId)
@@ -1168,7 +1172,10 @@ class AdminContentController extends Controller
     public function getPlanLessons($planId)
     {
         $plan = CoursePlan::findOrFail($planId);
-        $planLessons = PlanLesson::where('plan_id', $planId)->with(['lesson', 'level', 'group'])->get();
+        $planLessons = PlanLesson::where('plan_id', $planId)
+            ->with(['lesson', 'level', 'group'])
+            ->orderBy('id', 'asc')
+            ->get();
         return response()->json(['status' => true, 'data' => $planLessons]);
     }
 

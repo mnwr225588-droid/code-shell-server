@@ -14,9 +14,14 @@ class AdminAttendanceController extends Controller
     public function groups(Request $request)
     {
         $this->ensureAdmin($request);
+        $request->validate([
+            'course_id' => 'nullable|integer|exists:courses,id',
+            'page' => 'nullable|integer|min:1',
+        ]);
 
         $groups = CourseGroup::query()
             ->select('course_groups.*')
+            ->when($request->filled('course_id'), fn ($query) => $query->where('course_groups.course_id', $request->integer('course_id')))
             ->with(['course:id,title', 'teacher:id,name'])
             ->selectSub(
                 DB::table('course_subscriptions')
@@ -31,7 +36,7 @@ class AdminAttendanceController extends Controller
             ->withCount([
                 'onlineLectures as ended_lectures_count' => fn ($query) => $query->where('status', 'ended'),
             ])
-            ->orderByDesc('id')
+            ->orderBy('id', 'asc')
             ->paginate(60);
 
         return response()->json([
@@ -55,7 +60,7 @@ class AdminAttendanceController extends Controller
             ->where('group_id', $group->id)
             ->where('status', 'ended')
             ->withCount('attendances')
-            ->orderByDesc('start_date_time')
+            ->orderBy('id', 'asc')
             ->get(['id', 'course_id', 'group_id', 'title', 'start_date_time', 'duration_minutes', 'status']);
 
         return response()->json([
