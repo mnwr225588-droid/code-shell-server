@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Admin;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -77,5 +78,72 @@ class LoginEndpointLockoutTest extends TestCase
             'email' => 'login-limit-admin@example.com',
             'password' => 'correct-password',
         ])->assertStatus(429);
+    }
+
+    public function test_user_account_linked_to_a_teacher_is_still_identified_as_a_teacher(): void
+    {
+        User::create([
+        'name' => 'Linked Teacher',
+        'first_name' => 'Linked',
+        'middle_name' => 'Teacher',
+        'last_name' => 'Account',
+        'email' => 'linked-teacher@example.com',
+        'password' => Hash::make('correct-password'),
+        'country' => 'EG',
+        'birth_date' => '2000-01-01',
+        'phone' => '01000000452',
+        ]);
+        Teacher::create([
+        'name' => 'Linked Teacher',
+        'email' => 'linked-teacher@example.com',
+        'password' => Hash::make('correct-password'),
+        ]);
+
+        $this->post('/api/login', [
+        'email' => 'linked-teacher@example.com',
+        'password' => 'correct-password',
+        ])->assertOk()
+        ->assertJsonPath('user.user_type', 'teacher')
+        ->assertJsonMissingPath('user.is_teacher_account');
+    }
+
+    public function test_successful_login_resets_the_failed_attempt_counter(): void
+    {
+        User::create([
+        'name' => 'Reset Login Limit',
+        'first_name' => 'Reset',
+        'middle_name' => 'Login',
+        'last_name' => 'Limit',
+        'email' => 'reset-login-limit@example.com',
+        'password' => Hash::make('correct-password'),
+        'country' => 'EG',
+        'birth_date' => '2000-01-01',
+        'phone' => '01000000453',
+        ]);
+
+        for ($attempt = 1; $attempt <= 4; $attempt++) {
+        $this->postJson('/api/login', [
+            'email' => 'reset-login-limit@example.com',
+            'password' => 'wrong-password',
+        ])->assertUnprocessable();
+        }
+
+        $this->post('/api/login', [
+        'email' => 'reset-login-limit@example.com',
+        'password' => 'correct-password',
+        ])->assertOk();
+
+        for ($attempt = 1; $attempt <= 4; $attempt++) {
+        $this->postJson('/api/login', [
+            'email' => 'reset-login-limit@example.com',
+            'password' => 'wrong-password',
+        ])->assertUnprocessable();
+        }
+
+        $this->postJson('/api/login', [
+        'email' => 'reset-login-limit@example.com',
+        'password' => 'wrong-password',
+        ])->assertStatus(429)
+        ->assertHeader('Retry-After', '900');
     }
 }

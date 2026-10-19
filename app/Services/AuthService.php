@@ -44,7 +44,17 @@ class AuthService
     public function login(array $data): array
     {
         // أولاً: نبحث في جدول المستخدمين (طلاب + أدمنز)
-        $user = User::where('email', $data['email'])->first();
+        $user = User::query()
+            ->select('users.*')
+            ->selectSub(
+                Teacher::query()
+                    ->selectRaw('1')
+                    ->whereColumn('teachers.email', 'users.email')
+                    ->limit(1),
+                'is_teacher_account'
+            )
+            ->where('users.email', $data['email'])
+            ->first();
 
         if ($user && Hash::check($data['password'], $user->password)) {
             // ربط الدولة تلقائياً عند تسجيل الدخول
@@ -54,7 +64,8 @@ class AuthService
             }
 
             // فحص هل المستخدم مدرس لتفعيل بريده تلقائياً وعدم مطالبته بالتحقق
-            $isTeacher = Teacher::where('email', $user->email)->exists() || $user->teacher !== null;
+            $isTeacher = (bool) $user->getAttribute('is_teacher_account');
+            $user->makeHidden('is_teacher_account');
             if ($isTeacher && !$user->email_verified_at) {
                 $user->email_verified_at = now();
                 $user->save();

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 
 class LoginAttemptLimiter
@@ -13,23 +14,31 @@ class LoginAttemptLimiter
     public function lockoutSeconds(string $email, string $ipAddress): int
     {
         $key = $this->key($email, $ipAddress, 'lockout');
+        $cachedValues = Cache::many([$key, $key . ':timer']);
+        $attempts = (int) ($cachedValues[$key] ?? 0);
+        $availableAt = (int) ($cachedValues[$key . ':timer'] ?? 0);
+        $now = now()->getTimestamp();
 
-        return RateLimiter::tooManyAttempts($key, 1)
-            ? RateLimiter::availableIn($key)
-            : 0;
+        if ($attempts < 1) {
+            return 0;
+        }
+
+        if ($availableAt <= $now) {
+            RateLimiter::clear($key);
+            return 0;
+        }
+
+        return $availableAt - $now;
     }
 
     public function recordFailure(string $email, string $ipAddress): int
     {
-        $lockoutSeconds = $this->lockoutSeconds($email, $ipAddress);
-        if ($lockoutSeconds > 0) {
-            return $lockoutSeconds;
-        }
-
+        // The controller checks the lockout before authentication; reuse the increment result
+        // to avoid another cache read for the failed-attempt count.
         $attemptsKey = $this->key($email, $ipAddress, 'attempts');
-        RateLimiter::hit($attemptsKey, self::ATTEMPT_WINDOW_SECONDS);
+        $attempts = RateLimiter::hit($attemptsKey, self::ATTEMPT_WINDOW_SECONDS);
 
-        if (RateLimiter::attempts($attemptsKey) < self::MAX_FAILED_ATTEMPTS) {
+        if ($attempts < self::MAX_FAILED_ATTEMPTS) {
             return 0;
         }
 
@@ -42,7 +51,6 @@ class LoginAttemptLimiter
     public function clear(string $email, string $ipAddress): void
     {
         RateLimiter::clear($this->key($email, $ipAddress, 'attempts'));
-        RateLimiter::clear($this->key($email, $ipAddress, 'lockout'));
     }
 
     private function key(string $email, string $ipAddress, string $purpose): string
