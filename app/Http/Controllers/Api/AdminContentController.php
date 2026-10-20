@@ -902,7 +902,7 @@ class AdminContentController extends Controller
     public function getCoursePlans($courseId)
     {
         $course = Course::findCourseSafely($courseId);
-        $plans = CoursePlan::where('course_id', $courseId)
+        $plans = CoursePlan::where('course_id', $course->id)
             ->withCount(['levels', 'groups', 'onlineLectures'])
             ->orderBy('id', 'asc')
             ->get();
@@ -943,7 +943,7 @@ class AdminContentController extends Controller
         if (empty($slug)) {
             $slug = Str::slug($request->name ?: 'plan') . '-' . substr(uniqid(), -6);
         }
-        while (CoursePlan::where('course_id', $courseId)->where('slug', $slug)->exists()) {
+        while (CoursePlan::where('course_id', $course->id)->where('slug', $slug)->exists()) {
             $slug = Str::slug($request->name ?: 'plan') . '-' . rand(1000, 9999);
         }
 
@@ -999,7 +999,7 @@ class AdminContentController extends Controller
         $discountPrices = $this->setCurrencyPrice($discountPrices, $currencyCode, $discountPrice);
 
         $plan = CoursePlan::create([
-            'course_id' => $courseId,
+            'course_id' => $course->id,
             'name' => $request->name,
             'name_en' => $request->name_en,
             'slug' => $slug,

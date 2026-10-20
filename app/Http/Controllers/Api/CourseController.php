@@ -536,7 +536,7 @@ class CourseController extends Controller
             || (method_exists($user, 'isAdmin') && $user->isAdmin())
         );
 
-        $plans = \App\Models\CoursePlan::where('course_id', $courseId)
+        $plans = \App\Models\CoursePlan::where('course_id', $course->id)
             ->where('is_active', true)
             ->orderBy('sort_order', 'asc')
             ->orderBy('id', 'asc')
@@ -544,7 +544,7 @@ class CourseController extends Controller
 
         $subscriptions = ($user && !$isAdmin)
             ? \App\Models\CourseSubscription::where('user_id', $user->id)
-                ->where('course_id', $courseId)
+                ->where('course_id', $course->id)
                 ->where(function ($query) {
                     $query->whereNull('subscription_status')
                         ->orWhere('subscription_status', \App\Models\CourseSubscription::STATUS_ACTIVE);
