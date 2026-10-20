@@ -75,7 +75,8 @@ class AdminCoursePlanManagementTest extends TestCase
             ->assertOk()
             ->assertJsonPath('course.id', $course->id)
             ->assertJsonPath('data.0.name', 'اشتراك شهري محدث')
-            ->assertJsonPath('data.2.name', 'باقة جديدة');
+            ->assertJsonPath('data.2.name', 'باقة جديدة')
+            ->assertJsonPath('data.2.duration_days', 60);
     }
 
     private function createPlan(Course $course, string $name, string $slug, float $price, int $durationDays): CoursePlan
