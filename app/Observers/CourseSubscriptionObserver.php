@@ -38,6 +38,12 @@ class CourseSubscriptionObserver
                 }
 
                 app(AdminTelegramBotService::class)->notifySubscription($subscription);
+                if ($subscription->group_id) {
+                    $group = $subscription->group()->first();
+                    if ($group) {
+                        app(AdminTelegramBotService::class)->notifyCompletedGroupOnce($group);
+                    }
+                }
             } catch (Throwable $exception) {
                 Log::warning('Admin Telegram subscription alert could not be prepared.', [
                     'subscription_id' => $subscriptionId,

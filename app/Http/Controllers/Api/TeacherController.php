@@ -13,6 +13,8 @@ use App\Models\OnlineLecture;
 use App\Models\LectureAttendance;
 use App\Models\CourseSubscription;
 use App\Models\LecturePostponementRequest;
+use App\Models\User;
+use App\Services\AdminTelegramBotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -173,17 +175,64 @@ class TeacherController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($request, $lecture) {
+        $previousLecture = OnlineLecture::query()
+            ->where('group_id', $group->id)
+            ->where('status', 'ended')
+            ->where(function ($query) use ($lecture) {
+                $query->where('start_date_time', '<', $lecture->start_date_time)
+                    ->orWhere(function ($query) use ($lecture) {
+                        $query->where('start_date_time', $lecture->start_date_time)
+                            ->where('id', '<', $lecture->id);
+                    });
+            })
+            ->orderByDesc('start_date_time')
+            ->orderByDesc('id')
+            ->first();
+        $previouslyPresentStudentIds = $previousLecture
+            ? LectureAttendance::query()
+                ->where('online_lecture_id', $previousLecture->id)
+                ->where('attendance_status', 'present')
+                ->pluck('user_id')
+                ->map(fn ($id) => (int) $id)
+                ->all()
+            : [];
+        $absenceNotifications = [];
+
+        DB::transaction(function () use (
+            $request,
+            $lecture,
+            $previouslyPresentStudentIds,
+            &$absenceNotifications
+        ) {
             foreach ($request->input('attendance') as $record) {
+                $userId = (int) $record['user_id'];
                 $attendance = LectureAttendance::firstOrNew([
                     'online_lecture_id' => $lecture->id,
-                    'user_id' => (int) $record['user_id'],
+                    'user_id' => $userId,
                 ]);
+                $wasAlreadyAbsent = $attendance->exists
+                    && $attendance->attendance_status === 'absent';
                 $attendance->attendance_status = $record['status'];
                 $attendance->join_time ??= now();
                 $attendance->save();
+
+                if (
+                    $record['status'] === 'absent'
+                    && !$wasAlreadyAbsent
+                    && in_array($userId, $previouslyPresentStudentIds, true)
+                ) {
+                    $absenceNotifications[] = $userId;
+                }
             }
         });
+
+        if ($previousLecture && $absenceNotifications !== []) {
+            User::query()
+                ->whereIn('id', array_unique($absenceNotifications))
+                ->get()
+                ->each(fn (User $student) => app(AdminTelegramBotService::class)
+                    ->notifyAttendanceAbsence($student, $lecture, $previousLecture));
+        }
 
         return response()->json([
             'status' => true,

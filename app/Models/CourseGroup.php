@@ -15,6 +15,7 @@ class CourseGroup extends Model
         'include_all_levels' => 'boolean',
         'activation_scheduled_at' => 'datetime',
         'registration_period_days' => 'integer',
+        'admin_telegram_full_alerted_at' => 'datetime',
     ];
 
     public function course()

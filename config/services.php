@@ -54,6 +54,8 @@ return [
     'admin_telegram' => [
         'bot_token' => env('ADMIN_TELEGRAM_BOT_TOKEN'),
         'chat_id' => env('ADMIN_TELEGRAM_CHAT_ID'),
+        'secret_token' => env('ADMIN_TELEGRAM_BOT_SECRET'),
+        'webhook_url' => env('ADMIN_TELEGRAM_WEBHOOK_URL'),
     ],
 
     'brevo' => [

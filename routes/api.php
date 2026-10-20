@@ -66,6 +66,7 @@ Route::post('/admin/login', [AdminAuthController::class, 'login']);
 
 // مسار الـ Webhook الخاص ببوت التلجرام
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle']);
+Route::post('/admin/telegram/webhook', [\App\Http\Controllers\Api\AdminTelegramWebhookController::class, 'handle']);
 
 // Webhook بوابة الدفع: يستقبل إشعارات النجاح/الفشل من البوابة (أو المحاكي)
 // بدون مصادقة Sanctum — الحماية عبر التحقق من توقيع الطلب داخل الـ Controller.

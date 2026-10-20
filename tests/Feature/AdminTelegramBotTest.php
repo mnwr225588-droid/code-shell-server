@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\CourseGroup;
 use App\Models\CourseSubscription;
 use App\Models\Transaction;
 use App\Models\User;
@@ -61,6 +62,150 @@ class AdminTelegramBotTest extends TestCase
             && str_contains($request['text'], '01000000000')
             && str_contains($request['text'], 'Test Course')
             && str_contains($request['text'], '250.00 EGP')
+        );
+    }
+
+    public function test_subscription_alert_includes_the_members_group_position_and_current_capacity(): void
+    {
+        [$firstUser, $course] = $this->studentAndCourse();
+        $secondUser = User::create([
+            'name' => 'Second Student',
+            'first_name' => 'Second',
+            'middle_name' => 'Test',
+            'last_name' => 'Student',
+            'email' => 'second@example.com',
+            'password' => Hash::make('password123'),
+            'country' => 'EG',
+            'birth_date' => '2000-01-01',
+            'phone' => '01000000001',
+        ]);
+        $group = CourseGroup::create([
+            'course_id' => $course->id,
+            'name' => 'المجموعة الأولى',
+            'capacity' => 3,
+            'status' => 'open_for_registration',
+        ]);
+        CourseSubscription::create([
+            'user_id' => $firstUser->id,
+            'course_id' => $course->id,
+            'group_id' => $group->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+        $subscription = CourseSubscription::create([
+            'user_id' => $secondUser->id,
+            'course_id' => $course->id,
+            'group_id' => $group->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+
+        $this->assertTrue(app(AdminTelegramBotService::class)->notifySubscription($subscription));
+
+        Http::assertSent(fn ($request) =>
+            str_contains((string) $request['text'], 'ترتيب العضو في المجموعة:</b> 2')
+            && str_contains((string) $request['text'], 'عدد المجموعة الحالي:</b> 2/3 طالب')
+        );
+    }
+
+    public function test_full_group_alert_includes_all_student_names_and_emails_and_can_only_be_sent_once(): void
+    {
+        [$firstUser, $course] = $this->studentAndCourse();
+        $secondUser = User::create([
+            'name' => 'Second Student',
+            'first_name' => 'Second',
+            'middle_name' => 'Test',
+            'last_name' => 'Student',
+            'email' => 'second@example.com',
+            'password' => Hash::make('password123'),
+            'country' => 'EG',
+            'birth_date' => '2000-01-01',
+            'phone' => '01000000001',
+        ]);
+        $group = CourseGroup::create([
+            'course_id' => $course->id,
+            'name' => 'المجموعة المكتملة',
+            'capacity' => 2,
+            'status' => 'open_for_registration',
+        ]);
+        CourseSubscription::create([
+            'user_id' => $firstUser->id,
+            'course_id' => $course->id,
+            'group_id' => $group->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+        CourseSubscription::create([
+            'user_id' => $secondUser->id,
+            'course_id' => $course->id,
+            'group_id' => $group->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+        $service = app(AdminTelegramBotService::class);
+        $this->assertFalse($service->notifyCompletedGroupOnce($group));
+        $this->assertNotNull(CourseGroup::find($group->id)?->admin_telegram_full_alerted_at);
+
+        $fullGroupAlerts = Http::recorded(fn ($request) =>
+            str_contains((string) $request['text'], 'اكتملت المجموعة')
+        );
+        $this->assertCount(1, $fullGroupAlerts);
+        $fullGroupAlert = $fullGroupAlerts->first()[0];
+        $this->assertStringContainsString('Test Example Student', (string) $fullGroupAlert['text']);
+        $this->assertStringContainsString('student@example.com', (string) $fullGroupAlert['text']);
+        $this->assertStringContainsString('Second Test Student', (string) $fullGroupAlert['text']);
+        $this->assertStringContainsString('second@example.com', (string) $fullGroupAlert['text']);
+        $this->assertSame(
+            'admin:activate:' . $group->id,
+            data_get($fullGroupAlert->data(), 'reply_markup.inline_keyboard.0.0.callback_data')
+        );
+    }
+
+    public function test_admin_menu_has_statistics_and_group_buttons(): void
+    {
+        $this->assertTrue(app(AdminTelegramBotService::class)->sendAdminMenu());
+
+        Http::assertSent(fn ($request) =>
+            str_contains((string) $request['text'], 'لوحة إدارة Code Shell')
+            && data_get($request->data(), 'reply_markup.keyboard.0.0') === AdminTelegramBotService::SHORTCUT_STATS
+            && data_get($request->data(), 'reply_markup.keyboard.0.1') === AdminTelegramBotService::SHORTCUT_GROUPS
+            && data_get($request->data(), 'reply_markup.keyboard.1.0') === AdminTelegramBotService::SHORTCUT_MENU
+            && data_get($request->data(), 'reply_markup.is_persistent') === true
+        );
+    }
+
+    public function test_statistics_include_legacy_active_subscriptions_and_count_unique_students(): void
+    {
+        [$student, $course] = $this->studentAndCourse();
+        $otherStudent = User::create([
+            'name' => 'Other Student',
+            'first_name' => 'Other',
+            'middle_name' => 'Test',
+            'last_name' => 'Student',
+            'email' => 'other@example.com',
+            'password' => Hash::make('password123'),
+            'country' => 'EG',
+            'birth_date' => '2000-01-01',
+            'phone' => '01000000001',
+        ]);
+        CourseSubscription::create([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'subscription_status' => null,
+        ]);
+        CourseSubscription::create([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'subscription_status' => CourseSubscription::STATUS_ACTIVE,
+        ]);
+        CourseSubscription::create([
+            'user_id' => $otherStudent->id,
+            'course_id' => $course->id,
+            'subscription_status' => CourseSubscription::STATUS_PENDING,
+        ]);
+
+        $this->assertTrue(app(AdminTelegramBotService::class)->sendStatistics());
+
+        Http::assertSent(fn ($request) =>
+            str_contains((string) $request['text'], 'حسابات الطلاب المسجلة: <b>2</b>')
+            && str_contains((string) $request['text'], 'الطلاب ذوو الاشتراك النشط: <b>1</b>')
+            && str_contains((string) $request['text'], 'الاشتراكات النشطة أو القديمة: <b>2</b>')
         );
     }
 
