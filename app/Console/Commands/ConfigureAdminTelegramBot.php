@@ -21,13 +21,24 @@ class ConfigureAdminTelegramBot extends Command
             ?: rtrim((string) config('app.url'), '/') . '/api/admin/telegram/webhook'
         );
 
-        if (
-            $token === ''
-            || hash_equals((string) config('services.telegram.bot_token'), $token)
-            || !preg_match('/^\d+$/', $chatId)
-            || preg_match('/^[A-Za-z0-9_-]{32,256}$/', $secret) !== 1
-        ) {
-            $this->error('Configure a separate admin bot token, its private chat ID, and a 32-256 character webhook secret.');
+        $configurationErrors = [];
+        if ($token === '') {
+            $configurationErrors[] = 'ADMIN_TELEGRAM_BOT_TOKEN is missing.';
+        } elseif (hash_equals((string) config('services.telegram.bot_token'), $token)) {
+            $configurationErrors[] = 'ADMIN_TELEGRAM_BOT_TOKEN must be different from TELEGRAM_BOT_TOKEN.';
+        }
+        if (preg_match('/^\d+$/', $chatId) !== 1) {
+            $configurationErrors[] = 'ADMIN_TELEGRAM_CHAT_ID must contain digits only. Run telegram:admin-chat-id to find it.';
+        }
+        if (preg_match('/^[A-Za-z0-9_-]{32,256}$/', $secret) !== 1) {
+            $configurationErrors[] = 'ADMIN_TELEGRAM_BOT_SECRET must be 32-256 characters using only letters, digits, _ or -.';
+        }
+
+        if ($configurationErrors !== []) {
+            foreach ($configurationErrors as $configurationError) {
+                $this->error($configurationError);
+            }
+            $this->line('Set the values in the server environment, then run php artisan config:clear and retry.');
             return self::FAILURE;
         }
         if (!str_starts_with($webhookUrl, 'https://')) {

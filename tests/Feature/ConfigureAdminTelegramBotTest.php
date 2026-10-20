@@ -36,4 +36,23 @@ class ConfigureAdminTelegramBotTest extends TestCase
             && collect($request['commands'])->pluck('command')->all() === ['start', 'menu', 'stats', 'groups']
         );
     }
+
+    public function test_invalid_configuration_reports_each_variable_without_calling_telegram(): void
+    {
+        Config::set('services.telegram.bot_token', 'same-token');
+        Config::set('services.admin_telegram.bot_token', 'same-token');
+        Config::set('services.admin_telegram.chat_id', 'not-a-numeric-chat-id');
+        Config::set('services.admin_telegram.secret_token', 'too-short');
+
+        Http::fake();
+
+        $this->assertSame(1, Artisan::call('telegram:admin-secure-configure'));
+
+        $output = Artisan::output();
+        $this->assertStringContainsString('ADMIN_TELEGRAM_BOT_TOKEN must be different from TELEGRAM_BOT_TOKEN.', $output);
+        $this->assertStringContainsString('ADMIN_TELEGRAM_CHAT_ID must contain digits only.', $output);
+        $this->assertStringContainsString('ADMIN_TELEGRAM_BOT_SECRET must be 32-256 characters', $output);
+        $this->assertStringNotContainsString('same-token', $output);
+        Http::assertNothingSent();
+    }
 }
