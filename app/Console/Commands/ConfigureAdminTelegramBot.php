@@ -51,6 +51,10 @@ class ConfigureAdminTelegramBot extends Command
                     ['command' => 'groups', 'description' => 'عرض الكورسات ومجموعاتها'],
                 ],
             ],
+            'setChatMenuButton' => [
+                'chat_id' => (int) $chatId,
+                'menu_button' => ['type' => 'commands'],
+            ],
             'setWebhook' => [
                 'url' => $webhookUrl,
                 'secret_token' => $secret,

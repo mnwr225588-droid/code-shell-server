@@ -66,9 +66,8 @@ class AdminTelegramWebhookTest extends TestCase
 
         Http::assertSent(fn ($request) =>
             str_ends_with($request->url(), '/sendMessage')
-            && data_get($request->data(), 'reply_markup.keyboard.0.0') === AdminTelegramBotService::SHORTCUT_STATS
-            && data_get($request->data(), 'reply_markup.keyboard.0.1') === AdminTelegramBotService::SHORTCUT_GROUPS
-            && data_get($request->data(), 'reply_markup.is_persistent') === true
+            && data_get($request->data(), 'reply_markup.inline_keyboard.0.0.callback_data') === 'admin:stats'
+            && data_get($request->data(), 'reply_markup.inline_keyboard.0.1.callback_data') === 'admin:courses:0'
         );
     }
 

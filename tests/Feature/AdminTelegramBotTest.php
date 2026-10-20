@@ -163,10 +163,9 @@ class AdminTelegramBotTest extends TestCase
 
         Http::assertSent(fn ($request) =>
             str_contains((string) $request['text'], 'لوحة إدارة Code Shell')
-            && data_get($request->data(), 'reply_markup.keyboard.0.0') === AdminTelegramBotService::SHORTCUT_STATS
-            && data_get($request->data(), 'reply_markup.keyboard.0.1') === AdminTelegramBotService::SHORTCUT_GROUPS
-            && data_get($request->data(), 'reply_markup.keyboard.1.0') === AdminTelegramBotService::SHORTCUT_MENU
-            && data_get($request->data(), 'reply_markup.is_persistent') === true
+            && data_get($request->data(), 'reply_markup.inline_keyboard.0.0.callback_data') === 'admin:stats'
+            && data_get($request->data(), 'reply_markup.inline_keyboard.0.1.callback_data') === 'admin:courses:0'
+            && data_get($request->data(), 'reply_markup.keyboard') === null
         );
     }
 

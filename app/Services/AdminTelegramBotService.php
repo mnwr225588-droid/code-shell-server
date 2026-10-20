@@ -87,15 +87,10 @@ class AdminTelegramBotService
     {
         return $this->sendMessage(
             "🛠️ <b>لوحة إدارة Code Shell</b>\nاختر القسم الذي تريد عرضه:",
-            [
-                'keyboard' => [
-                    [self::SHORTCUT_STATS, self::SHORTCUT_GROUPS],
-                    [self::SHORTCUT_MENU],
-                ],
-                'resize_keyboard' => true,
-                'is_persistent' => true,
-                'input_field_placeholder' => 'اختر اختصاراً للإدارة',
-            ]
+            ['inline_keyboard' => [[
+                ['text' => '📊 عرض الإحصائيات', 'callback_data' => 'admin:stats'],
+                ['text' => '👥 عرض المجموعات', 'callback_data' => 'admin:courses:0'],
+            ]]]
         );
     }
 
