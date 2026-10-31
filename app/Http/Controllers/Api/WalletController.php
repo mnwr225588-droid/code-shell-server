@@ -9,30 +9,45 @@ use App\Services\Payment\PaymentGatewayManager;
 use App\Services\PricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class WalletController extends Controller
 {
     /**
-     * جلب رصيد المحفظة الحالي وسجل المعاملات
+     * طلب رصيد المحفظة الحالي وسجل المعاملات مع كاش سريع لتخفيف الحمل على السيرفر
      */
     public function getBalance(Request $request): JsonResponse
     {
         $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
 
-        $transactions = WalletTransaction::where('user_id', $user->id)
-            ->latest()
-            ->take(20)
-            ->get();
+        $userId = $user->id;
+        $cacheKey = 'wallet_bal_u_' . $userId;
 
-        return response()->json([
-            'status'          => true,
-            'wallet_balance'  => (float) ($user->wallet_balance ?? 0.00),
-            'currency_code'   => 'EGP',
-            'currency_symbol' => 'ج.م',
-            'transactions'    => $transactions,
-        ]);
+        $data = Cache::remember($cacheKey, 15, function () use ($userId) {
+            $freshUser = \App\Models\User::find($userId);
+            $transactions = WalletTransaction::where('user_id', $userId)
+                ->latest()
+                ->take(20)
+                ->get();
+
+            return [
+                'status'          => true,
+                'wallet_balance'  => (float) ($freshUser->wallet_balance ?? 0.00),
+                'currency_code'   => 'EGP',
+                'currency_symbol' => 'ج.م',
+                'transactions'    => $transactions,
+            ];
+        });
+
+        return response()->json($data)->header('Cache-Control', 'no-store, private');
     }
 
     /**
@@ -42,10 +57,13 @@ class WalletController extends Controller
     {
         $user = $request->user();
 
+        // إبطال كاش الرصيد فوراً
+        Cache::forget('wallet_bal_u_' . $user->id);
+
         $request->validate([
             'amount' => 'required|numeric|min:30',
         ], [
-            'amount.min' => 'يجب إدخال مبلغ يساوي 30 جنيه أو أكبر.',
+            'amount.min' => 'يجب إدخال مبلغ يساوي 30 جنيهاً أو أكثر.',
             'amount.required' => 'يرجى إدخال مبلغ التعبئة المطلوب.',
         ]);
 
@@ -86,7 +104,7 @@ class WalletController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'تم تجهيز جلسة الدفع لتعبئة المحفظة بنجاح.',
+            'message' => 'تم تهيئة جلسة الدفع لتعبئة المحفظة بنجاح.',
             'data'    => [
                 'transaction_id'  => $transaction->id,
                 'payment_url'     => $created['payment_url'],

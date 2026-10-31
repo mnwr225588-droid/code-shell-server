@@ -277,6 +277,7 @@ class CourseSubscriptionController extends Controller
 
         // ⚡ إبطال كاش حالة الاشتراك بعد التغيير
         \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
+            \Cache::forget('wallet_bal_u_' . $user->id);
 
         // إرجاع استجابة النجاح مع معلومات الباقة
         return response()->json([
@@ -377,6 +378,7 @@ class CourseSubscriptionController extends Controller
 
             // ⚡ إبطال كاش حالة الاشتراك بعد الإلغاء
             \Cache::forget('sub_status_u' . $user->id . '_c' . $course->id);
+            \Cache::forget('wallet_bal_u_' . $user->id);
 
             // 2. إذا كان الكورس مدفوعاً، أضف المبلغ المحسوب إلى محفظة المستخدم
             if ($refundAmount > 0) {

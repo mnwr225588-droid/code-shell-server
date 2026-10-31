@@ -626,4 +626,119 @@ class CourseController extends Controller
         return $query->get()
             ->first(fn (\App\Models\CourseSubscription $subscription) => $subscription->isAccessGranted());
     }
+
+    /**
+     * GET /api/my-courses
+     * جلب الكورسات المشترك بها الطالب حالياً في طلب واحد موحد وسريع جداً
+     */
+    public function myCourses(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = auth('sanctum')->user() ?: $request->user();
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
+
+        // جلب اشتراكات الطالب النشطة
+        $subscriptions = \App\Models\CourseSubscription::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('subscription_status')
+                  ->orWhere('subscription_status', \App\Models\CourseSubscription::STATUS_ACTIVE);
+            })
+            ->with([
+                'course.category',
+                'group.teacher',
+                'plan'
+            ])
+            ->latest('id')
+            ->get()
+            ->filter(function ($sub) {
+                return $sub->isAccessGranted() && $sub->course;
+            })
+            ->values();
+
+        $courseIds = $subscriptions->pluck('course_id')->unique()->values();
+
+        // إحصائيات الدروس لكل كورس
+        $lessonCounts = DB::table('lessons')
+            ->join('levels', 'lessons.level_id', '=', 'levels.id')
+            ->whereIn('levels.course_id', $courseIds)
+            ->groupBy('levels.course_id')
+            ->selectRaw('levels.course_id as cid, COUNT(*) as c')
+            ->pluck('c', 'cid');
+
+        $levelCounts = DB::table('levels')
+            ->whereIn('course_id', $courseIds)
+            ->groupBy('course_id')
+            ->selectRaw('course_id, COUNT(*) as c')
+            ->pluck('c', 'course_id');
+
+        // جلب التقدم المحفوظ
+        $progressRecords = DB::table('progress')
+            ->where('user_id', $user->id)
+            ->whereIn('course_id', $courseIds)
+            ->get()
+            ->keyBy('course_id');
+
+        $courses = $subscriptions->map(function ($sub) use ($lessonCounts, $levelCounts, $progressRecords) {
+            $course = $sub->course;
+            $cid = $course->id;
+            $totalLessons = (int) ($lessonCounts[$cid] ?? ($course->lessons_count ?? 12));
+            if ($totalLessons <= 0) $totalLessons = 12;
+
+            $prog = $progressRecords->get($cid);
+            $percentage = $prog ? (float) $prog->progress_percentage : 0.0;
+            $isCompleted = $prog ? (bool) $prog->completed : false;
+            if ($percentage >= 100) $isCompleted = true;
+
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'description' => $course->description,
+                'category' => $course->category ? [
+                    'id' => $course->category->id,
+                    'name' => $course->category->name,
+                ] : null,
+                'category_name' => $course->category ? $course->category->name : 'برمجة',
+                'thumbnail_url' => $course->thumbnail_url,
+                'icon_url' => $course->icon_url,
+                'image' => $course->thumbnail_url,
+                'icon' => $course->icon,
+                'is_subscribed' => true,
+                'group' => $sub->group ? [
+                    'id' => $sub->group->id,
+                    'name' => $sub->group->name,
+                    'status' => $sub->group->status,
+                    'teacher_name' => $sub->group->teacher ? $sub->group->teacher->name : null,
+                    'meeting_link' => $sub->group->meeting_link,
+                ] : null,
+                'plan' => $sub->plan ? [
+                    'id' => $sub->plan->id,
+                    'name' => $sub->plan->name,
+                    'duration_days' => $sub->plan->duration_days,
+                    'duration_text' => $sub->plan->duration_text,
+                ] : null,
+                'levels_count' => (int) ($levelCounts[$cid] ?? 1),
+                'lessons_count' => $totalLessons,
+                'total_lessons' => $totalLessons,
+                'progress_percentage' => $percentage,
+                'is_completed' => $isCompleted,
+                'last_lesson' => $prog ? $prog->last_lesson : null,
+                'subscribed_at' => $sub->created_at ? $sub->created_at->toIso8601String() : null,
+                'expired_at' => $sub->expired_at ? $sub->expired_at->toIso8601String() : null,
+            ];
+        });
+
+        // استبعاد التكرارات في حال وجود أكثر من اشتراك لنفس الكورس
+        $uniqueCourses = $courses->unique('id')->values();
+
+        return response()->json([
+            'status' => true,
+            'courses' => $uniqueCourses,
+            'total_courses' => $uniqueCourses->count(),
+            'total_completed' => $uniqueCourses->where('is_completed', true)->count(),
+        ])->header('Cache-Control', 'no-store, private');
+    }
 }
